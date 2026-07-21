@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Responsive & Adaptive CSS for Light & Dark Mode High Visibility
+# Responsive & Adaptive CSS with Shadowed Highlight Cards & High Contrast
 st.markdown("""
     <style>
     /* Smooth Scroll & Anchor Offsets so headers are not obscured when jumping */
@@ -29,14 +29,16 @@ st.markdown("""
 
     /* Light & Dark Mode High-Contrast Adaptive Base */
     :root {
-        --card-bg: rgba(128, 128, 128, 0.08);
-        --card-border: rgba(128, 128, 128, 0.2);
+        --card-bg: rgba(128, 128, 128, 0.07);
+        --card-border: rgba(128, 128, 128, 0.22);
+        --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
     }
     
     @media (prefers-color-scheme: dark) {
         :root {
             --card-bg: rgba(255, 255, 255, 0.06);
             --card-border: rgba(255, 255, 255, 0.18);
+            --card-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 1px 4px rgba(0, 0, 0, 0.3);
         }
     }
 
@@ -56,6 +58,7 @@ st.markdown("""
         margin: 4px 0;
         background-color: var(--card-bg);
         border: 1px solid var(--card-border);
+        box-shadow: var(--card-shadow);
         color: inherit !important;
         text-decoration: none !important;
         border-radius: 8px;
@@ -89,7 +92,7 @@ st.markdown("""
         margin-bottom: 0.6rem;
     }
 
-    /* Custom Color-Coded Highlight Cards */
+    /* Custom Color-Coded Shadowed Highlight Cards */
     .highlight-card {
         background-color: var(--card-bg);
         border-radius: 12px;
@@ -99,12 +102,13 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        box-shadow: var(--card-shadow);
+        border: 1px solid var(--card-border);
     }
     
-    .card-milk { border-left: 5px solid #3b82f6; }
+    .card-milk { border-left: 5px solid #2563eb; }
     .card-feed { border-left: 5px solid #c084fc; }
-    .card-diaper { border-left: 5px solid #38bdf8; }
+    .card-diaper { border-left: 5px solid #0284c7; }
     .card-pump { border-left: 5px solid #34d399; }
     .card-sleep { border-left: 5px solid #818cf8; }
     .card-meds { border-left: 5px solid #fbbf24; }
@@ -128,7 +132,7 @@ st.markdown("""
         margin-top: 4px;
     }
 
-    /* Force 2 Highlight Cards per Row even in narrow mobile viewports */
+    /* Force 2 Highlight Cards per Row in narrow mobile viewports */
     @media (max-width: 768px) {
         div[data-testid="stHorizontalBlock"]:has(.highlight-card) {
             display: flex !important;
@@ -331,7 +335,7 @@ COLOR_MAP = {
     "Other": "#6b7280"
 }
 
-# Compact Plotly Styling Helper tailored for maximum chart width (>75%) on Mobile
+# Compact Plotly Styling Helper displaying EVERY DATE on X-Axis
 def style_plotly_figure(fig, title_text="", height=460, single_point=False):
     layout_args = dict(
         title=dict(
@@ -357,7 +361,7 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False):
         ),
         font=dict(family="sans-serif", size=11),
         xaxis=dict(
-            type="category" if single_point else None,
+            type="category", # Strictly displays every single date/label as discrete category tick
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
@@ -410,7 +414,6 @@ def prepare_normalized_timeline_df(input_df):
 max_data_date = df['Date'].max()
 min_data_date = df['Date'].min()
 
-# Expander title cleaned without "(Click to expand)"
 with st.expander("⚙️ Filter & Grouping Settings", expanded=False):
     f_col1, f_col2, f_col3 = st.columns([1.5, 1, 1])
     
@@ -458,13 +461,16 @@ filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
 # 4. HIGHLIGHTS & SUMMARY CARDS
 # ==========================================
 
-# --- Accurate Current Time and Elapsed Last Feed Calculation ---
+# --- Accurate Current Time and Last Feed Metrics Calculation ---
 utc_now = datetime.utcnow()
 current_local_time = utc_now + timedelta(hours=tz_offset)
 
 all_feed_events = df[df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]
 if not all_feed_events.empty:
-    last_feed_dt = all_feed_events.iloc[0]['DateTime']
+    last_feed_row = all_feed_events.iloc[0]
+    last_feed_dt = last_feed_row['DateTime']
+    last_feed_type = last_feed_row['Event Type']
+    last_feed_val = last_feed_row['Value (Optional)']
     
     time_diff = current_local_time - last_feed_dt
     total_seconds = int(time_diff.total_seconds())
@@ -483,12 +489,24 @@ if not all_feed_events.empty:
         last_feed_delta = f"{hrs_since}h {mins_since}m ago"
     else:
         last_feed_delta = f"{mins_since}m ago"
-    last_feed_sub = f"Recorded: {last_feed_time_str}"
+        
+    last_feed_kind = "Formula" if "Formula" in str(last_feed_type) else "Breast Milk"
+    last_feed_summary = f"{int(last_feed_val)} mL ({last_feed_kind})"
+    
+    # Get last recorded formula and breast milk volumes separately
+    last_f_df = df[df['Event Type'].str.contains("Formula", case=False, na=False)]
+    last_bm_df = df[df['Event Type'].str.contains("Breast Milk", case=False, na=False)]
+    
+    f_str = f"{int(last_f_df.iloc[0]['Value (Optional)'])} mL" if not last_f_df.empty else "-"
+    bm_str = f"{int(last_bm_df.iloc[0]['Value (Optional)'])} mL" if not last_bm_df.empty else "-"
+    
+    last_feed_sub = f"Recorded: {last_feed_time_str}<br>🍼 Form: {f_str} | 🤱 BM: {bm_str}"
 else:
     last_feed_delta = "N/A"
+    last_feed_summary = "No records"
     last_feed_sub = "No feed events"
 
-# --- A. TODAY'S HIGHLIGHTS ---
+# --- A. TODAY'S HIGHLIGHTS (Dynamic Active Cards Only) ---
 st.markdown('<div id="today-highlights"></div>', unsafe_allow_html=True)
 
 today_date = max(current_local_time.date(), max_data_date)
@@ -497,6 +515,7 @@ today_df = df[df['Date'] == today_date]
 formatted_today_code = today_date.strftime('%m.%d')
 st.markdown(f'<div class="section-header-single-line">✨ Today [{formatted_today_code}]</div>', unsafe_allow_html=True)
 
+# Compute Today Metrics
 t_formula = today_df[today_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
 t_bm = today_df[today_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
 t_milk = t_formula + t_bm
@@ -512,32 +531,38 @@ t_tummy = today_df[today_df['Event Type'].str.contains("Tummy Time", case=False,
 t_sleep = today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
 t_meds = len(today_df[today_df['Event Type'].str.contains("Meds", case=False, na=False)])
 
-th_col1, th_col2, th_col3, th_col4 = st.columns(4)
+t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
+t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
 
-with th_col1:
-    st.markdown(f"""
+# Build Active Cards list for Today (CARD 1 IS STRICTLY LAST FEEDING)
+today_cards = []
+
+# 1. Last Feeding (ALWAYS Active)
+today_cards.append(f"""
+    <div class="highlight-card card-feed">
+        <div>
+            <div class="highlight-title">⏰ Last Feeding</div>
+            <div class="highlight-body"><b>{last_feed_delta}</b> — {last_feed_summary}</div>
+        </div>
+        <div class="highlight-sub">{last_feed_sub}</div>
+    </div>
+""")
+
+# 2. Milk Intake
+if t_milk > 0 or t_feed_cnt > 0:
+    today_cards.append(f"""
         <div class="highlight-card card-milk">
             <div>
                 <div class="highlight-title">🍼 Milk Intake</div>
                 <div class="highlight-body">Total <b>{int(t_milk):,} mL</b> across <b>{t_feed_cnt}</b> feed(s).</div>
             </div>
-            <div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Formula: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div>
+            <div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Form: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div>
         </div>
-    """, unsafe_allow_html=True)
+    """)
 
-with th_col2:
-    st.markdown(f"""
-        <div class="highlight-card card-feed">
-            <div>
-                <div class="highlight-title">⏰ Last Feeding</div>
-                <div class="highlight-body"><b>{last_feed_delta}</b></div>
-            </div>
-            <div class="highlight-sub">{last_feed_sub}</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-with th_col3:
-    st.markdown(f"""
+# 3. Diaper Output
+if t_wet + t_poop > 0:
+    today_cards.append(f"""
         <div class="highlight-card card-diaper">
             <div>
                 <div class="highlight-title">🚽 Diaper Output</div>
@@ -545,11 +570,12 @@ with th_col3:
             </div>
             <div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div>
         </div>
-    """, unsafe_allow_html=True)
+    """)
 
-with th_col4:
-    p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
-    st.markdown(f"""
+# 4. Pumping & Tummy
+p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
+if t_pumping > 0 or t_tummy > 0 or p_cnt_today > 0:
+    today_cards.append(f"""
         <div class="highlight-card card-pump">
             <div>
                 <div class="highlight-title">🧴 Pumping & Tummy Time</div>
@@ -557,15 +583,12 @@ with th_col4:
             </div>
             <div class="highlight-sub">{p_cnt_today} pumping session(s)</div>
         </div>
-    """, unsafe_allow_html=True)
+    """)
 
-st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
-
-th_row2_c1, th_row2_c2, th_row2_c3, th_row2_c4 = st.columns(4)
-
-with th_row2_c1:
-    sleep_cnt_today = len(today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)])
-    st.markdown(f"""
+# 5. Rest & Sleep
+sleep_cnt_today = len(today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)])
+if t_sleep > 0 or sleep_cnt_today > 0:
+    today_cards.append(f"""
         <div class="highlight-card card-sleep">
             <div>
                 <div class="highlight-title">🛌 Rest & Sleep</div>
@@ -573,36 +596,35 @@ with th_row2_c1:
             </div>
             <div class="highlight-sub">{sleep_cnt_today} sleep period(s)</div>
         </div>
-    """, unsafe_allow_html=True)
+    """)
 
-with th_row2_c2:
-    st.markdown(f"""
+# 6. Medication
+if t_meds > 0:
+    today_cards.append(f"""
         <div class="highlight-card card-meds">
             <div>
                 <div class="highlight-title">💊 Medication</div>
                 <div class="highlight-body">Logged <b>{t_meds}</b> dose(s).</div>
             </div>
-            <div class="highlight-sub">Dose(s) tracked in log</div>
+            <div class="highlight-sub">Dose(s) tracked today</div>
         </div>
-    """, unsafe_allow_html=True)
+    """)
 
-t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
-t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
-t_temp_str = f"<b>{t_latest_temp:.1f} °C</b>" if t_latest_temp else "No readings"
-
-with th_row2_c3:
-    st.markdown(f"""
+# 7. Body Temperature
+if t_latest_temp is not None:
+    today_cards.append(f"""
         <div class="highlight-card card-temp">
             <div>
                 <div class="highlight-title">🌡️ Latest Body Temp</div>
-                <div class="highlight-body">{t_temp_str}</div>
+                <div class="highlight-body"><b>{t_latest_temp:.1f} °C</b></div>
             </div>
-            <div class="highlight-sub">{len(t_temp_df)} temperature reading(s)</div>
+            <div class="highlight-sub">{len(t_temp_df)} reading(s) logged</div>
         </div>
-    """, unsafe_allow_html=True)
+    """)
 
-with th_row2_c4:
-    st.markdown(f"""
+# 8. Total Events Logged Today
+if len(today_df) > 0:
+    today_cards.append(f"""
         <div class="highlight-card card-events">
             <div>
                 <div class="highlight-title">📊 Total Events</div>
@@ -610,17 +632,41 @@ with th_row2_c4:
             </div>
             <div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div>
         </div>
-    """, unsafe_allow_html=True)
+    """)
+
+# Render Active Today Cards Dynamically Balanced Across 1 or 2 Rows
+num_active = len(today_cards)
+
+if num_active <= 4:
+    cols = st.columns(num_active)
+    for idx, card_html in enumerate(today_cards):
+        with cols[idx]:
+            st.markdown(card_html, unsafe_allow_html=True)
+else:
+    # Balance across 2 rows cleanly without odd single orphaned cards
+    row1_count = (num_active + 1) // 2
+    row2_count = num_active - row1_count
+    
+    row1_cols = st.columns(row1_count)
+    for idx in range(row1_count):
+        with row1_cols[idx]:
+            st.markdown(today_cards[idx], unsafe_allow_html=True)
+            
+    st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+    
+    row2_cols = st.columns(row2_count)
+    for idx in range(row2_count):
+        with row2_cols[idx]:
+            st.markdown(today_cards[row1_count + idx], unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
-# --- B. PERIOD HIGHLIGHTS ---
+# --- B. PERIOD HIGHLIGHTS (All Cards Shown Regardless of Readings) ---
 st.markdown('<div id="period-highlights"></div>', unsafe_allow_html=True)
 
 start_code = start_date.strftime('%m.%d')
 end_code = end_date.strftime('%m.%d')
 
-# Expander title cleaned without "(Click to expand)"
 with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded=False):
     p_formula = filtered_df[filtered_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
     p_bm = filtered_df[filtered_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
@@ -637,6 +683,10 @@ with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded
     p_sleep = filtered_df[filtered_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
     p_meds = len(filtered_df[filtered_df['Event Type'].str.contains("Meds", case=False, na=False)])
 
+    p_temp_df = filtered_df[filtered_df['Event Type'].str.contains("Temp", case=False, na=False)]
+    p_latest_temp = p_temp_df.iloc[0]['Value (Optional)'] if not p_temp_df.empty else None
+    p_temp_str = f"<b>{p_latest_temp:.1f} °C</b>" if p_latest_temp else "No readings"
+
     pr1_c1, pr1_c2, pr1_c3, pr1_c4 = st.columns(4)
     with pr1_c1:
         st.markdown(f"""
@@ -645,7 +695,7 @@ with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded
                     <div class="highlight-title">🍼 Milk Intake</div>
                     <div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feed(s).</div>
                 </div>
-                <div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Formula: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div>
+                <div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Form: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -676,10 +726,57 @@ with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded
         st.markdown(f"""
             <div class="highlight-card card-sleep">
                 <div>
-                    <div class="highlight-title">🛌 Sleep & Meds</div>
-                    <div class="highlight-body">Rest: <b>{int(p_sleep)} hr(s)</b> | Meds: <b>{p_meds} dose(s)</b>.</div>
+                    <div class="highlight-title">🛌 Sleep & Rest</div>
+                    <div class="highlight-body">Logged <b>{int(p_sleep)} hr(s)</b> of rest.</div>
                 </div>
-                <div class="highlight-sub">Total {len(filtered_df):,} event(s) in selected range</div>
+                <div class="highlight-sub">{len(filtered_df[filtered_df['Event Type'].str.contains('Sleep', case=False, na=False)])} sleep period(s)</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+
+    pr2_c1, pr2_c2, pr2_c3, pr2_c4 = st.columns(4)
+    with pr2_c1:
+        st.markdown(f"""
+            <div class="highlight-card card-meds">
+                <div>
+                    <div class="highlight-title">💊 Medication</div>
+                    <div class="highlight-body">Logged <b>{p_meds}</b> dose(s).</div>
+                </div>
+                <div class="highlight-sub">Dose(s) tracked in log</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with pr2_c2:
+        st.markdown(f"""
+            <div class="highlight-card card-temp">
+                <div>
+                    <div class="highlight-title">🌡️ Body Temperature</div>
+                    <div class="highlight-body">{p_temp_str}</div>
+                </div>
+                <div class="highlight-sub">{len(p_temp_df)} reading(s) in period</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with pr2_c3:
+        st.markdown(f"""
+            <div class="highlight-card card-events">
+                <div>
+                    <div class="highlight-title">📊 Total Events</div>
+                    <div class="highlight-body"><b>{len(filtered_df):,}</b> entry(s) logged.</div>
+                </div>
+                <div class="highlight-sub">From {start_date} to {end_date}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with pr2_c4:
+        st.markdown(f"""
+            <div class="highlight-card card-feed">
+                <div>
+                    <div class="highlight-title">⏰ Last Feed Reference</div>
+                    <div class="highlight-body"><b>{last_feed_delta}</b></div>
+                </div>
+                <div class="highlight-sub">Overall last feed</div>
             </div>
         """, unsafe_allow_html=True)
         
@@ -818,7 +915,7 @@ with tab2:
             ),
             font=dict(family="sans-serif", size=11),
             xaxis=dict(
-                type="category" if is_single else None,
+                type="category",
                 showgrid=True,
                 gridcolor="rgba(128,128,128,0.15)",
                 tickfont=dict(size=9.5),
