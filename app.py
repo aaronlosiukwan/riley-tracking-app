@@ -645,8 +645,22 @@ with tab1:
             hovermode="x unified"
         )
         
-        fig_milk.update_yaxes(title_text="Volume (mL)", secondary_y=False, showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=10), titlefont=dict(size=11))
-        fig_milk.update_yaxes(title_text="Feeds", secondary_y=True, showgrid=False, tickfont=dict(size=10), titlefont=dict(size=11))
+        # Fixed title_font property to resolve Plotly ValueError
+        fig_milk.update_yaxes(
+            title_text="Volume (mL)",
+            secondary_y=False,
+            showgrid=True,
+            gridcolor="rgba(128,128,128,0.15)",
+            tickfont=dict(size=10),
+            title_font=dict(size=11)
+        )
+        fig_milk.update_yaxes(
+            title_text="Feeds",
+            secondary_y=True,
+            showgrid=False,
+            tickfont=dict(size=10),
+            title_font=dict(size=11)
+        )
         
         st.plotly_chart(fig_milk, use_container_width=True)
         st.caption(f"ℹ️ *Combines stacked **Formula and Breast Milk volume (mL)** on the left axis with total **Feed Count(s)** (emerald line) on the right axis grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
