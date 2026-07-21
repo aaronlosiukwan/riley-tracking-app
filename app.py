@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Apple Touch Icon into document <head> via JS for iOS Safari Home Screen
+# Inject Apple Touch Icon & Responsive Header Classes via JS (Fixes iOS CSS limitations)
 components.html(
     """
     <script>
@@ -37,10 +37,33 @@ components.html(
                 link.href = iconUrl;
             });
         }
+
+        // Dynamically applies classes to the header row so older iOS Safari versions render the 50/50 buttons perfectly
+        function applyHeaderLayout(doc) {
+            if (!doc) return;
+            const marker = doc.getElementById('header-marker');
+            if (marker) {
+                const row = marker.closest('[data-testid="stHorizontalBlock"]');
+                if (row && !row.classList.contains('custom-header-row')) {
+                    row.classList.add('custom-header-row');
+                    const cols = row.querySelectorAll('[data-testid="column"]');
+                    if (cols.length >= 3) {
+                        cols[0].classList.add('custom-header-col-1');
+                        cols[1].classList.add('custom-header-col-2');
+                        cols[2].classList.add('custom-header-col-3');
+                    }
+                }
+            }
+        }
         
-        try { applyAppleIcon(document); } catch(e) {}
-        try { applyAppleIcon(window.parent.document); } catch(e) {}
-        try { applyAppleIcon(window.top.document); } catch(e) {}
+        function runUpdates() {
+            try { applyAppleIcon(document); applyHeaderLayout(document); } catch(e) {}
+            try { applyAppleIcon(window.parent.document); applyHeaderLayout(window.parent.document); } catch(e) {}
+            try { applyAppleIcon(window.top.document); applyHeaderLayout(window.top.document); } catch(e) {}
+        }
+        
+        runUpdates();
+        setInterval(runUpdates, 500); // Ensures classes stay applied if Streamlit rerenders
     })();
     </script>
     """,
@@ -99,48 +122,50 @@ st.markdown("""
         padding-bottom: calc(8rem + env(safe-area-inset-bottom)) !important;
     }
 
+    /* ------------------------------------------------------------------------
+       Responsive Header Configuration (Desktop vs Mobile layout)
+       ------------------------------------------------------------------------ */
+    
     /* Shrink Add and Refresh buttons in the header row */
-    div[data-testid="stHorizontalBlock"]:has(#header-marker) [data-testid="baseButton-secondary"] {
+    .custom-header-row [data-testid="baseButton-secondary"] {
         min-height: 2.0rem !important;
         height: 2.0rem !important;
         padding: 0 0.5rem !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(#header-marker) [data-testid="baseButton-secondary"] p {
+    .custom-header-row [data-testid="baseButton-secondary"] p {
         font-size: 0.85rem !important;
         margin: 0 !important;
     }
 
-    /* ------------------------------------------------------------------------
-       Responsive Header Configuration (Desktop vs Mobile layout)
-       ------------------------------------------------------------------------ */
     @media (max-width: 768px) {
-        .desktop-hr { display: none !important; } /* Hide the desktop bottom HR on mobile */
+        .desktop-hr { display: none !important; }
         
         /* Force buttons onto a split row on mobile using flex wrap */
-        div[data-testid="stHorizontalBlock"]:has(#header-marker) {
+        .custom-header-row {
             display: flex !important;
             flex-direction: row !important;
             flex-wrap: wrap !important;
             justify-content: space-between !important;
             width: 100% !important;
-            row-gap: 0.5rem !important;
+            row-gap: 0.1rem !important;
         }
-        /* Mobile: Title column gets 100% width and a bottom border acting as the HR */
-        div[data-testid="stHorizontalBlock"]:has(#header-marker) > div[data-testid="column"]:nth-child(1) {
+        /* Mobile: Title column gets 100% width and line break */
+        .custom-header-col-1 {
             width: 100% !important;
             min-width: 100% !important;
             flex: 1 1 100% !important;
-            border-bottom: 1px solid rgba(128,128,128,0.25);
-            padding-bottom: 0.6rem !important;
             margin-bottom: 0.2rem !important;
         }
         /* Mobile: Buttons perfectly split the bottom row (48% each to allow safe gap) */
-        div[data-testid="stHorizontalBlock"]:has(#header-marker) > div[data-testid="column"]:nth-child(2),
-        div[data-testid="stHorizontalBlock"]:has(#header-marker) > div[data-testid="column"]:nth-child(3) {
+        .custom-header-col-2, .custom-header-col-3 {
             width: 48% !important;
             min-width: 48% !important;
             flex: 1 1 48% !important;
         }
+    }
+    @media (min-width: 769px) {
+        .mobile-hr { display: none !important; }
+        .mobile-gap { display: none !important; }
     }
     /* ------------------------------------------------------------------------ */
 
@@ -335,8 +360,10 @@ st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 header_c1, header_c2, header_c3 = st.columns([0.65, 0.175, 0.175], vertical_alignment="center")
 
 with header_c1:
-    # #header-marker anchors the CSS targeting logic
+    # #header-marker anchors the CSS targeting logic allowing JS to apply classes
     st.markdown('<div id="header-marker"></div><div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
+    # Mobile HR explicitly rendered beneath title but above buttons
+    st.markdown('<hr class="mobile-hr" style="margin: 2px 0 6px 0; border: none; border-top: 1px solid rgba(128,128,128,0.25);">', unsafe_allow_html=True)
 
 with header_c2:
     st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
@@ -346,9 +373,11 @@ with header_c3:
         st.cache_data.clear()
         st.rerun()
 
-# Desktop HR (hidden on mobile via CSS since mobile uses title bottom-border)
-st.markdown('<hr class="desktop-hr" style="margin: 4px 0 10px 0; opacity: 0.25;">', unsafe_allow_html=True)
+# Desktop HR (hidden on mobile via CSS) rendered strictly beneath everything
+st.markdown('<hr class="desktop-hr" style="margin: 4px 0 10px 0; border: none; border-top: 1px solid rgba(128,128,128,0.25);">', unsafe_allow_html=True)
 
+# Spacing Gap ensuring the header section matches the vertical blocks spacing (.035rem)
+st.markdown('<div class="mobile-gap" style="height: 0.35rem;"></div>', unsafe_allow_html=True)
 
 # ==========================================
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
