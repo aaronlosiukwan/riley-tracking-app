@@ -285,8 +285,10 @@ st.markdown("""
 
     /* Disable chart interaction on mobile for smooth page scrolling */
     @media (max-width: 768px) {
-        div[data-testid="stPlotlyChart"] {
+        div[data-testid="stPlotlyChart"],
+        div[data-testid="stPlotlyChart"] iframe {
             pointer-events: none !important;
+            touch-action: none !important;
         }
     }
     </style>
@@ -609,7 +611,7 @@ if not all_feed_events.empty:
     hrs_since = total_seconds // 3600
     mins_since = (total_seconds % 3600) // 60
     
-    last_feed_time_str = last_feed_dt.strftime('%b %d, %I:%M %p')
+    last_feed_time_str = last_feed_dt.strftime('%b %d, %H:%M')
     if hrs_since >= 24:
         last_feed_delta = f"{hrs_since // 24}d {hrs_since % 24}h ago"
     elif hrs_since > 0:
@@ -1228,7 +1230,7 @@ if 'Value (Optional)' in table_df.columns:
     table_df['Value (Optional)'] = table_df['Value (Optional)'].apply(format_value)
 
 if 'DateTime' in table_df.columns:
-    table_df['DateTime_Display'] = table_df['DateTime'].dt.strftime('%Y-%m-%d %I:%M %p')
+    table_df['DateTime_Display'] = table_df['DateTime'].dt.strftime('%Y-%m-%d %H:%M')
 
 # REORDER COLUMNS: DateTime and Event Type ARE STRICTLY COLUMNS 1 AND 2
 desired_cols = [
@@ -1259,6 +1261,7 @@ if not display_df.empty:
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
+
 
 
 
