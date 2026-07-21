@@ -48,7 +48,7 @@ components.html(
     width=0
 )
 
-# Responsive & Adaptive CSS: Strictly Light Mode with Equal Height Cards & Safari Spacing
+# Responsive & Adaptive CSS: Compact Vertical Spacing & Light Mode Grid Cards
 st.markdown("""
     <style>
     /* Hide Streamlit Default Branding while preserving Sidebar Header Toggle Button */
@@ -61,7 +61,17 @@ st.markdown("""
         scroll-behavior: smooth;
     }
     [id] {
-        scroll-margin-top: 80px;
+        scroll-margin-top: 70px;
+    }
+
+    /* Compact Vertical Spacing Across Blocks & Expanders */
+    div[data-testid="stVerticalBlock"] {
+        gap: 0.5rem !important;
+    }
+    
+    div[data-testid="stExpander"] {
+        margin-bottom: 0.3rem !important;
+        border-radius: 10px !important;
     }
 
     /* Locked Light Mode Theme Variables */
@@ -85,6 +95,7 @@ st.markdown("""
     
     /* Adds extra spacing at bottom so content scrolls fully above Safari's floating bar */
     [data-testid="stMainBlockContainer"] {
+        padding-top: 0.5rem !important;
         padding-bottom: calc(8rem + env(safe-area-inset-bottom)) !important;
     }
 
@@ -101,7 +112,7 @@ st.markdown("""
         display: block;
         width: 100%;
         padding: 8px 12px;
-        margin: 4px 0;
+        margin: 3px 0;
         background-color: var(--card-bg);
         border: 1px solid var(--card-border);
         box-shadow: var(--card-shadow);
@@ -120,23 +131,23 @@ st.markdown("""
 
     /* Mobile Single-Row Titles */
     .app-main-title {
-        font-size: clamp(1.4rem, 5vw, 2.2rem);
+        font-size: clamp(1.3rem, 4.5vw, 2.1rem);
         font-weight: 700;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        margin-bottom: 0.2rem;
         color: var(--card-text);
+        margin: 0;
     }
 
     .section-header-single-line {
-        font-size: clamp(1.1rem, 4vw, 1.45rem);
+        font-size: clamp(1.05rem, 3.8vw, 1.35rem);
         font-weight: 600;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        margin-top: 0.8rem;
-        margin-bottom: 0.6rem;
+        margin-top: 0.4rem;
+        margin-bottom: 0.3rem;
         color: var(--card-text);
     }
 
@@ -144,9 +155,9 @@ st.markdown("""
     .cards-container {
         display: grid !important;
         grid-template-columns: repeat(4, 1fr) !important;
-        gap: 10px !important;
+        gap: 8px !important;
         align-items: stretch !important;
-        margin-bottom: 10px !important;
+        margin-bottom: 4px !important;
         width: 100% !important;
     }
 
@@ -160,8 +171,8 @@ st.markdown("""
     .highlight-card {
         background-color: var(--card-bg);
         border-radius: 12px;
-        padding: 12px 14px;
-        min-height: 125px;
+        padding: 10px 12px;
+        min-height: 120px;
         height: 100% !important;
         display: flex !important;
         flex-direction: column !important;
@@ -186,25 +197,25 @@ st.markdown("""
 
     .highlight-title {
         font-weight: 600;
-        font-size: 0.9rem;
-        margin-bottom: 4px;
+        font-size: 0.88rem;
+        margin-bottom: 3px;
         white-space: normal !important;
         word-break: break-word !important;
-        line-height: 1.25;
+        line-height: 1.2;
         color: var(--card-text);
     }
     .highlight-body {
-        font-size: 0.86rem;
+        font-size: 0.84rem;
         opacity: 0.92;
-        line-height: 1.3;
+        line-height: 1.25;
         word-break: break-word;
         color: var(--card-text);
     }
     .highlight-sub {
-        font-size: 0.75rem;
+        font-size: 0.74rem;
         opacity: 0.75;
-        margin-top: 4px;
-        line-height: 1.3;
+        margin-top: 3px;
+        line-height: 1.25;
         word-break: break-word;
         color: var(--card-text);
     }
@@ -212,9 +223,9 @@ st.markdown("""
     /* Grey default range indicator text */
     .default-range-text {
         color: #64748b;
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         font-style: italic;
-        margin-top: 2px;
+        margin-top: 1px;
         display: inline-block;
     }
 
@@ -222,8 +233,8 @@ st.markdown("""
     .raw-log-count-text {
         font-size: 0.72rem;
         color: #64748b;
-        margin-top: 4px;
-        margin-bottom: 8px;
+        margin-top: 3px;
+        margin-bottom: 6px;
     }
 
     /* Empty state notice */
@@ -231,45 +242,50 @@ st.markdown("""
         background-color: var(--card-bg);
         border: 1.5px dashed var(--card-border);
         border-radius: 12px;
-        padding: 20px;
+        padding: 16px;
         text-align: center;
-        margin: 12px 0;
+        margin: 8px 0;
         color: var(--card-text);
     }
     .empty-data-title {
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 600;
-        margin-bottom: 4px;
+        margin-bottom: 3px;
     }
     .empty-data-sub {
-        font-size: 0.82rem;
+        font-size: 0.8rem;
         opacity: 0.75;
-    }
-
-    /* Streamlit Padding Fixes */
-    .stApp {
-        padding-top: 0.25rem;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Main Title Anchor and Title with Line Break
+# Main Title Anchor and Title with Header Refresh Button
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
-st.markdown('<div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
-st.markdown('<hr style="margin: 6px 0 16px 0; opacity: 0.25;">', unsafe_allow_html=True)
+
+header_c1, header_c2 = st.columns([0.78, 0.22], vertical_alignment="center")
+
+with header_c1:
+    st.markdown('<div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
+
+with header_c2:
+    if st.button("🔄 Refresh", key="hdr_refresh_btn", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+
+st.markdown('<hr style="margin: 4px 0 10px 0; opacity: 0.25;">', unsafe_allow_html=True)
 
 # ==========================================
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
 # ==========================================
 st.sidebar.markdown("""
-    <div style="margin-bottom: 12px;">
-        <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 8px;">📌 Navigation</div>
+    <div style="margin-bottom: 10px;">
+        <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 6px;">📌 Navigation</div>
         <a href="#today-highlights" class="toc-button">✨ Today's Highlights</a>
         <a href="#period-highlights" class="toc-button">✨ Period Highlights</a>
         <a href="#analytics-charts" class="toc-button">📊 Analytics & Charts</a>
         <a href="#raw-logs" class="toc-button">📋 Raw Data Logs</a>
     </div>
-    <hr style="margin: 12px 0; opacity: 0.2;">
+    <hr style="margin: 10px 0; opacity: 0.2;">
 """, unsafe_allow_html=True)
 
 DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
@@ -406,7 +422,7 @@ def format_x_label(val):
         return str(val)
 
 # Compact Plotly Styling Helper displaying EVERY DATE on X-Axis with Unbolded Titles
-def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_scatter=False, x_tickformat=None, x_dtick=None):
+def style_plotly_figure(fig, title_text="", height=450, single_point=False, is_scatter=False, x_tickformat=None, x_dtick=None):
     layout_args = dict(
         title=dict(
             text=title_text,
@@ -414,12 +430,12 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_s
             x=0.5,
             xanchor="center",
             yanchor="top",
-            font=dict(size=16, weight="normal") # Enlarged unbolded title font
+            font=dict(size=15, weight="normal")
         ),
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=2, r=2, t=75, b=20),
+        margin=dict(l=2, r=2, t=65, b=15),
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -434,14 +450,14 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_s
             type=None if is_scatter else "category",
             tickformat=x_tickformat if x_tickformat else None,
             dtick=x_dtick if x_dtick else None,
-            title=dict(text=""), # Removed axis title labels like "DateTime" or "Daily"
+            title=dict(text=""),
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
             automargin=True
         ),
         yaxis=dict(
-            title=dict(text=""), # Stripped y-axis title label
+            title=dict(text=""),
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
@@ -694,10 +710,8 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
     <div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div>
 </div>""")
 
-    # Render Today Cards via CSS Grid Container correctly without indentation formatting breaking HTML
+    # Render Today Cards via CSS Grid Container
     st.markdown(f'<div class="cards-container">{"".join(today_cards)}</div>', unsafe_allow_html=True)
-
-st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
 # --- B. PERIOD HIGHLIGHTS ---
 st.markdown('<div id="period-highlights"></div>', unsafe_allow_html=True)
@@ -789,7 +803,7 @@ with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded
 
     st.markdown(f'<div class="cards-container">{"".join(period_cards)}</div>', unsafe_allow_html=True)
 
-st.markdown("---")
+st.markdown('<hr style="margin: 8px 0; opacity: 0.2;">', unsafe_allow_html=True)
 
 def render_empty_state(title="No Data Logged in this period", subtitle="Try picking a wider date range or logging new entries."):
     st.markdown(f"""<div class="empty-data-card">
@@ -834,7 +848,7 @@ with tab1:
         fig_today_timeline = style_plotly_figure(
             fig_today_timeline,
             title_text="⏰ Last 24 Hours Activity Timeline",
-            height=480,
+            height=450,
             is_scatter=True,
             x_tickformat="%d-%H"
         )
@@ -910,7 +924,7 @@ with tab2:
         fig_milk = style_plotly_figure(
             fig_milk,
             title_text=f"🍼 Milk Intake Volume & Feed Count — {granularity}",
-            height=510,
+            height=490,
             single_point=is_single
         )
         
@@ -960,7 +974,7 @@ with tab3:
         if is_single:
             fig_diaper.update_traces(width=0.25)
         fig_diaper.update_traces(hovertemplate='%{y}<extra></extra>')
-        fig_diaper = style_plotly_figure(fig_diaper, title_text=f"🚽 Diaper Changes Count — {granularity}", height=460, single_point=is_single)
+        fig_diaper = style_plotly_figure(fig_diaper, title_text=f"🚽 Diaper Changes Count — {granularity}", height=450, single_point=is_single)
         st.plotly_chart(fig_diaper, use_container_width=True)
         st.caption(f"ℹ️ *Compares Wet Diapers and Poop counts grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
@@ -984,7 +998,7 @@ with tab4:
         if is_single:
             fig_pump.update_traces(width=0.25)
         fig_pump.update_traces(hovertemplate='%{y} mL<extra></extra>')
-        fig_pump = style_plotly_figure(fig_pump, title_text=f"🧴 Pumping Volume (mL) — {granularity}", height=460, single_point=is_single)
+        fig_pump = style_plotly_figure(fig_pump, title_text=f"🧴 Pumping Volume (mL) — {granularity}", height=450, single_point=is_single)
         st.plotly_chart(fig_pump, use_container_width=True)
         st.caption(f"ℹ️ *Displays recorded pumping volume (mL) grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
@@ -1008,7 +1022,7 @@ with tab5:
         if is_single:
             fig_tummy.update_traces(width=0.25)
         fig_tummy.update_traces(hovertemplate='%{y} Mins<extra></extra>')
-        fig_tummy = style_plotly_figure(fig_tummy, title_text=f"🛟 Tummy Time — {granularity}", height=460, single_point=is_single)
+        fig_tummy = style_plotly_figure(fig_tummy, title_text=f"🛟 Tummy Time — {granularity}", height=450, single_point=is_single)
         st.plotly_chart(fig_tummy, use_container_width=True)
         st.caption(f"ℹ️ *Displays recorded tummy time duration (Mins) grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
@@ -1086,7 +1100,7 @@ with tab6:
                 fig_act.update_traces(width=0.25)
             fig_act.update_traces(hovertemplate='%{y} doses<extra></extra>')
             
-        fig_act = style_plotly_figure(fig_act, title_text=f"🩺 Health — {act_option} ({granularity})", height=460, single_point=is_single)
+        fig_act = style_plotly_figure(fig_act, title_text=f"🩺 Health — {act_option} ({granularity})", height=450, single_point=is_single)
         st.plotly_chart(fig_act, use_container_width=True)
         st.caption(f"ℹ️ *Displays recorded **{act_option}** data grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
@@ -1110,7 +1124,7 @@ with tab7:
         fig_time = style_plotly_figure(
             fig_time,
             title_text=f"📈 Interactive Event Timeline — {granularity}",
-            height=480,
+            height=470,
             is_scatter=True,
             x_tickformat="%-m.%d",
             x_dtick="D1"
@@ -1121,7 +1135,7 @@ with tab7:
     else:
         render_empty_state("No Events Logged in this period")
 
-st.markdown("---")
+st.markdown('<hr style="margin: 8px 0; opacity: 0.2;">', unsafe_allow_html=True)
 
 # ==========================================
 # 6. EXPANDED RAW DATA LOGS TABLE
@@ -1205,3 +1219,4 @@ if not display_df.empty:
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
+```eof
