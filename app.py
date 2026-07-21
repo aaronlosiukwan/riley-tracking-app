@@ -16,12 +16,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Safari meta tags for translucent status bar
+# Inject Safari meta tags for translucent status bar & Apple Home Screen Icon
 st.markdown("""
     <head>
         <meta name="theme-color" content="#f8fafc">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        <!-- iOS Safari Home Screen App Icon (Replace href with your public image URL) -->
+        <link rel="apple-touch-icon" sizes="180x180" href="https://em-content.zobj.net/source/apple/391/baby-bottle_1f37c.png">
     </head>
 """, unsafe_allow_html=True)
 
@@ -53,16 +55,6 @@ st.markdown("""
     body, .stApp {
         color: var(--card-text) !important;
         background-color: #f8fafc !important; /* Very subtle off-white background */
-    }
-
-    /* Seamless background for Safari translucency and Safe Area Padding */
-    [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-        background-color: #f8fafc !important; 
-    }
-    
-    /* Adds extra spacing at the bottom so content scrolls fully above Safari's floating bar */
-    [data-testid="stMainBlockContainer"] {
-        padding-bottom: calc(8rem + env(safe-area-inset-bottom)) !important;
     }
 
     /* Style Multiselect Tag Chips to Light Grey */
@@ -1182,6 +1174,3 @@ if not display_df.empty:
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
-
-
-
