@@ -19,6 +19,14 @@ st.set_page_config(
 # Responsive & Adaptive CSS for Light & Dark Mode High Visibility
 st.markdown("""
     <style>
+    /* Smooth Scroll & Anchor Offsets so headers are not obscured when jumping */
+    html {
+        scroll-behavior: smooth;
+    }
+    [id] {
+        scroll-margin-top: 80px;
+    }
+
     /* Light & Dark Mode High-Contrast Adaptive Base */
     :root {
         --card-bg: rgba(128, 128, 128, 0.08);
@@ -68,7 +76,7 @@ st.markdown("""
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.2rem;
     }
 
     .section-header-single-line {
@@ -120,6 +128,21 @@ st.markdown("""
         margin-top: 4px;
     }
 
+    /* Force 2 Highlight Cards per Row even in narrow mobile viewports */
+    @media (max-width: 768px) {
+        div[data-testid="stHorizontalBlock"]:has(.highlight-card) {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(.highlight-card) > div[data-testid="column"] {
+            width: calc(50% - 4px) !important;
+            flex: 1 1 calc(50% - 4px) !important;
+            min-width: calc(50% - 4px) !important;
+        }
+    }
+
     /* Grey default range indicator text */
     .default-range-text {
         color: #888888;
@@ -163,9 +186,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Main Title Anchor
+# Main Title Anchor and Title with Line Break
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 st.markdown('<div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
+st.markdown('<hr style="margin: 6px 0 16px 0; opacity: 0.25;">', unsafe_allow_html=True)
 
 # ==========================================
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
@@ -173,7 +197,7 @@ st.markdown('<div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_al
 st.sidebar.markdown("""
     <div style="margin-bottom: 12px;">
         <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 8px;">📌 Navigation</div>
-        <a href="#top-header" class="toc-button">🏠 Header</a>
+        <a href="#top-header" class="toc-button">🏠 &nbsp;Header</a>
         <a href="#today-highlights" class="toc-button">✨ Today's Highlights</a>
         <a href="#period-highlights" class="toc-button">✨ Period Highlights</a>
         <a href="#analytics-charts" class="toc-button">📊 Analytics & Charts</a>
@@ -386,7 +410,8 @@ def prepare_normalized_timeline_df(input_df):
 max_data_date = df['Date'].max()
 min_data_date = df['Date'].min()
 
-with st.expander("⚙️ Filter & Grouping Settings (Click to expand)", expanded=False):
+# Expander title cleaned without "(Click to expand)"
+with st.expander("⚙️ Filter & Grouping Settings", expanded=False):
     f_col1, f_col2, f_col3 = st.columns([1.5, 1, 1])
     
     with f_col1:
@@ -595,7 +620,8 @@ st.markdown('<div id="period-highlights"></div>', unsafe_allow_html=True)
 start_code = start_date.strftime('%m.%d')
 end_code = end_date.strftime('%m.%d')
 
-with st.expander(f"✨ Range Highlights [{start_code} – {end_code}] (Click to expand)", expanded=False):
+# Expander title cleaned without "(Click to expand)"
+with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded=False):
     p_formula = filtered_df[filtered_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
     p_bm = filtered_df[filtered_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
     p_milk = p_formula + p_bm
