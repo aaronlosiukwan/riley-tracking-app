@@ -147,20 +147,21 @@ st.markdown("""
             flex-wrap: wrap !important;
             justify-content: space-between !important;
             width: 100% !important;
-            row-gap: 0.1rem !important;
+            gap: 0 !important; /* Strip inherited streamlit gaps to absolutely prevent wrapping */
         }
         /* Mobile: Title column gets 100% width and line break */
         .custom-header-col-1 {
             width: 100% !important;
             min-width: 100% !important;
-            flex: 1 1 100% !important;
-            margin-bottom: 0.2rem !important;
+            max-width: 100% !important;
+            flex: 0 0 100% !important;
         }
-        /* Mobile: Buttons perfectly split the bottom row (48% each to allow safe gap) */
+        /* Mobile: Buttons strictly forced to 48% each to prevent 2-row wrapping */
         .custom-header-col-2, .custom-header-col-3 {
             width: 48% !important;
             min-width: 48% !important;
-            flex: 1 1 48% !important;
+            max-width: 48% !important;
+            flex: 0 0 48% !important;
         }
     }
     @media (min-width: 769px) {
@@ -362,8 +363,8 @@ header_c1, header_c2, header_c3 = st.columns([0.65, 0.175, 0.175], vertical_alig
 with header_c1:
     # #header-marker anchors the CSS targeting logic allowing JS to apply classes
     st.markdown('<div id="header-marker"></div><div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
-    # Mobile HR explicitly rendered beneath title but above buttons
-    st.markdown('<hr class="mobile-hr" style="margin: 2px 0 6px 0; border: none; border-top: 1px solid rgba(128,128,128,0.25);">', unsafe_allow_html=True)
+    # Mobile HR explicitly rendered beneath title but above buttons, with balanced gap below line
+    st.markdown('<hr class="mobile-hr" style="margin: 0.35rem 0 0.5rem 0; border: none; border-top: 1px solid rgba(128,128,128,0.25);">', unsafe_allow_html=True)
 
 with header_c2:
     st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
@@ -1320,4 +1321,5 @@ with tab7:
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Events Logged in this period")
+
 
