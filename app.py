@@ -170,6 +170,13 @@ sheet_url_input = st.sidebar.text_input(
     help="Auto-synced to your master spreadsheet."
 )
 
+tz_offset = st.sidebar.number_input(
+    "Timezone Offset (UTC Hours)",
+    value=8,
+    step=1,
+    help="Adjust if 'Last Feed' elapsed time is offset. +8 for HKT/SGT, -5 for EST."
+)
+
 if sheet_url_input:
     st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
 
@@ -278,9 +285,9 @@ COLOR_MAP = {
     "Other": "#6b7280"
 }
 
-# Compact Plotly Styling Helper
-def style_plotly_figure(fig, title_text="", height=460):
-    fig.update_layout(
+# Compact Plotly Styling Helper with Adaptive Single-Point Proportions
+def style_plotly_figure(fig, title_text="", height=460, single_point=False):
+    layout_args = dict(
         title=dict(
             text=title_text,
             y=0.97,
@@ -307,6 +314,9 @@ def style_plotly_figure(fig, title_text="", height=460):
         yaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=10)),
         hovermode="x unified"
     )
+    if single_point:
+        layout_args["bargap"] = 0.7
+    fig.update_layout(**layout_args)
     return fig
 
 # ==========================================
@@ -362,27 +372,22 @@ filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
 # 4. HIGHLIGHTS & SUMMARY CARDS
 # ==========================================
 
-# --- Smart Reference Time & Timezone Offset Calculation ---
-server_now = datetime.now()
-max_log_dt = df['DateTime'].max()
-time_diff_server = (max_log_dt - server_now).total_seconds()
+# --- Accurate Current Time and Elapsed Last Feed Calculation ---
+utc_now = datetime.utcnow()
+current_local_time = utc_now + timedelta(hours=tz_offset)
 
-if time_diff_server > 0:
-    offset_hours = round(time_diff_server / 3600.0)
-    current_ref_time = server_now + timedelta(hours=offset_hours)
-else:
-    current_ref_time = server_now
-
-# Calculate Last Feeding time elapsed dynamically
 all_feed_events = df[df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]
 if not all_feed_events.empty:
     last_feed_dt = all_feed_events.iloc[0]['DateTime']
     
-    if current_ref_time < last_feed_dt:
-        current_ref_time = last_feed_dt
+    time_diff = current_local_time - last_feed_dt
+    total_seconds = int(time_diff.total_seconds())
+    
+    if total_seconds < 0:
+        # Fallback if log time is ahead of configured timezone
+        current_local_time = last_feed_dt
+        total_seconds = 0
 
-    time_diff = current_ref_time - last_feed_dt
-    total_seconds = max(0, int(time_diff.total_seconds()))
     hrs_since = total_seconds // 3600
     mins_since = (total_seconds % 3600) // 60
     
@@ -398,14 +403,14 @@ else:
     last_feed_delta = "N/A"
     last_feed_sub = "No feed events"
 
-# --- A. TODAY'S HIGHLIGHTS ---
+# --- A. TODAY'S HIGHLIGHTS (Header changed to "✨ Today [MM.DD]") ---
 st.markdown('<div id="today-highlights"></div>', unsafe_allow_html=True)
 
-today_date = max(current_ref_time.date(), max_data_date)
+today_date = max(current_local_time.date(), max_data_date)
 today_df = df[df['Date'] == today_date]
 
 formatted_today_code = today_date.strftime('%m.%d')
-st.markdown(f'<div class="section-header-single-line">✨ Highlights [{formatted_today_code}]</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="section-header-single-line">✨ Today [{formatted_today_code}]</div>', unsafe_allow_html=True)
 
 t_formula = today_df[today_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
 t_bm = today_df[today_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
@@ -524,7 +529,7 @@ with th_row2_c4:
 
 st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
-# --- B. PERIOD HIGHLIGHTS (Collapsible Box with Bottom Margin Padding) ---
+# --- B. PERIOD HIGHLIGHTS ---
 st.markdown('<div id="period-highlights"></div>', unsafe_allow_html=True)
 
 start_code = start_date.strftime('%m.%d')
@@ -610,11 +615,12 @@ def render_empty_state(title="No Data Logged in this period", subtitle="Try pick
 st.markdown('<div id="analytics-charts"></div>', unsafe_allow_html=True)
 st.subheader("📊 Analytics & Insights")
 
+# Updated Tab Label for Tummy Time -> "🛟 Tummy"
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🍼 Milk Intake", 
     "🚽 Diapers", 
     "🧴 Pumping",
-    "🛟 Tummy Time",
+    "🛟 Tummy",
     "🩺 Health", 
     "⏰ Today",
     "📈 Timeline"
@@ -632,6 +638,8 @@ with tab1:
         grouped_vol = milk_df.groupby([group_col, 'Category'])['Value (Optional)'].sum().reset_index()
         grouped_count = milk_df.groupby(group_col).size().reset_index(name='Total Feeds Count')
         
+        is_single = len(grouped_count) == 1
+        
         fig_milk = make_subplots(specs=[[{"secondary_y": True}]])
         
         df_f = grouped_vol[grouped_vol['Category'] == '🍼 Formula (mL)']
@@ -641,7 +649,8 @@ with tab1:
                     name='🍼 Formula (mL)',
                     x=df_f[group_col].astype(str),
                     y=df_f['Value (Optional)'],
-                    marker_color="#2563eb"
+                    marker_color="#2563eb",
+                    width=0.25 if is_single else None
                 ),
                 secondary_y=False
             )
@@ -653,7 +662,8 @@ with tab1:
                     name='🤱 Breast Milk (mL)',
                     x=df_bm[group_col].astype(str),
                     y=df_bm['Value (Optional)'],
-                    marker_color="#ec4899"
+                    marker_color="#ec4899",
+                    width=0.25 if is_single else None
                 ),
                 secondary_y=False
             )
@@ -668,7 +678,7 @@ with tab1:
                 textposition="top center",
                 textfont=dict(size=10.5),
                 line=dict(color='#10b981', width=3, shape='spline', smoothing=1.3),
-                marker=dict(size=9, symbol='circle', color='#10b981', line=dict(width=2, color='#ffffff'))
+                marker=dict(size=10, symbol='circle', color='#10b981', line=dict(width=2, color='#ffffff'))
             ),
             secondary_y=True
         )
@@ -687,6 +697,7 @@ with tab1:
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
             margin=dict(l=8, r=8, t=85, b=25),
+            bargap=0.6 if is_single else 0.2,
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
@@ -731,6 +742,7 @@ with tab2:
         )
         grouped_diaper = diaper_df.groupby([group_col, 'Category']).size().reset_index(name='Count')
         grouped_diaper[group_col] = grouped_diaper[group_col].astype(str)
+        is_single = len(grouped_diaper[group_col].unique()) == 1
         
         fig_diaper = px.bar(
             grouped_diaper,
@@ -741,7 +753,9 @@ with tab2:
             color_discrete_map=COLOR_MAP,
             labels={"Count": "Diaper Count(s)", group_col: granularity}
         )
-        fig_diaper = style_plotly_figure(fig_diaper, title_text=f"Diaper Changes Count — {granularity}", height=460)
+        if is_single:
+            fig_diaper.update_traces(width=0.25)
+        fig_diaper = style_plotly_figure(fig_diaper, title_text=f"Diaper Changes Count — {granularity}", height=460, single_point=is_single)
         st.plotly_chart(fig_diaper, use_container_width=True)
         st.caption(f"ℹ️ *Compares Wet Diapers and Poop counts grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
@@ -753,6 +767,7 @@ with tab3:
     if not pump_df.empty:
         grouped_pump = pump_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
         grouped_pump[group_col] = grouped_pump[group_col].astype(str)
+        is_single = len(grouped_pump) == 1
         
         fig_pump = px.bar(
             grouped_pump,
@@ -761,18 +776,21 @@ with tab3:
             color_discrete_sequence=[COLOR_MAP["🧴 Pumping (mL)"]],
             labels={"Value (Optional)": "Volume (mL)", group_col: granularity}
         )
-        fig_pump = style_plotly_figure(fig_pump, title_text=f"Pumping Volume (mL) — {granularity}", height=460)
+        if is_single:
+            fig_pump.update_traces(width=0.25)
+        fig_pump = style_plotly_figure(fig_pump, title_text=f"Pumping Volume (mL) — {granularity}", height=460, single_point=is_single)
         st.plotly_chart(fig_pump, use_container_width=True)
         st.caption(f"ℹ️ *Displays recorded pumping volume (mL) grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Pumping Data Logged in this period")
 
-# TAB 4: Dedicated Tummy Time Chart (Updated Title to "🛟 Tummy — {granularity}")
+# TAB 4: Dedicated Tummy Time Chart (Title kept as "🛟 Tummy Time — {granularity}", single-point proportion fix applied)
 with tab4:
     tummy_df = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)].copy()
     if not tummy_df.empty:
         grouped_tummy = tummy_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
         grouped_tummy[group_col] = grouped_tummy[group_col].astype(str)
+        is_single = len(grouped_tummy) == 1
         
         fig_tummy = px.bar(
             grouped_tummy,
@@ -781,13 +799,15 @@ with tab4:
             color_discrete_sequence=[COLOR_MAP["🛟 Tummy Time (Mins)"]],
             labels={"Value (Optional)": "Duration (Mins)", group_col: granularity}
         )
-        fig_tummy = style_plotly_figure(fig_tummy, title_text=f"🛟 Tummy — {granularity}", height=460)
+        if is_single:
+            fig_tummy.update_traces(width=0.25)
+        fig_tummy = style_plotly_figure(fig_tummy, title_text=f"🛟 Tummy Time — {granularity}", height=460, single_point=is_single)
         st.plotly_chart(fig_tummy, use_container_width=True)
         st.caption(f"ℹ️ *Displays recorded tummy time duration (Mins) grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Tummy Time Data Logged in this period")
 
-# TAB 5: Health Charts (Sleep, Temp, Meds using Date on X-Axis)
+# TAB 5: Health Charts (Sleep, Temp, Meds with single-point proportion fix)
 with tab5:
     act_option = st.radio(
         "Select Health Activity:",
@@ -813,6 +833,8 @@ with tab5:
         if keyword == "Temp":
             grouped_act = act_df.groupby(group_col)['Value (Optional)'].mean().reset_index()
             grouped_act[group_col] = grouped_act[group_col].astype(str)
+            is_single = len(grouped_act) == 1
+            
             fig_act = px.line(
                 grouped_act,
                 x=group_col,
@@ -823,11 +845,13 @@ with tab5:
             )
             fig_act.update_traces(
                 line=dict(width=3, shape='spline', smoothing=1.3),
-                marker=dict(size=8, symbol='circle', line=dict(width=2, color='#ffffff'))
+                marker=dict(size=12 if is_single else 8, symbol='circle', line=dict(width=2, color='#ffffff'))
             )
         elif keyword == "Sleep":
             grouped_act = act_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
             grouped_act[group_col] = grouped_act[group_col].astype(str)
+            is_single = len(grouped_act) == 1
+            
             fig_act = px.bar(
                 grouped_act,
                 x=group_col,
@@ -835,9 +859,13 @@ with tab5:
                 color_discrete_sequence=[act_color],
                 labels={"Value (Optional)": y_title, group_col: granularity}
             )
+            if is_single:
+                fig_act.update_traces(width=0.25)
         else: # Meds count
             grouped_act = act_df.groupby(group_col).size().reset_index(name='Value (Optional)')
             grouped_act[group_col] = grouped_act[group_col].astype(str)
+            is_single = len(grouped_act) == 1
+            
             fig_act = px.bar(
                 grouped_act,
                 x=group_col,
@@ -845,17 +873,19 @@ with tab5:
                 color_discrete_sequence=[act_color],
                 labels={"Value (Optional)": y_title, group_col: granularity}
             )
+            if is_single:
+                fig_act.update_traces(width=0.25)
             
-        fig_act = style_plotly_figure(fig_act, title_text=f"🩺 Health — {act_option} ({granularity})", height=460)
+        fig_act = style_plotly_figure(fig_act, title_text=f"🩺 Health — {act_option} ({granularity})", height=460, single_point=is_single)
         st.plotly_chart(fig_act, use_container_width=True)
         st.caption(f"ℹ️ *Displays recorded **{act_option}** data grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state(f"No {act_option} Data Logged in this period")
 
-# TAB 6: NEW "Today" 24-Hour Timeline Chart
+# TAB 6: "Today" 24-Hour Timeline Chart
 with tab6:
-    cutoff_24h = current_ref_time - timedelta(hours=24)
-    today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_ref_time)].copy()
+    cutoff_24h = current_local_time - timedelta(hours=24)
+    today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
     
     if not today_24h_df.empty:
         fig_today_timeline = px.scatter(
@@ -904,10 +934,11 @@ st.subheader("📋 Raw Data Logs")
 filter_c1, filter_c2 = st.columns([1, 1])
 
 with filter_c1:
+    # Default pre-selected event types set to Breast Milk and Formula
     selected_events = st.multiselect(
         "🏷️ Filter Event Types:",
         options=ALL_EVENT_CATEGORIES,
-        default=[],
+        default=["🍼 Formula (mL)", "🤱 Breast Milk (mL)"],
         placeholder="Choose event types (Leave empty for All)"
     )
 
@@ -974,7 +1005,6 @@ if not display_df.empty:
             )
         }
     )
-    # Substantially reduced row count font size using custom HTML styling
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
