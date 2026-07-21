@@ -719,11 +719,12 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
     # If total active cards is odd, make the first card (Last Feeding) span full width
     if len(today_cards) % 2 != 0:
         today_cards[0] = today_cards[0].replace('class="highlight-card', 'class="highlight-card full-width-card')
+# --- B. PERIOD HIGHLIGHTS ---
+st.markdown('<div id="period-highlights"></div>', unsafe_allow_html=True)
 
-    # Render Today Cards via CSS Grid Container correctly without indentation formatting breaking HTML
-    st.markdown(f'<div class="cards-container">{"".join(today_cards)}</div>', unsafe_allow_html=True)
+start_code = start_date.strftime('%m.%d')
+end_code = end_date.strftime('%m.%d')
 
-st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded=False):
     p_formula = filtered_df[filtered_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
     p_bm = filtered_df[filtered_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
@@ -1224,4 +1225,5 @@ if not display_df.empty:
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
+
 
