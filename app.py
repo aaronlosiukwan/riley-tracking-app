@@ -61,16 +61,16 @@ st.markdown("""
         scroll-behavior: smooth;
     }
     [id] {
-        scroll-margin-top: 70px;
+        scroll-margin-top: 80px;
     }
 
     /* Compact Vertical Spacing Across Blocks & Expanders */
     div[data-testid="stVerticalBlock"] {
-        gap: 0.5rem !important;
+        gap: 0.35rem !important;
     }
     
     div[data-testid="stExpander"] {
-        margin-bottom: 0.3rem !important;
+        margin-bottom: 0.15rem !important;
         border-radius: 10px !important;
     }
 
@@ -88,14 +88,15 @@ st.markdown("""
         background-color: #f8fafc !important;
     }
 
-    /* Seamless background for Safari translucency and Safe Area Padding */
+    /* Seamless background for Safari translucency */
     [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
         background-color: #f8fafc !important; 
     }
     
-    /* Adds extra spacing at bottom so content scrolls fully above Safari's floating bar */
+    /* Top padding ensures the title is NOT blocked by Streamlit's fixed top header bar.
+       Bottom padding adds extra space so content scrolls fully above Safari's floating bar. */
     [data-testid="stMainBlockContainer"] {
-        padding-top: 0.5rem !important;
+        padding-top: calc(3.5rem + env(safe-area-inset-top)) !important;
         padding-bottom: calc(8rem + env(safe-area-inset-bottom)) !important;
     }
 
@@ -146,8 +147,8 @@ st.markdown("""
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        margin-top: 0.4rem;
-        margin-bottom: 0.3rem;
+        margin-top: 0.2rem;
+        margin-bottom: 0.2rem;
         color: var(--card-text);
     }
 
@@ -157,7 +158,7 @@ st.markdown("""
         grid-template-columns: repeat(4, 1fr) !important;
         gap: 8px !important;
         align-items: stretch !important;
-        margin-bottom: 4px !important;
+        margin-bottom: 2px !important;
         width: 100% !important;
     }
 
@@ -172,7 +173,7 @@ st.markdown("""
         background-color: var(--card-bg);
         border-radius: 12px;
         padding: 10px 12px;
-        min-height: 120px;
+        min-height: 118px;
         height: 100% !important;
         display: flex !important;
         flex-direction: column !important;
@@ -244,7 +245,7 @@ st.markdown("""
         border-radius: 12px;
         padding: 16px;
         text-align: center;
-        margin: 8px 0;
+        margin: 6px 0;
         color: var(--card-text);
     }
     .empty-data-title {
@@ -272,7 +273,7 @@ with header_c2:
         st.cache_data.clear()
         st.rerun()
 
-st.markdown('<hr style="margin: 4px 0 10px 0; opacity: 0.25;">', unsafe_allow_html=True)
+st.markdown('<hr style="margin: 2px 0 6px 0; opacity: 0.25;">', unsafe_allow_html=True)
 
 # ==========================================
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
@@ -430,7 +431,7 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_s
             x=0.5,
             xanchor="center",
             yanchor="top",
-            font=dict(size=16, weight="normal")
+            font=dict(size=16, weight="normal") # Enlarged unbolded title font
         ),
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
@@ -450,14 +451,14 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_s
             type=None if is_scatter else "category",
             tickformat=x_tickformat if x_tickformat else None,
             dtick=x_dtick if x_dtick else None,
-            title=dict(text=""),
+            title=dict(text=""), # Removed axis title labels like "DateTime" or "Daily"
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
             automargin=True
         ),
         yaxis=dict(
-            title=dict(text=""),
+            title=dict(text=""), # Stripped y-axis title label
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
@@ -802,7 +803,7 @@ with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded
 
     st.markdown(f'<div class="cards-container">{"".join(period_cards)}</div>', unsafe_allow_html=True)
 
-st.markdown('<hr style="margin: 8px 0; opacity: 0.2;">', unsafe_allow_html=True)
+st.markdown('<hr style="margin: 4px 0; opacity: 0.2;">', unsafe_allow_html=True)
 
 def render_empty_state(title="No Data Logged in this period", subtitle="Try picking a wider date range or logging new entries."):
     st.markdown(f"""<div class="empty-data-card">
@@ -811,7 +812,7 @@ def render_empty_state(title="No Data Logged in this period", subtitle="Try pick
 </div>""", unsafe_allow_html=True)
 
 # ==========================================
-# 5. CHARTS & ANALYTICS
+# 5. CHARTS & ANALYTICS ("⏰ Today" is placed FIRST)
 # ==========================================
 st.markdown('<div id="analytics-charts"></div>', unsafe_allow_html=True)
 st.subheader("📊 Analytics & Insights")
@@ -826,7 +827,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📈 Timeline"
 ])
 
-# TAB 1: Today 24-Hour Timeline Scatter
+# TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart with "%d-%H" x-axis formatting
 with tab1:
     cutoff_24h = current_local_time - timedelta(hours=24)
     today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
@@ -1134,7 +1135,7 @@ with tab7:
     else:
         render_empty_state("No Events Logged in this period")
 
-st.markdown('<hr style="margin: 8px 0; opacity: 0.2;">', unsafe_allow_html=True)
+st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
 
 # ==========================================
 # 6. EXPANDED RAW DATA LOGS TABLE
