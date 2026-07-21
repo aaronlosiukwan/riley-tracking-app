@@ -292,6 +292,13 @@ st.markdown("""
             pointer-events: none !important;
         }
         /* Invisible shield overlay catching all touches so the page scrolls instead */
+    @media (max-width: 768px) {
+        div[data-testid="stPlotlyChart"] {
+            position: relative !important;
+        }
+        div[data-testid="stPlotlyChart"] iframe {
+            pointer-events: none !important;
+        }
         div[data-testid="stPlotlyChart"]::after {
             content: "";
             position: absolute;
@@ -303,15 +310,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Main Title Anchor and Title with Header Refresh Button
+# Main Title Anchor and Title with Header Buttons
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
-header_c1, header_c2 = st.columns([0.78, 0.22], vertical_alignment="center")
+header_c1, header_c2, header_c3 = st.columns([0.56, 0.20, 0.24], vertical_alignment="center")
 
 with header_c1:
     st.markdown('<div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
 
 with header_c2:
+    st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
+
+with header_c3:
     if st.button("🔄 Refresh", key="hdr_refresh_btn", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
@@ -1259,4 +1269,5 @@ if not display_df.empty:
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
+
 
