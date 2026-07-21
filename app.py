@@ -64,25 +64,6 @@ st.markdown("""
         scroll-margin-top: 70px;
     }
 
-    /* Native iOS Tap Status Bar to Scroll to Top Fix */
-    html, body {
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        height: auto !important;
-    }
-    
-    [data-testid="stAppViewContainer"], [data-testid="stMain"] {
-        overflow: visible !important;
-        height: auto !important;
-        background-color: #f8fafc !important; 
-    }
-    
-    [data-testid="stHeader"] {
-        position: fixed !important;
-        top: 0;
-        background-color: #f8fafc !important; 
-    }
-
     /* Compact Vertical Spacing Across Blocks & Expanders */
     div[data-testid="stVerticalBlock"] {
         gap: 0.35rem !important;
@@ -106,46 +87,61 @@ st.markdown("""
         color: var(--card-text) !important;
         background-color: #f8fafc !important;
     }
+
+    /* Seamless background for Safari translucency */
+    [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+        background-color: #f8fafc !important; 
+    }
     
-    /* Adds extra spacing at bottom so content scrolls fully above Safari's floating bar */
+    /* Safari scrolling clearance */
     [data-testid="stMainBlockContainer"] {
         padding-top: calc(3.5rem + env(safe-area-inset-top)) !important;
         padding-bottom: calc(8rem + env(safe-area-inset-bottom)) !important;
-        overflow: visible !important;
     }
 
     /* Shrink Add and Refresh buttons in the header row */
-    div[data-testid="stHorizontalBlock"]:has(#title-anchor) [data-testid="baseButton-secondary"] {
+    div[data-testid="stHorizontalBlock"]:has(#desktop-title) [data-testid="baseButton-secondary"] {
         min-height: 2.2rem !important;
         height: 2.2rem !important;
         padding: 0 0.5rem !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(#title-anchor) [data-testid="baseButton-secondary"] p {
+    div[data-testid="stHorizontalBlock"]:has(#desktop-title) [data-testid="baseButton-secondary"] p {
         font-size: 0.9rem !important;
         margin: 0 !important;
     }
 
-    /* Mobile Header Layout: Title full width, Buttons side-by-side (50/50) */
+    /* ------------------------------------------------------------------------
+       Responsive Header Configuration (Solves Mobile 50/50 Layout & Line Breaks)
+       ------------------------------------------------------------------------ */
     @media (max-width: 768px) {
-        div[data-testid="stHorizontalBlock"]:has(#title-anchor) {
+        #desktop-title, .desktop-hr { display: none !important; }
+        #mobile-title, .mobile-hr { display: block !important; }
+        
+        /* Force buttons onto a single 50/50 row on mobile */
+        div[data-testid="stHorizontalBlock"]:has(#desktop-title) {
             display: flex !important;
             flex-direction: row !important;
-            flex-wrap: wrap !important;
+            flex-wrap: nowrap !important;
             gap: 0.5rem !important;
+            align-items: center !important;
         }
-        div[data-testid="stHorizontalBlock"]:has(#title-anchor) > div[data-testid="column"]:nth-child(1) {
-            width: 100% !important;
-            flex: 1 1 100% !important;
-            min-width: 100% !important;
-            margin-bottom: 0.25rem;
+        /* Hide the empty title column on mobile */
+        div[data-testid="stHorizontalBlock"]:has(#desktop-title) > div[data-testid="column"]:nth-child(1) {
+            display: none !important;
         }
-        div[data-testid="stHorizontalBlock"]:has(#title-anchor) > div[data-testid="column"]:nth-child(2),
-        div[data-testid="stHorizontalBlock"]:has(#title-anchor) > div[data-testid="column"]:nth-child(3) {
-            width: calc(50% - 0.25rem) !important;
-            flex: 1 1 calc(50% - 0.25rem) !important;
-            min-width: calc(50% - 0.25rem) !important;
+        /* Expand Add & Refresh columns to exactly 50% each */
+        div[data-testid="stHorizontalBlock"]:has(#desktop-title) > div[data-testid="column"]:nth-child(2),
+        div[data-testid="stHorizontalBlock"]:has(#desktop-title) > div[data-testid="column"]:nth-child(3) {
+            width: 50% !important;
+            min-width: 50% !important;
+            flex: 1 1 50% !important;
         }
     }
+    @media (min-width: 769px) {
+        #mobile-title, .mobile-hr { display: none !important; }
+        #desktop-title, .desktop-hr { display: block !important; }
+    }
+    /* ------------------------------------------------------------------------ */
 
     /* Style Multiselect Tag Chips to Light Grey */
     span[data-baseweb="tag"] {
@@ -177,7 +173,7 @@ st.markdown("""
         text-decoration: none !important;
     }
 
-    /* Mobile Single-Row Titles */
+    /* Title Styling */
     .app-main-title {
         font-size: clamp(1.3rem, 4.5vw, 2.1rem);
         font-weight: 700;
@@ -329,14 +325,22 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Main Title Anchor and Title with Header Buttons
+# Main Title Anchor
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
-# Using 0.65 for title, and evenly splitting the remaining 0.35 between the buttons. 
+# ---------------------------------------------------------
+# RESPONSIVE HEADER SECTION
+# ---------------------------------------------------------
+
+# Displayed ONLY on Mobile (Title -> HR -> Buttons)
+st.markdown('<div id="mobile-title" class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
+st.markdown('<hr class="mobile-hr" style="margin: 4px 0 8px 0; opacity: 0.25;">', unsafe_allow_html=True)
+
 header_c1, header_c2, header_c3 = st.columns([0.65, 0.175, 0.175], vertical_alignment="center")
 
 with header_c1:
-    st.markdown('<div id="title-anchor"></div><div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
+    # Displayed ONLY on Desktop
+    st.markdown('<div id="desktop-title" class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
 
 with header_c2:
     st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
@@ -346,7 +350,9 @@ with header_c3:
         st.cache_data.clear()
         st.rerun()
 
-st.markdown('<hr style="margin: 2px 0 6px 0; opacity: 0.25;">', unsafe_allow_html=True)
+# Displayed ONLY on Desktop (Below Title + Buttons)
+st.markdown('<hr class="desktop-hr" style="margin: 4px 0 10px 0; opacity: 0.25;">', unsafe_allow_html=True)
+
 
 # ==========================================
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
@@ -356,8 +362,8 @@ st.sidebar.markdown("""
         <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 6px;">📌 Navigation</div>
         <a href="#today-highlights" class="toc-button">✨ Today's Highlights</a>
         <a href="#period-highlights" class="toc-button">✨ Period Highlights</a>
-        <a href="#analytics-charts" class="toc-button">📊 Analytics & Charts</a>
         <a href="#raw-logs" class="toc-button">📋 Raw Data Logs</a>
+        <a href="#analytics-charts" class="toc-button">📊 Analytics & Charts</a>
     </div>
     <hr style="margin: 10px 0; opacity: 0.2;">
 """, unsafe_allow_html=True)
@@ -891,7 +897,81 @@ def render_empty_state(title="No Data Logged in this period", subtitle="Try pick
 </div>""", unsafe_allow_html=True)
 
 # ==========================================
-# 5. CHARTS & ANALYTICS ("⏰ Today" is placed FIRST)
+# 5. EXPANDED RAW DATA LOGS TABLE (MOVED UP)
+# ==========================================
+st.markdown('<div id="raw-logs"></div>', unsafe_allow_html=True)
+st.subheader("📋 Raw Data Logs")
+
+filter_c1, filter_c2 = st.columns([1, 1])
+
+with filter_c1:
+    selected_events = st.multiselect(
+        "🏷️ Filter Event Types:",
+        options=ALL_EVENT_CATEGORIES,
+        default=["🍼 Formula (mL)", "🤱 Breast Milk (mL)"],
+        placeholder="Choose event types (Leave empty for All)"
+    )
+
+with filter_c2:
+    search_query = st.text_input("🔍 Search All Columns:", "", placeholder="Type date (e.g. 07-21), Formula, notes...")
+
+table_df = filtered_df.copy()
+
+# Event Type multiselect filter
+if selected_events:
+    table_df = table_df[table_df['Event Type'].isin(selected_events)]
+
+# Global Search across ALL columns
+if search_query:
+    search_mask = table_df.astype(str).apply(
+        lambda row: row.str.contains(search_query, case=False, na=False).any(), axis=1
+    )
+    table_df = table_df[search_mask]
+
+# Strictly sort raw data log in descending order by DateTime (latest first)
+if 'DateTime' in table_df.columns:
+    table_df = table_df.sort_values('DateTime', ascending=False)
+
+# Ensure Value remains numeric for accurate math sorting in the UI
+if 'Value (Optional)' in table_df.columns:
+    table_df['Value (Optional)'] = pd.to_numeric(table_df['Value (Optional)'], errors='coerce')
+
+# Keep DateTime pure for sorting, but duplicate mapping into columns
+if 'DateTime' in table_df.columns:
+    table_df['DateTime_Display'] = table_df['DateTime']
+
+# REORDER COLUMNS: DateTime and Event Type ARE STRICTLY COLUMNS 1 AND 2
+desired_cols = [
+    'DateTime_Display', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)',
+    'Date', 'Week', 'Month', 'EntryDateTime'
+]
+actual_cols = [c for c in desired_cols if c in table_df.columns or c == 'DateTime_Display']
+
+display_df = table_df[actual_cols].copy()
+if 'DateTime_Display' in display_df.columns:
+    display_df = display_df.rename(columns={'DateTime_Display': 'DateTime'})
+
+if not display_df.empty:
+    # Reduced height from 700 to 490 (Shrunk by 30%)
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        height=490,
+        column_config={
+            "DateTime": st.column_config.DatetimeColumn("DateTime", format="YYYY-MM-DD HH:mm", width="medium"),
+            "Event Type": st.column_config.TextColumn("Event Type", width="medium"),
+            "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
+            "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
+        }
+    )
+    st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
+else:
+    render_empty_state("No Raw Data Rows Match Your Search Criteria")
+
+st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
+
+# ==========================================
+# 6. CHARTS & ANALYTICS (MOVED DOWN)
 # ==========================================
 st.markdown('<div id="analytics-charts"></div>', unsafe_allow_html=True)
 st.subheader("📊 Analytics & Insights")
@@ -1215,78 +1295,4 @@ with tab7:
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Events Logged in this period")
-
-st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
-
-# ==========================================
-# 6. EXPANDED RAW DATA LOGS TABLE
-# ==========================================
-st.markdown('<div id="raw-logs"></div>', unsafe_allow_html=True)
-st.subheader("📋 Raw Data Logs")
-
-filter_c1, filter_c2 = st.columns([1, 1])
-
-with filter_c1:
-    selected_events = st.multiselect(
-        "🏷️ Filter Event Types:",
-        options=ALL_EVENT_CATEGORIES,
-        default=["🍼 Formula (mL)", "🤱 Breast Milk (mL)"],
-        placeholder="Choose event types (Leave empty for All)"
-    )
-
-with filter_c2:
-    search_query = st.text_input("🔍 Search All Columns:", "", placeholder="Type date (e.g. 07-21), Formula, notes...")
-
-table_df = filtered_df.copy()
-
-# Event Type multiselect filter
-if selected_events:
-    table_df = table_df[table_df['Event Type'].isin(selected_events)]
-
-# Global Search across ALL columns
-if search_query:
-    search_mask = table_df.astype(str).apply(
-        lambda row: row.str.contains(search_query, case=False, na=False).any(), axis=1
-    )
-    table_df = table_df[search_mask]
-
-# Strictly sort raw data log in descending order by DateTime (latest first)
-if 'DateTime' in table_df.columns:
-    table_df = table_df.sort_values('DateTime', ascending=False)
-
-# Ensure Value remains numeric for accurate math sorting in the UI
-if 'Value (Optional)' in table_df.columns:
-    table_df['Value (Optional)'] = pd.to_numeric(table_df['Value (Optional)'], errors='coerce')
-
-# Keep DateTime pure for sorting, but duplicate mapping into columns
-if 'DateTime' in table_df.columns:
-    table_df['DateTime_Display'] = table_df['DateTime']
-
-# REORDER COLUMNS: DateTime and Event Type ARE STRICTLY COLUMNS 1 AND 2
-desired_cols = [
-    'DateTime_Display', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)',
-    'Date', 'Week', 'Month', 'EntryDateTime'
-]
-actual_cols = [c for c in desired_cols if c in table_df.columns or c == 'DateTime_Display']
-
-display_df = table_df[actual_cols].copy()
-if 'DateTime_Display' in display_df.columns:
-    display_df = display_df.rename(columns={'DateTime_Display': 'DateTime'})
-
-if not display_df.empty:
-    # Use native DatetimeColumn and NumberColumn to strictly enforce numeric/date sorting
-    st.dataframe(
-        display_df,
-        use_container_width=True,
-        height=700,
-        column_config={
-            "DateTime": st.column_config.DatetimeColumn("DateTime", format="YYYY-MM-DD HH:mm", width="medium"),
-            "Event Type": st.column_config.TextColumn("Event Type", width="medium"),
-            "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
-            "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
-        }
-    )
-    st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
-else:
-    render_empty_state("No Raw Data Rows Match Your Search Criteria")
 
