@@ -211,11 +211,11 @@ def style_plotly_figure(fig, height=520):
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=10, r=10, t=70, b=30), # Top margin increased to prevent legend overlap
+        margin=dict(l=10, r=10, t=70, b=30),
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.05, # Position legend cleanly above chart area
+            y=1.08,
             xanchor="center",
             x=0.5,
             title_text=""
@@ -243,7 +243,6 @@ with st.expander("⚙️ Filter & Grouping Settings (Click to expand)", expanded
             index=0,
             horizontal=True
         )
-        # Default range helper hint text
         range_hints = {
             "Daily": "Default: Last 28 Days",
             "Weekly": "Default: Last 8 Weeks",
@@ -252,7 +251,6 @@ with st.expander("⚙️ Filter & Grouping Settings (Click to expand)", expanded
         }
         st.markdown(f"<span class='default-range-text'>ℹ️ {range_hints[granularity]}</span>", unsafe_allow_html=True)
     
-    # Set default dates based on chosen granularity
     if granularity == "Daily":
         default_start = max(min_data_date, max_data_date - timedelta(days=27))
     elif granularity == "Weekly":
@@ -271,53 +269,46 @@ group_col_map = {
     "Daily": "Date", 
     "Weekly": "Week", 
     "Monthly": "Month", 
-    "All Time": "Month" # Default x-axis grouping for All Time
+    "All Time": "Month"
 }
 group_col = group_col_map[granularity]
 
 # Filter main dataset by inclusive date bounds
 filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
 
+# Sync refresh button top header
+top_col1, top_col2 = st.columns([3, 1])
+with top_col2:
+    if st.button("🔄 Sync Sheet Data", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+
 # ==========================================
 # 4. HIGHLIGHTS & SUMMARY CARDS
 # ==========================================
-highlight_headers = {
-    "Daily": "✨ Today's Highlights",
-    "Weekly": "✨ This Week's Highlights",
-    "Monthly": "✨ This Month's Highlights",
-    "All Time": "✨ All-Time Highlights"
-}
 
-summary_header = f"{highlight_headers[granularity]} (`{start_date.strftime('%b %d')}` – `{end_date.strftime('%b %d, %Y')}`)"
+# --- A. TODAY'S HIGHLIGHTS (Always Visible, Focused Strictly on Today) ---
+today_date = max(datetime.now().date(), max_data_date)
+today_df = df[df['Date'] == today_date]
 
-st.markdown(f"### {summary_header}")
+st.markdown(f"### ✨ Today's Highlights (`{today_date.strftime('%b %d, %Y')}`)")
 
-# Calculation across filtered window
-formula_df = filtered_df[filtered_df['Event Type'].str.contains("Formula", case=False, na=False)]
-formula_tot = formula_df['Value (Optional)'].sum()
+t_formula = today_df[today_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
+t_bm = today_df[today_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
+t_milk = t_formula + t_bm
+t_feed_cnt = len(today_df[today_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
+t_avg_feed = (t_milk / t_feed_cnt) if t_feed_cnt > 0 else 0
 
-bm_df = filtered_df[filtered_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]
-bm_tot = bm_df['Value (Optional)'].sum()
+t_wet = len(today_df[today_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
+t_poop = len(today_df[today_df['Event Type'].str.contains("Poop", case=False, na=False)])
 
-wet_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
-poop_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Poop", case=False, na=False)])
+t_pumping = today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
+t_tummy = today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
 
-pumping_df = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)]
-pumping_tot = pumping_df['Value (Optional)'].sum()
+t_sleep = today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
+t_meds = len(today_df[today_df['Event Type'].str.contains("Meds", case=False, na=False)])
 
-tummy_df = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]
-tummy_tot = tummy_df['Value (Optional)'].sum()
-
-sleep_df = filtered_df[filtered_df['Event Type'].str.contains("Sleep", case=False, na=False)]
-sleep_tot = sleep_df['Value (Optional)'].sum()
-
-meds_df = filtered_df[filtered_df['Event Type'].str.contains("Meds", case=False, na=False)]
-meds_cnt = len(meds_df)
-
-temp_df = filtered_df[filtered_df['Event Type'].str.contains("Temp", case=False, na=False)]
-latest_temp = temp_df.iloc[0]['Value (Optional)'] if not temp_df.empty else None
-
-# Calculate Last Feeding globally across dataset
+# Calculate Last Feeding globally across entire dataset
 all_feed_events = df[df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]
 if not all_feed_events.empty:
     last_feed_dt = all_feed_events.iloc[0]['DateTime']
@@ -338,25 +329,21 @@ else:
     last_feed_delta = "N/A"
     last_feed_sub = "No feed events"
 
-# Display Equal Height Highlight Cards Grid
-h_row1_c1, h_row1_c2, h_row1_c3, h_row1_c4 = st.columns(4)
+# Display Equal Height Highlight Cards Grid for Today
+th_col1, th_col2, th_col3, th_col4 = st.columns(4)
 
-total_milk = formula_tot + bm_tot
-total_feeds = len(formula_df) + len(bm_df)
-avg_feed_size = (total_milk / total_feeds) if total_feeds > 0 else 0
-
-with h_row1_c1:
+with th_col1:
     st.markdown(f"""
         <div class="highlight-card">
             <div>
-                <div class="highlight-title">🍼 Milk Summary</div>
-                <div class="highlight-body">Total <b>{int(total_milk):,} mL</b> intake across <b>{total_feeds}</b> feeds.</div>
+                <div class="highlight-title">🍼 Milk Intake Today</div>
+                <div class="highlight-body">Total <b>{int(t_milk):,} mL</b> across <b>{t_feed_cnt}</b> feeds.</div>
             </div>
-            <div class="highlight-sub">Avg Feed: ~{int(avg_feed_size)} mL (Formula: {int(formula_tot):,}mL, BM: {int(bm_tot):,}mL)</div>
+            <div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Formula: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div>
         </div>
     """, unsafe_allow_html=True)
 
-with h_row1_c2:
+with th_col2:
     st.markdown(f"""
         <div class="highlight-card">
             <div>
@@ -367,77 +354,150 @@ with h_row1_c2:
         </div>
     """, unsafe_allow_html=True)
 
-with h_row1_c3:
+with th_col3:
     st.markdown(f"""
         <div class="highlight-card">
             <div>
-                <div class="highlight-title">🚽 Diaper Output</div>
-                <div class="highlight-body">Total <b>{wet_cnt + poop_cnt}</b> diaper changes logged.</div>
+                <div class="highlight-title">🚽 Diaper Output Today</div>
+                <div class="highlight-body">Total <b>{t_wet + t_poop}</b> diaper changes logged.</div>
             </div>
-            <div class="highlight-sub">💧 Wet: {wet_cnt} | 💩 Poop: {poop_cnt}</div>
+            <div class="highlight-sub">💧 Wet: {t_wet} | 💩 Poop: {t_poop}</div>
         </div>
     """, unsafe_allow_html=True)
 
-with h_row1_c4:
+with th_col4:
     st.markdown(f"""
         <div class="highlight-card">
             <div>
                 <div class="highlight-title">🧴 Pumping & Tummy Time</div>
-                <div class="highlight-body">Pumped <b>{int(pumping_tot):,} mL</b> | 🛟 <b>{int(tummy_tot)} mins</b> tummy time.</div>
+                <div class="highlight-body">Pumped <b>{int(t_pumping):,} mL</b> | 🛟 <b>{int(t_tummy)} mins</b> tummy.</div>
             </div>
-            <div class="highlight-sub">{len(pumping_df)} pumping sessions recorded</div>
+            <div class="highlight-sub">{len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])} pumping sessions today</div>
         </div>
     """, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
-h_row2_c1, h_row2_c2, h_row2_c3, h_row2_c4 = st.columns(4)
+th_row2_c1, th_row2_c2, th_row2_c3, th_row2_c4 = st.columns(4)
 
-with h_row2_c1:
+with th_row2_c1:
     st.markdown(f"""
         <div class="highlight-card">
             <div>
-                <div class="highlight-title">🛌 Rest & Sleep</div>
-                <div class="highlight-body">Logged <b>{int(sleep_tot)} hrs</b> of rest.</div>
+                <div class="highlight-title">🛌 Rest & Sleep Today</div>
+                <div class="highlight-body">Logged <b>{int(t_sleep)} hrs</b> rest today.</div>
             </div>
-            <div class="highlight-sub">{len(sleep_df)} sleep periods recorded</div>
+            <div class="highlight-sub">{len(today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)])} sleep periods today</div>
         </div>
     """, unsafe_allow_html=True)
 
-with h_row2_c2:
+with th_row2_c2:
     st.markdown(f"""
         <div class="highlight-card">
             <div>
-                <div class="highlight-title">💊 Medication Administered</div>
-                <div class="highlight-body">Logged <b>{meds_cnt}</b> dosage events.</div>
+                <div class="highlight-title">💊 Medication Today</div>
+                <div class="highlight-body">Logged <b>{t_meds}</b> doses today.</div>
             </div>
-            <div class="highlight-sub">Doses tracked in log</div>
+            <div class="highlight-sub">Doses tracked today</div>
         </div>
     """, unsafe_allow_html=True)
 
-with h_row2_c3:
-    temp_str = f"<b>{latest_temp:.1f} °C</b>" if latest_temp else "No readings"
+t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
+t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
+t_temp_str = f"<b>{t_latest_temp:.1f} °C</b>" if t_latest_temp else "No readings today"
+
+with th_row2_c3:
     st.markdown(f"""
         <div class="highlight-card">
             <div>
-                <div class="highlight-title">🌡️ Latest Body Temp</div>
-                <div class="highlight-body">{temp_str}</div>
+                <div class="highlight-title">🌡️ Latest Temp Today</div>
+                <div class="highlight-body">{t_temp_str}</div>
             </div>
-            <div class="highlight-sub">{len(temp_df)} temperature logs</div>
+            <div class="highlight-sub">{len(t_temp_df)} temperature logs today</div>
         </div>
     """, unsafe_allow_html=True)
 
-with h_row2_c4:
-    total_events_period = len(filtered_df)
+with th_row2_c4:
     st.markdown(f"""
         <div class="highlight-card">
             <div>
-                <div class="highlight-title">📊 Total Events Logged</div>
-                <div class="highlight-body"><b>{total_events_period:,}</b> entries in selection.</div>
+                <div class="highlight-title">📊 Total Events Today</div>
+                <div class="highlight-body"><b>{len(today_df):,}</b> entries logged today.</div>
             </div>
-            <div class="highlight-sub">From {start_date} to {end_date}</div>
+            <div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div>
         </div>
     """, unsafe_allow_html=True)
+
+st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
+
+# --- B. PERIOD HIGHLIGHTS (Toggled Hidden Position) ---
+period_headers = {
+    "Daily": "Daily Range Highlights",
+    "Weekly": "Weekly Highlights",
+    "Monthly": "Monthly Highlights",
+    "All Time": "All-Time Highlights"
+}
+
+with st.expander(f"✨ {period_headers[granularity]} ({start_date.strftime('%b %d')} – {end_date.strftime('%b %d, %Y')}) (Click to expand)", expanded=False):
+    p_formula = filtered_df[filtered_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
+    p_bm = filtered_df[filtered_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
+    p_milk = p_formula + p_bm
+    p_feed_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
+    p_avg_feed = (p_milk / p_feed_cnt) if p_feed_cnt > 0 else 0
+
+    p_wet = len(filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
+    p_poop = len(filtered_df[filtered_df['Event Type'].str.contains("Poop", case=False, na=False)])
+
+    p_pumping = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
+    p_tummy = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
+
+    p_sleep = filtered_df[filtered_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
+    p_meds = len(filtered_df[filtered_df['Event Type'].str.contains("Meds", case=False, na=False)])
+
+    pr1_c1, pr1_c2, pr1_c3, pr1_c4 = st.columns(4)
+    with pr1_c1:
+        st.markdown(f"""
+            <div class="highlight-card">
+                <div>
+                    <div class="highlight-title">🍼 Milk ({granularity})</div>
+                    <div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feeds.</div>
+                </div>
+                <div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Formula: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with pr1_c2:
+        st.markdown(f"""
+            <div class="highlight-card">
+                <div>
+                    <div class="highlight-title">🚽 Diapers ({granularity})</div>
+                    <div class="highlight-body">Total <b>{p_wet + p_poop}</b> diaper changes.</div>
+                </div>
+                <div class="highlight-sub">💧 Wet: {p_wet} | 💩 Poop: {p_poop}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with pr1_c3:
+        st.markdown(f"""
+            <div class="highlight-card">
+                <div>
+                    <div class="highlight-title">🧴 Pumping & Tummy Time</div>
+                    <div class="highlight-body">Pumped <b>{int(p_pumping):,} mL</b> | 🛟 <b>{int(p_tummy)} mins</b> tummy time.</div>
+                </div>
+                <div class="highlight-sub">{len(filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)])} sessions in selected period</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    with pr1_c4:
+        st.markdown(f"""
+            <div class="highlight-card">
+                <div>
+                    <div class="highlight-title">🛌 Sleep & Meds</div>
+                    <div class="highlight-body">Rest: <b>{int(p_sleep)} hrs</b> | Meds: <b>{p_meds} doses</b>.</div>
+                </div>
+                <div class="highlight-sub">Total {len(filtered_df):,} events in selected range</div>
+            </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -470,16 +530,11 @@ with tab1:
             lambda x: "🤱 Breast Milk (mL)" if "breast" in x.lower() else "🍼 Formula (mL)"
         )
         
-        # Group Volume (mL)
         grouped_vol = milk_df.groupby([group_col, 'Category'])['Value (Optional)'].sum().reset_index()
-        
-        # Group Feeding Event Count
         grouped_count = milk_df.groupby(group_col).size().reset_index(name='Total Feeds Count')
         
-        # Create Dual-Axis Subplot
         fig_milk = make_subplots(specs=[[{"secondary_y": True}]])
         
-        # Add Stacked Formula Bar
         df_f = grouped_vol[grouped_vol['Category'] == '🍼 Formula (mL)']
         if not df_f.empty:
             fig_milk.add_trace(
@@ -492,7 +547,6 @@ with tab1:
                 secondary_y=False
             )
             
-        # Add Stacked Breast Milk Bar
         df_bm = grouped_vol[grouped_vol['Category'] == '🤱 Breast Milk (mL)']
         if not df_bm.empty:
             fig_milk.add_trace(
@@ -505,7 +559,6 @@ with tab1:
                 secondary_y=False
             )
             
-        # Add Feed Count Overlay Line
         fig_milk.add_trace(
             go.Scatter(
                 name='🔢 Total Feeds Count',
@@ -646,18 +699,15 @@ with filter_c2:
 
 table_df = filtered_df.copy()
 
-# Event Type multiselect filter
 if selected_events:
     table_df = table_df[table_df['Event Type'].isin(selected_events)]
 
-# Global Search across ALL columns
 if search_query:
     search_mask = table_df.astype(str).apply(
         lambda row: row.str.contains(search_query, case=False, na=False).any(), axis=1
     )
     table_df = table_df[search_mask]
 
-# Format numeric values: round integers, keep temperature decimals
 def format_value(val):
     if pd.isna(val):
         return ""
@@ -672,11 +722,9 @@ def format_value(val):
 if 'Value (Optional)' in table_df.columns:
     table_df['Value (Optional)'] = table_df['Value (Optional)'].apply(format_value)
 
-# Format DateTime display string
 if 'DateTime' in table_df.columns:
     table_df['DateTime_Display'] = table_df['DateTime'].dt.strftime('%Y-%m-%d %I:%M %p')
 
-# REORDER COLUMNS: DateTime and Event Type MUST BE THE FIRST 2 COLUMNS
 desired_cols = [
     'DateTime_Display', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)',
     'Date', 'Week', 'Month', 'EntryDateTime'
@@ -691,7 +739,7 @@ if not display_df.empty:
     st.dataframe(
         display_df,
         use_container_width=True,
-        height=720, # Large vertical height displaying 20+ rows easily
+        height=720,
         column_config={
             "DateTime": st.column_config.TextColumn("DateTime", width="medium"),
             "Event Type": st.column_config.TextColumn("Event Type", width="medium"),
