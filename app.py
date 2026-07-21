@@ -15,13 +15,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom Mobile & Dark/Light Mode Responsive CSS
+# Responsive & Adaptive CSS for Light & Dark Theme Support
 st.markdown("""
     <style>
     /* Equal height and width highlight cards */
     .highlight-card {
         background-color: rgba(128, 128, 128, 0.07);
-        border-left: 4px solid #3b82f6;
+        border-left: 4px solid #2563eb;
         border-radius: 10px;
         padding: 14px 16px;
         min-height: 125px;
@@ -193,7 +193,7 @@ ALL_EVENT_CATEGORIES = [
 ]
 
 COLOR_MAP = {
-    "🍼 Formula (mL)": "#3b82f6",
+    "🍼 Formula (mL)": "#2563eb",
     "🤱 Breast Milk (mL)": "#ec4899",
     "💧 Wet Diaper (Cnt)": "#0284c7",
     "💩 Poop (Cnt)": "#d97706",
@@ -205,24 +205,33 @@ COLOR_MAP = {
     "Other": "#6b7280"
 }
 
-# Mobile-friendly Plotly Styling Helper
-def style_plotly_figure(fig, height=520):
+# Mobile-friendly Plotly Styling Helper with Separated Title & Legend
+def style_plotly_figure(fig, title_text="", height=480):
     fig.update_layout(
+        title=dict(
+            text=title_text,
+            y=0.97,
+            x=0.5,
+            xanchor="center",
+            yanchor="top",
+            font=dict(size=15, weight="bold")
+        ),
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=10, r=10, t=70, b=30),
+        margin=dict(l=15, r=15, t=90, b=35), # Top margin prevents legend/title overlap
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.08,
+            y=1.02, # Legend placed cleanly on 2nd row beneath title
             xanchor="center",
             x=0.5,
-            title_text=""
+            title_text="",
+            font=dict(size=12)
         ),
         font=dict(family="sans-serif", size=12),
-        xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)"),
-        yaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)"),
+        xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.18)"),
+        yaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.18)"),
         hovermode="x unified"
     )
     return fig
@@ -517,7 +526,7 @@ st.subheader("📊 Analytics & Insights")
 tab1, tab2, tab3, tab4 = st.tabs([
     "🍼 Milk Intake & Feed Count", 
     "🚽 Diaper Output", 
-    "🧴 Pumping & Activities", 
+    "🧴 Activity Charts", 
     "📈 Event Timeline"
 ])
 
@@ -575,29 +584,37 @@ with tab1:
 
         fig_milk.update_layout(
             barmode='stack',
-            title=f"Milk Intake Volume (Stacked Bars) & Total Feed Count (Line) — {granularity}",
-            height=540,
+            title=dict(
+                text=f"Milk Intake Volume & Feed Count — {granularity}",
+                y=0.97,
+                x=0.5,
+                xanchor="center",
+                yanchor="top",
+                font=dict(size=15, weight="bold")
+            ),
+            height=520,
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=10, r=10, t=70, b=30),
+            margin=dict(l=15, r=15, t=90, b=35), # Top margin separates title & legend
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=1.08,
+                y=1.02, # Legend on row 2 below title
                 xanchor="center",
                 x=0.5,
-                title_text=""
+                title_text="",
+                font=dict(size=12)
             ),
             font=dict(family="sans-serif", size=12),
-            xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)"),
+            xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.18)"),
             hovermode="x unified"
         )
         
-        fig_milk.update_yaxes(title_text="Volume (mL)", secondary_y=False, showgrid=True, gridcolor="rgba(128,128,128,0.15)")
+        fig_milk.update_yaxes(title_text="Volume (mL)", secondary_y=False, showgrid=True, gridcolor="rgba(128,128,128,0.18)")
         fig_milk.update_yaxes(title_text="Number of Feeds", secondary_y=True, showgrid=False)
         
         st.plotly_chart(fig_milk, use_container_width=True)
-        st.caption(f"ℹ️ *This dual-axis visualization combines total stacked **Formula and Breast Milk volume (mL)** on the left axis with total **Feeding Event Counts** (green line) on the right axis grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
+        st.caption(f"ℹ️ *Combines stacked **Formula and Breast Milk volume (mL)** on the left axis with total **Feeding Event Counts** (green line) on the right axis grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Feeding Data Logged in this period")
 
@@ -615,47 +632,78 @@ with tab2:
             x=group_col,
             y="Count",
             color="Category",
-            title=f"Diaper Changes Count ({granularity})",
             barmode="group",
             color_discrete_map=COLOR_MAP,
             labels={"Count": "Diaper Count", group_col: granularity}
         )
-        fig_diaper = style_plotly_figure(fig_diaper, height=500)
+        fig_diaper = style_plotly_figure(fig_diaper, title_text=f"Diaper Changes Count — {granularity}", height=480)
         st.plotly_chart(fig_diaper, use_container_width=True)
         st.caption(f"ℹ️ *Compares Wet Diapers and Poop counts grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Diaper Data Logged in this period")
 
-# TAB 3: Pumping & All Activities
+# TAB 3: Dedicated Activity Selector Charts
 with tab3:
-    act_choices = st.multiselect(
-        "🏷️ Select Event Types to Graph:",
-        options=ALL_EVENT_CATEGORIES,
-        default=["🧴 Pumping (mL)", "🛟 Tummy Time (Mins)", "🛌 Sleep (hrs)", "💊 Meds (Cnt)", "🌡️ Temp (°C)"],
-        key="act_multiselect"
+    act_option = st.selectbox(
+        "🏷️ Select Activity Chart:",
+        options=[
+            "🧴 Pumping",
+            "🛟 Tummy Time",
+            "🛌 Sleep",
+            "🌡️ Temperature",
+            "💊 Medication"
+        ],
+        index=0
     )
     
-    if act_choices:
-        act_df = filtered_df[filtered_df['Event Type'].isin(act_choices)].copy()
-        if not act_df.empty:
-            grouped_act = act_df.groupby([group_col, 'Event Type'])['Value (Optional)'].sum().reset_index()
+    act_mapping = {
+        "🧴 Pumping": ("Pumping", "Volume (mL)", "#8b5cf6"),
+        "🛟 Tummy Time": ("Tummy Time", "Duration (Mins)", "#10b981"),
+        "🛌 Sleep": ("Sleep", "Hours (hrs)", "#6366f1"),
+        "🌡️ Temperature": ("Temp", "Temperature (°C)", "#ef4444"),
+        "💊 Medication": ("Meds", "Doses Count", "#f59e0b")
+    }
+    
+    keyword, y_title, act_color = act_mapping[act_option]
+    act_df = filtered_df[filtered_df['Event Type'].str.contains(keyword, case=False, na=False)].copy()
+    
+    if not act_df.empty:
+        if keyword == "Temp":
+            # For Temperature, plot average reading per period with line + markers
+            grouped_act = act_df.groupby(group_col)['Value (Optional)'].mean().reset_index()
+            fig_act = px.line(
+                grouped_act,
+                x=group_col,
+                y="Value (Optional)",
+                markers=True,
+                color_discrete_sequence=[act_color],
+                labels={"Value (Optional)": y_title, group_col: granularity}
+            )
+            fig_act.update_traces(line=dict(width=3), marker=dict(size=8))
+        elif keyword in ["Pumping", "Tummy Time", "Sleep"]:
+            grouped_act = act_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
             fig_act = px.bar(
                 grouped_act,
                 x=group_col,
                 y="Value (Optional)",
-                color="Event Type",
-                title=f"Activities & Measurements Summary ({granularity})",
-                barmode="group",
-                color_discrete_map=COLOR_MAP,
-                labels={"Value (Optional)": "Aggregated Value", group_col: granularity}
+                color_discrete_sequence=[act_color],
+                labels={"Value (Optional)": y_title, group_col: granularity}
             )
-            fig_act = style_plotly_figure(fig_act, height=500)
-            st.plotly_chart(fig_act, use_container_width=True)
-            st.caption(f"ℹ️ *Displays recorded metrics for selected activity categories grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
-        else:
-            render_empty_state("No Data Logged for Selected Activity Types in this Period")
+        else: # Meds count
+            grouped_act = act_df.groupby(group_col).size().reset_index(name='Value (Optional)')
+            fig_act = px.bar(
+                grouped_act,
+                x=group_col,
+                y="Value (Optional)",
+                color_discrete_sequence=[act_color],
+                labels={"Value (Optional)": y_title, group_col: granularity}
+            )
+            
+        fig_act = style_plotly_figure(fig_act, title_text=f"{act_option} Summary — {granularity}", height=480)
+        st.plotly_chart(fig_act, use_container_width=True)
+        st.caption(f"ℹ️ *Displays recorded **{act_option}** data grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
-        render_empty_state("Select at least one activity type above to display graph")
+        render_empty_state(f"No {act_option} Data Logged in this period")
 
 # TAB 4: Timeline
 with tab4:
@@ -666,11 +714,10 @@ with tab4:
             y="Event Type",
             size="Value (Optional)",
             color="Event Type",
-            title="Interactive Event Timeline",
             color_discrete_map=COLOR_MAP,
             size_max=18
         )
-        fig_time = style_plotly_figure(fig_time, height=520)
+        fig_time = style_plotly_figure(fig_time, title_text=f"Interactive Event Timeline — {granularity}", height=500)
         fig_time.update_layout(showlegend=False)
         st.plotly_chart(fig_time, use_container_width=True)
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
@@ -699,14 +746,20 @@ with filter_c2:
 
 table_df = filtered_df.copy()
 
+# Event Type multiselect filter
 if selected_events:
     table_df = table_df[table_df['Event Type'].isin(selected_events)]
 
+# Global Search across ALL columns
 if search_query:
     search_mask = table_df.astype(str).apply(
         lambda row: row.str.contains(search_query, case=False, na=False).any(), axis=1
     )
     table_df = table_df[search_mask]
+
+# Strictly sort raw data log in descending order by DateTime (latest first)
+if 'DateTime' in table_df.columns:
+    table_df = table_df.sort_values('DateTime', ascending=False)
 
 def format_value(val):
     if pd.isna(val):
@@ -725,6 +778,7 @@ if 'Value (Optional)' in table_df.columns:
 if 'DateTime' in table_df.columns:
     table_df['DateTime_Display'] = table_df['DateTime'].dt.strftime('%Y-%m-%d %I:%M %p')
 
+# REORDER COLUMNS: DateTime and Event Type ARE STRICTLY COLUMNS 1 AND 2
 desired_cols = [
     'DateTime_Display', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)',
     'Date', 'Week', 'Month', 'EntryDateTime'
@@ -750,6 +804,6 @@ if not display_df.empty:
             )
         }
     )
-    st.caption(f"Showing **{len(display_df)}** entries matching your criteria.")
+    st.caption(f"Showing **{len(display_df)}** entries matching your criteria sorted in descending order.")
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
