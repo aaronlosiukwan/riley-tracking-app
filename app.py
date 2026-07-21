@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Responsive & Adaptive CSS with Shadowed Highlight Cards & High Contrast
+# Responsive & Adaptive CSS with Lightened Card Shadows & High Contrast
 st.markdown("""
     <style>
     /* Smooth Scroll & Anchor Offsets so headers are not obscured when jumping */
@@ -27,18 +27,18 @@ st.markdown("""
         scroll-margin-top: 80px;
     }
 
-    /* Light & Dark Mode High-Contrast Adaptive Base */
+    /* Light & Dark Mode Adaptive Base with Toned Down Card Shadow */
     :root {
         --card-bg: rgba(128, 128, 128, 0.07);
-        --card-border: rgba(128, 128, 128, 0.22);
-        --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+        --card-border: rgba(128, 128, 128, 0.18);
+        --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
     }
     
     @media (prefers-color-scheme: dark) {
         :root {
-            --card-bg: rgba(255, 255, 255, 0.06);
-            --card-border: rgba(255, 255, 255, 0.18);
-            --card-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 1px 4px rgba(0, 0, 0, 0.3);
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.15);
+            --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
         }
     }
 
@@ -106,7 +106,7 @@ st.markdown("""
         border: 1px solid var(--card-border);
     }
     
-    .card-milk { border-left: 5px solid #2563eb; }
+    .card-milk { border-left: 5px solid #38bdf8; }
     .card-feed { border-left: 5px solid #c084fc; }
     .card-diaper { border-left: 5px solid #0284c7; }
     .card-pump { border-left: 5px solid #34d399; }
@@ -323,8 +323,8 @@ ALL_EVENT_CATEGORIES = [
 ]
 
 COLOR_MAP = {
-    "🍼 Formula (mL)": "#2563eb",      # Royal Blue
-    "🤱 Breast Milk (mL)": "#ec4899",  # Rosy Pink
+    "🍼 Formula (mL)": "#38bdf8",      # Sky Blue
+    "🤱 Breast Milk (mL)": "#9ca3af",  # Grey
     "💧 Wet Diaper (Cnt)": "#0284c7",   # Ocean Cyan
     "🚽 Poop (Cnt)": "#d97706",         # Warm Amber
     "🧴 Pumping (mL)": "#a855f7",       # Purple
@@ -335,7 +335,15 @@ COLOR_MAP = {
     "Other": "#6b7280"
 }
 
-# Compact Plotly Styling Helper displaying EVERY DATE on X-Axis
+# Helper to format x-axis strings into m.DD format
+def format_x_label(val):
+    try:
+        dt = pd.to_datetime(val)
+        return dt.strftime('%m.%d')
+    except Exception:
+        return str(val)
+
+# Compact Plotly Styling Helper displaying EVERY DATE on X-Axis with Unbolded Titles
 def style_plotly_figure(fig, title_text="", height=460, single_point=False):
     layout_args = dict(
         title=dict(
@@ -344,7 +352,7 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False):
             x=0.5,
             xanchor="center",
             yanchor="top",
-            font=dict(size=14, weight="bold")
+            font=dict(size=14, weight="normal") # Unbolded title font
         ),
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
@@ -361,7 +369,8 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False):
         ),
         font=dict(family="sans-serif", size=11),
         xaxis=dict(
-            type="category", # Strictly displays every single date/label as discrete category tick
+            type="category", # Strictly displays every single date as discrete category tick
+            tickformat="%m.%d",
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
@@ -414,6 +423,9 @@ def prepare_normalized_timeline_df(input_df):
 max_data_date = df['Date'].max()
 min_data_date = df['Date'].min()
 
+min_str = min_data_date.strftime('%m.%d')
+max_str = max_data_date.strftime('%m.%d')
+
 with st.expander("⚙️ Filter & Grouping Settings", expanded=False):
     f_col1, f_col2, f_col3 = st.columns([1.5, 1, 1])
     
@@ -443,8 +455,10 @@ with st.expander("⚙️ Filter & Grouping Settings", expanded=False):
 
     with f_col2:
         start_date = st.date_input("Start Date (Inclusive)", default_start, min_value=min_data_date, max_value=max_data_date)
+        st.markdown(f"<span class='default-range-text'>Min Date: {min_str}</span>", unsafe_allow_html=True)
     with f_col3:
         end_date = st.date_input("End Date (Inclusive)", max_data_date, min_value=min_data_date, max_value=max_data_date)
+        st.markdown(f"<span class='default-range-text'>Max Date: {max_str}</span>", unsafe_allow_html=True)
 
 group_col_map = {
     "Daily": "Date", 
@@ -506,158 +520,160 @@ else:
     last_feed_summary = "No records"
     last_feed_sub = "No feed events"
 
-# --- A. TODAY'S HIGHLIGHTS (Dynamic Active Cards Only) ---
+# --- A. TODAY'S HIGHLIGHTS (Dynamic Active Cards in Default Open Expander) ---
 st.markdown('<div id="today-highlights"></div>', unsafe_allow_html=True)
 
 today_date = max(current_local_time.date(), max_data_date)
 today_df = df[df['Date'] == today_date]
 
 formatted_today_code = today_date.strftime('%m.%d')
-st.markdown(f'<div class="section-header-single-line">✨ Today [{formatted_today_code}]</div>', unsafe_allow_html=True)
 
-# Compute Today Metrics
-t_formula = today_df[today_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
-t_bm = today_df[today_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
-t_milk = t_formula + t_bm
-t_feed_cnt = len(today_df[today_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
-t_avg_feed = (t_milk / t_feed_cnt) if t_feed_cnt > 0 else 0
+# Today's highlights wrapped in a toggled expander box (default open)
+with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
+    # Compute Today Metrics
+    t_formula = today_df[today_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
+    t_bm = today_df[today_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
+    t_milk = t_formula + t_bm
+    t_feed_cnt = len(today_df[today_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
+    t_avg_feed = (t_milk / t_feed_cnt) if t_feed_cnt > 0 else 0
 
-t_wet = len(today_df[today_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
-t_poop = len(today_df[today_df['Event Type'].str.contains("Poop", case=False, na=False)])
+    t_wet = len(today_df[today_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
+    t_poop = len(today_df[today_df['Event Type'].str.contains("Poop", case=False, na=False)])
 
-t_pumping = today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
-t_tummy = today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
+    t_pumping = today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
+    t_tummy = today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
 
-t_sleep = today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
-t_meds = len(today_df[today_df['Event Type'].str.contains("Meds", case=False, na=False)])
+    t_sleep = today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
+    t_meds = len(today_df[today_df['Event Type'].str.contains("Meds", case=False, na=False)])
 
-t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
-t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
+    t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
+    t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
 
-# Build Active Cards list for Today (CARD 1 IS STRICTLY LAST FEEDING)
-today_cards = []
+    # Build Active Cards list for Today (CARD 1 IS STRICTLY LAST FEEDING)
+    today_cards = []
 
-# 1. Last Feeding (ALWAYS Active)
-today_cards.append(f"""
-    <div class="highlight-card card-feed">
-        <div>
-            <div class="highlight-title">⏰ Last Feeding</div>
-            <div class="highlight-body"><b>{last_feed_delta}</b> — {last_feed_summary}</div>
-        </div>
-        <div class="highlight-sub">{last_feed_sub}</div>
-    </div>
-""")
-
-# 2. Milk Intake
-if t_milk > 0 or t_feed_cnt > 0:
+    # 1. Last Feeding (ALWAYS Active)
     today_cards.append(f"""
-        <div class="highlight-card card-milk">
+        <div class="highlight-card card-feed">
             <div>
-                <div class="highlight-title">🍼 Milk Intake</div>
-                <div class="highlight-body">Total <b>{int(t_milk):,} mL</b> across <b>{t_feed_cnt}</b> feed(s).</div>
+                <div class="highlight-title">⏰ Last Feeding</div>
+                <div class="highlight-body"><b>{last_feed_delta}</b> — {last_feed_summary}</div>
             </div>
-            <div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Form: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div>
+            <div class="highlight-sub">{last_feed_sub}</div>
         </div>
     """)
 
-# 3. Diaper Output
-if t_wet + t_poop > 0:
-    today_cards.append(f"""
-        <div class="highlight-card card-diaper">
-            <div>
-                <div class="highlight-title">🚽 Diaper Output</div>
-                <div class="highlight-body">Total <b>{t_wet + t_poop}</b> change(s) logged.</div>
+    # 2. Milk Intake
+    if t_milk > 0 or t_feed_cnt > 0:
+        today_cards.append(f"""
+            <div class="highlight-card card-milk">
+                <div>
+                    <div class="highlight-title">🍼 Milk Intake</div>
+                    <div class="highlight-body">Total <b>{int(t_milk):,} mL</b> across <b>{t_feed_cnt}</b> feed(s).</div>
+                </div>
+                <div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Form: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div>
             </div>
-            <div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div>
-        </div>
-    """)
+        """)
 
-# 4. Pumping & Tummy
-p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
-if t_pumping > 0 or t_tummy > 0 or p_cnt_today > 0:
-    today_cards.append(f"""
-        <div class="highlight-card card-pump">
-            <div>
-                <div class="highlight-title">🧴 Pumping & Tummy Time</div>
-                <div class="highlight-body">Pumped <b>{int(t_pumping):,} mL</b> | 🛟 <b>{int(t_tummy)} min(s)</b> tummy.</div>
+    # 3. Diaper Output
+    if t_wet + t_poop > 0:
+        today_cards.append(f"""
+            <div class="highlight-card card-diaper">
+                <div>
+                    <div class="highlight-title">🚽 Diaper Output</div>
+                    <div class="highlight-body">Total <b>{t_wet + t_poop}</b> change(s) logged.</div>
+                </div>
+                <div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div>
             </div>
-            <div class="highlight-sub">{p_cnt_today} pumping session(s)</div>
-        </div>
-    """)
+        """)
 
-# 5. Rest & Sleep
-sleep_cnt_today = len(today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)])
-if t_sleep > 0 or sleep_cnt_today > 0:
-    today_cards.append(f"""
-        <div class="highlight-card card-sleep">
-            <div>
-                <div class="highlight-title">🛌 Rest & Sleep</div>
-                <div class="highlight-body">Logged <b>{int(t_sleep)} hr(s)</b> rest.</div>
+    # 4. Pumping & Tummy
+    p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
+    if t_pumping > 0 or t_tummy > 0 or p_cnt_today > 0:
+        today_cards.append(f"""
+            <div class="highlight-card card-pump">
+                <div>
+                    <div class="highlight-title">🧴 Pumping & Tummy Time</div>
+                    <div class="highlight-body">Pumped <b>{int(t_pumping):,} mL</b> | 🛟 <b>{int(t_tummy)} min(s)</b> tummy.</div>
+                </div>
+                <div class="highlight-sub">{p_cnt_today} pumping session(s)</div>
             </div>
-            <div class="highlight-sub">{sleep_cnt_today} sleep period(s)</div>
-        </div>
-    """)
+        """)
 
-# 6. Medication
-if t_meds > 0:
-    today_cards.append(f"""
-        <div class="highlight-card card-meds">
-            <div>
-                <div class="highlight-title">💊 Medication</div>
-                <div class="highlight-body">Logged <b>{t_meds}</b> dose(s).</div>
+    # 5. Rest & Sleep
+    sleep_cnt_today = len(today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)])
+    if t_sleep > 0 or sleep_cnt_today > 0:
+        today_cards.append(f"""
+            <div class="highlight-card card-sleep">
+                <div>
+                    <div class="highlight-title">🛌 Rest & Sleep</div>
+                    <div class="highlight-body">Logged <b>{int(t_sleep)} hr(s)</b> rest.</div>
+                </div>
+                <div class="highlight-sub">{sleep_cnt_today} sleep period(s)</div>
             </div>
-            <div class="highlight-sub">Dose(s) tracked today</div>
-        </div>
-    """)
+        """)
 
-# 7. Body Temperature
-if t_latest_temp is not None:
-    today_cards.append(f"""
-        <div class="highlight-card card-temp">
-            <div>
-                <div class="highlight-title">🌡️ Latest Body Temp</div>
-                <div class="highlight-body"><b>{t_latest_temp:.1f} °C</b></div>
+    # 6. Medication
+    if t_meds > 0:
+        today_cards.append(f"""
+            <div class="highlight-card card-meds">
+                <div>
+                    <div class="highlight-title">💊 Medication</div>
+                    <div class="highlight-body">Logged <b>{t_meds}</b> dose(s).</div>
+                </div>
+                <div class="highlight-sub">Dose(s) tracked today</div>
             </div>
-            <div class="highlight-sub">{len(t_temp_df)} reading(s) logged</div>
-        </div>
-    """)
+        """)
 
-# 8. Total Events Logged Today
-if len(today_df) > 0:
-    today_cards.append(f"""
-        <div class="highlight-card card-events">
-            <div>
-                <div class="highlight-title">📊 Total Events</div>
-                <div class="highlight-body"><b>{len(today_df):,}</b> entry(s) logged.</div>
+    # 7. Body Temperature
+    if t_latest_temp is not None:
+        today_cards.append(f"""
+            <div class="highlight-card card-temp">
+                <div>
+                    <div class="highlight-title">🌡️ Latest Body Temp</div>
+                    <div class="highlight-body"><b>{t_latest_temp:.1f} °C</b></div>
+                </div>
+                <div class="highlight-sub">{len(t_temp_df)} reading(s) logged</div>
             </div>
-            <div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div>
-        </div>
-    """)
+        """)
 
-# Render Active Today Cards Dynamically Balanced Across 1 or 2 Rows
-num_active = len(today_cards)
+    # 8. Total Events Logged Today
+    if len(today_df) > 0:
+        today_cards.append(f"""
+            <div class="highlight-card card-events">
+                <div>
+                    <div class="highlight-title">📊 Total Events</div>
+                    <div class="highlight-body"><b>{len(today_df):,}</b> entry(s) logged.</div>
+                </div>
+                <div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div>
+            </div>
+        """)
 
-if num_active <= 4:
-    cols = st.columns(num_active)
-    for idx, card_html in enumerate(today_cards):
-        with cols[idx]:
-            st.markdown(card_html, unsafe_allow_html=True)
-else:
-    # Balance across 2 rows cleanly without odd single orphaned cards
-    row1_count = (num_active + 1) // 2
-    row2_count = num_active - row1_count
-    
-    row1_cols = st.columns(row1_count)
-    for idx in range(row1_count):
-        with row1_cols[idx]:
-            st.markdown(today_cards[idx], unsafe_allow_html=True)
-            
-    st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
-    
-    row2_cols = st.columns(row2_count)
-    for idx in range(row2_count):
-        with row2_cols[idx]:
-            st.markdown(today_cards[row1_count + idx], unsafe_allow_html=True)
+    # Render Active Today Cards Dynamically Balanced Across 1 or 2 Rows
+    num_active = len(today_cards)
+
+    if num_active <= 4:
+        cols = st.columns(num_active)
+        for idx, card_html in enumerate(today_cards):
+            with cols[idx]:
+                st.markdown(card_html, unsafe_allow_html=True)
+    else:
+        row1_count = (num_active + 1) // 2
+        row2_count = num_active - row1_count
+        
+        row1_cols = st.columns(row1_count)
+        for idx in range(row1_count):
+            with row1_cols[idx]:
+                st.markdown(today_cards[idx], unsafe_allow_html=True)
+                
+        st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+        
+        row2_cols = st.columns(row2_count)
+        for idx in range(row2_count):
+            with row2_cols[idx]:
+                st.markdown(today_cards[row1_count + idx], unsafe_allow_html=True)
+                
+    st.markdown('<div style="margin-bottom: 8px;"></div>', unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
@@ -798,9 +814,10 @@ def render_empty_state(title="No Data Logged in this period", subtitle="Try pick
 st.markdown('<div id="analytics-charts"></div>', unsafe_allow_html=True)
 st.subheader("📊 Analytics & Insights")
 
+# Updated Tab Selection: "🍼 Milk"
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "⏰ Today",
-    "🍼 Milk Intake", 
+    "🍼 Milk", 
     "🚽 Diapers", 
     "🧴 Pumping",
     "🛟 Tummy",
@@ -832,7 +849,7 @@ with tab1:
     else:
         render_empty_state("No Events Logged in the Last 24 Hours")
 
-# TAB 2: Milk Intake
+# TAB 2: Milk Intake (Formula = Sky Blue #38bdf8, BM = Grey #9ca3af, Count = Orange #f97316)
 with tab2:
     milk_df = filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)].copy()
     
@@ -843,6 +860,10 @@ with tab2:
         
         grouped_vol = milk_df.groupby([group_col, 'Category'])['Value (Optional)'].sum().reset_index()
         grouped_count = milk_df.groupby(group_col).size().reset_index(name='Total Feeds Count')
+        
+        # Format X-axis strings to m.DD
+        grouped_vol[group_col] = grouped_vol[group_col].apply(format_x_label)
+        grouped_count[group_col] = grouped_count[group_col].apply(format_x_label)
         
         is_single = len(grouped_count[group_col].unique()) == 1
         
@@ -855,7 +876,7 @@ with tab2:
                     name='🍼 Formula (mL)',
                     x=df_f[group_col].astype(str),
                     y=df_f['Value (Optional)'],
-                    marker_color="#2563eb",
+                    marker_color="#38bdf8", # Sky Blue
                     width=0.25 if is_single else None
                 ),
                 secondary_y=False
@@ -868,7 +889,7 @@ with tab2:
                     name='🤱 Breast Milk (mL)',
                     x=df_bm[group_col].astype(str),
                     y=df_bm['Value (Optional)'],
-                    marker_color="#ec4899",
+                    marker_color="#9ca3af", # Grey
                     width=0.25 if is_single else None
                 ),
                 secondary_y=False
@@ -883,8 +904,8 @@ with tab2:
                 text=grouped_count['Total Feeds Count'],
                 textposition="top center",
                 textfont=dict(size=10.5),
-                line=dict(color='#10b981', width=3, shape='spline', smoothing=1.3),
-                marker=dict(size=10, symbol='circle', color='#10b981', line=dict(width=2, color='#ffffff'))
+                line=dict(color='#f97316', width=3, shape='spline', smoothing=1.3), # Orange Line
+                marker=dict(size=10, symbol='circle', color='#f97316', line=dict(width=2, color='#ffffff')) # Orange Markers
             ),
             secondary_y=True
         )
@@ -897,7 +918,7 @@ with tab2:
                 x=0.5,
                 xanchor="center",
                 yanchor="top",
-                font=dict(size=14, weight="bold")
+                font=dict(size=14, weight="normal") # Unbolded title
             ),
             height=510,
             paper_bgcolor="rgba(0,0,0,0)",
@@ -945,7 +966,7 @@ with tab2:
         )
         
         st.plotly_chart(fig_milk, use_container_width=True)
-        st.caption(f"ℹ️ *Combines stacked **Formula and Breast Milk volume (mL)** on the left axis with total **Feed Count(s)** (emerald line) on the right axis grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
+        st.caption(f"ℹ️ *Combines stacked **Formula and Breast Milk volume (mL)** on the left axis with total **Feed Count(s)** (orange line) on the right axis grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Feeding Data Logged in this period")
 
@@ -957,7 +978,7 @@ with tab3:
             lambda x: "🚽 Poop (Cnt)" if "poop" in x.lower() else "💧 Wet Diaper (Cnt)"
         )
         grouped_diaper = diaper_df.groupby([group_col, 'Category']).size().reset_index(name='Count')
-        grouped_diaper[group_col] = grouped_diaper[group_col].astype(str)
+        grouped_diaper[group_col] = grouped_diaper[group_col].apply(format_x_label)
         is_single = len(grouped_diaper[group_col].unique()) == 1
         
         fig_diaper = px.bar(
@@ -982,7 +1003,7 @@ with tab4:
     pump_df = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)].copy()
     if not pump_df.empty:
         grouped_pump = pump_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
-        grouped_pump[group_col] = grouped_pump[group_col].astype(str)
+        grouped_pump[group_col] = grouped_pump[group_col].apply(format_x_label)
         is_single = len(grouped_pump[group_col].unique()) == 1
         
         fig_pump = px.bar(
@@ -1005,7 +1026,7 @@ with tab5:
     tummy_df = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)].copy()
     if not tummy_df.empty:
         grouped_tummy = tummy_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
-        grouped_tummy[group_col] = grouped_tummy[group_col].astype(str)
+        grouped_tummy[group_col] = grouped_tummy[group_col].apply(format_x_label)
         is_single = len(grouped_tummy[group_col].unique()) == 1
         
         fig_tummy = px.bar(
@@ -1023,7 +1044,7 @@ with tab5:
     else:
         render_empty_state("No Tummy Time Data Logged in this period")
 
-# TAB 6: Health Charts (Sleep, Temp, Meds strictly grouped by Date / GroupCol)
+# TAB 6: Health Charts (Sleep, Temp, Meds strictly grouped by Date / GroupCol formatted m.DD)
 with tab6:
     act_option = st.radio(
         "Select Health Activity:",
@@ -1048,7 +1069,7 @@ with tab6:
     if not act_df.empty:
         if keyword == "Temp":
             grouped_act = act_df.groupby(group_col)['Value (Optional)'].mean().reset_index()
-            grouped_act[group_col] = grouped_act[group_col].astype(str)
+            grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
             is_single = len(grouped_act[group_col].unique()) == 1
             
             fig_act = px.line(
@@ -1065,7 +1086,7 @@ with tab6:
             )
         elif keyword == "Sleep":
             grouped_act = act_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
-            grouped_act[group_col] = grouped_act[group_col].astype(str)
+            grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
             is_single = len(grouped_act[group_col].unique()) == 1
             
             fig_act = px.bar(
@@ -1079,7 +1100,7 @@ with tab6:
                 fig_act.update_traces(width=0.25)
         else: # Meds count
             grouped_act = act_df.groupby(group_col).size().reset_index(name='Value (Optional)')
-            grouped_act[group_col] = grouped_act[group_col].astype(str)
+            grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
             is_single = len(grouped_act[group_col].unique()) == 1
             
             fig_act = px.bar(
