@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -16,16 +17,36 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Safari meta tags for translucent status bar & Apple Home Screen Icon
-st.markdown("""
-    <head>
-        <meta name="theme-color" content="#f8fafc">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="default">
-        <!-- iOS Safari Home Screen App Icon (Replace href with your public image URL) -->
-        <link rel="apple-touch-icon" sizes="180x180" href="https://em-content.zobj.net/source/apple/391/baby-bottle_1f37c.png">
-    </head>
-""", unsafe_allow_html=True)
+# Inject Apple Touch Icon into the document <head> via JavaScript for iOS Safari Home Screen
+components.html(
+    """
+    <script>
+    (function() {
+        const iconUrl = "https://em-content.zobj.net/source/apple/391/baby-bottle_1f37c.png";
+        
+        function applyAppleIcon(doc) {
+            if (!doc || !doc.head) return;
+            const rels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon', 'shortcut icon'];
+            rels.forEach(function(rel) {
+                let link = doc.querySelector("link[rel='" + rel + "']");
+                if (!link) {
+                    link = doc.createElement('link');
+                    link.rel = rel;
+                    doc.head.appendChild(link);
+                }
+                link.href = iconUrl;
+            });
+        }
+        
+        try { applyAppleIcon(document); } catch(e) {}
+        try { applyAppleIcon(window.parent.document); } catch(e) {}
+        try { applyAppleIcon(window.top.document); } catch(e) {}
+    })();
+    </script>
+    """,
+    height=0,
+    width=0
+)
 
 # Responsive & Adaptive CSS: Strictly Light Mode with Equal Height Cards
 st.markdown("""
@@ -55,6 +76,16 @@ st.markdown("""
     body, .stApp {
         color: var(--card-text) !important;
         background-color: #f8fafc !important; /* Very subtle off-white background */
+    }
+
+    /* Seamless background for Safari translucency and Safe Area Padding */
+    [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+        background-color: #f8fafc !important; 
+    }
+    
+    /* Adds extra spacing at bottom so content scrolls fully above Safari's floating bar */
+    [data-testid="stMainBlockContainer"] {
+        padding-bottom: calc(8rem + env(safe-area-inset-bottom)) !important;
     }
 
     /* Style Multiselect Tag Chips to Light Grey */
