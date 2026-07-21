@@ -17,59 +17,38 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Apple Touch Icon into the document <head> via JavaScript for iOS Safari Home Screen
+# Inject Apple Touch Icon into document <head> via JS for iOS Safari Home Screen
 components.html(
     """
     <script>
     (function() {
-    const iconUrl = "https://em-content.zobj.net/source/apple/391/baby-bottle_1f37c.png";
-    
-    function applyAppleMeta(doc) {
-        if (!doc || !doc.head) return;
+        const iconUrl = "https://em-content.zobj.net/source/apple/391/baby-bottle_1f37c.png";
         
-        // Add Apple Touch Icon
-        const rels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon'];
-        rels.forEach(function(rel) {
-            let link = doc.querySelector("link[rel='" + rel + "']");
-            if (!link) {
-                link = doc.createElement('link');
-                link.rel = rel;
-                doc.head.appendChild(link);
-            }
-            link.href = iconUrl;
-        });
-
-        // Add iOS Safari Light/Dark theme-color meta tags
-        let metaLight = doc.querySelector("meta[name='theme-color'][media*='light']");
-        if (!metaLight) {
-            metaLight = doc.createElement('meta');
-            metaLight.name = "theme-color";
-            metaLight.media = "(prefers-color-scheme: light)";
-            metaLight.content = "#ffffff";
-            doc.head.appendChild(metaLight);
+        function applyAppleIcon(doc) {
+            if (!doc || !doc.head) return;
+            const rels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon', 'shortcut icon'];
+            rels.forEach(function(rel) {
+                let link = doc.querySelector("link[rel='" + rel + "']");
+                if (!link) {
+                    link = doc.createElement('link');
+                    link.rel = rel;
+                    doc.head.appendChild(link);
+                }
+                link.href = iconUrl;
+            });
         }
-
-        let metaDark = doc.querySelector("meta[name='theme-color'][media*='dark']");
-        if (!metaDark) {
-            metaDark = doc.createElement('meta');
-            metaDark.name = "theme-color";
-            metaDark.media = "(prefers-color-scheme: dark)";
-            metaDark.content = "#000000";
-            doc.head.appendChild(metaDark);
-        }
-    }
-    
-    try { applyAppleMeta(document); } catch(e) {}
-    try { applyAppleMeta(window.parent.document); } catch(e) {}
-    try { applyAppleMeta(window.top.document); } catch(e) {}
-})();
+        
+        try { applyAppleIcon(document); } catch(e) {}
+        try { applyAppleIcon(window.parent.document); } catch(e) {}
+        try { applyAppleIcon(window.top.document); } catch(e) {}
+    })();
     </script>
     """,
     height=0,
     width=0
 )
 
-# Responsive & Adaptive CSS: Strictly Light Mode with Equal Height Cards
+# Responsive & Adaptive CSS: Strictly Light Mode with Equal Height Cards & Safari Spacing
 st.markdown("""
     <style>
     /* Hide Streamlit Default Branding while preserving Sidebar Header Toggle Button */
@@ -85,30 +64,18 @@ st.markdown("""
         scroll-margin-top: 80px;
     }
 
-        /* 1. Default Light Mode Variables (iOS Light Standard) */
+    /* Locked Light Mode Theme Variables */
     :root {
-        --app-bg: #ffffff;
-        --card-bg: #f8fafc;
+        --card-bg: #ffffff;
         --card-border: #e2e8f0;
         --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        --card-text: #0f172a;
+        --card-text: #1e293b;
     }
 
-    /* 2. iOS Dark Mode Overrides (Native Dark Standard) */
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --app-bg: #000000;          /* True iOS Dark Background */
-            --card-bg: #1c1c1e;        /* iOS Card Surface Dark */
-            --card-border: #2c2c2e;
-            --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-            --card-text: #f8fafc;
-        }
-    }
-
-    /* 3. Apply Theme Variables to Page Background & Containers */
-    body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+    /* Force global text color to dark for light mode */
+    body, .stApp {
         color: var(--card-text) !important;
-        background-color: var(--app-bg) !important;
+        background-color: #f8fafc !important; /* Very subtle off-white background */
     }
 
     /* Seamless background for Safari translucency and Safe Area Padding */
