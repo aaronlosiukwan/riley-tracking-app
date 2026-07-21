@@ -321,7 +321,7 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False):
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=2, r=2, t=75, b=20), # Ultra-narrow margins so canvas takes >80% width
+        margin=dict(l=2, r=2, t=75, b=20),
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -353,24 +353,31 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False):
     fig.update_layout(**layout_args)
     return fig
 
-# Helper to normalize bubble sizes strictly within each category so bubbles never cross rows
+# Robust helper guaranteeing strictly numeric Bubble Sizes with zero NaNs
 def prepare_normalized_timeline_df(input_df):
     if input_df.empty:
         return input_df
     
     res_df = input_df.copy()
+    res_df['Value_Clean'] = pd.to_numeric(res_df['Value (Optional)'], errors='coerce').fillna(1.0)
     
-    def scale_group(group):
-        vals = group['Value (Optional)'].values
-        min_v, max_v = vals.min(), vals.max()
-        if max_v == min_v:
-            group['CategoryBubbleSize'] = 10.0
+    groups = []
+    for _, group in res_df.groupby('Event Type'):
+        g = group.copy()
+        vals = g['Value_Clean'].values
+        min_v, max_v = np.nanmin(vals), np.nanmax(vals)
+        if max_v == min_v or np.isnan(max_v) or np.isnan(min_v):
+            g['CategoryBubbleSize'] = 10.0
         else:
-            # Scale proportionally within category between 8.0 and 14.0px maximum
-            group['CategoryBubbleSize'] = 8.0 + (vals - min_v) / (max_v - min_v) * 6.0
-        return group
-    
-    res_df = res_df.groupby('Event Type', group_keys=False).apply(scale_group)
+            g['CategoryBubbleSize'] = 8.0 + (vals - min_v) / (max_v - min_v) * 6.0
+        groups.append(g)
+        
+    if groups:
+        res_df = pd.concat(groups, axis=0)
+    else:
+        res_df['CategoryBubbleSize'] = 10.0
+        
+    res_df['CategoryBubbleSize'] = res_df['CategoryBubbleSize'].fillna(10.0)
     return res_df
 
 # ==========================================
@@ -678,7 +685,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📈 Timeline"
 ])
 
-# TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart with Normalized Bubble Sizes
+# TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart
 with tab1:
     cutoff_24h = current_local_time - timedelta(hours=24)
     today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
@@ -692,7 +699,7 @@ with tab1:
             size="CategoryBubbleSize",
             color="Event Type",
             color_discrete_map=COLOR_MAP,
-            hover_data={"Value (Optional)": True, "CategoryBubbleSize": False},
+            hover_data=["Value (Optional)"],
             size_max=14
         )
         fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=480)
@@ -968,7 +975,7 @@ with tab6:
     else:
         render_empty_state(f"No {act_option} Data Logged in this period")
 
-# TAB 7: Full Period Timeline with Category-Normalized Bubble Sizes
+# TAB 7: Full Period Timeline
 with tab7:
     if not filtered_df.empty:
         norm_filtered_df = prepare_normalized_timeline_df(filtered_df)
@@ -979,7 +986,7 @@ with tab7:
             size="CategoryBubbleSize",
             color="Event Type",
             color_discrete_map=COLOR_MAP,
-            hover_data={"Value (Optional)": True, "CategoryBubbleSize": False},
+            hover_data=["Value (Optional)"],
             size_max=14
         )
         fig_time = style_plotly_figure(fig_time, title_text=f"Interactive Event Timeline — {granularity}", height=480)
