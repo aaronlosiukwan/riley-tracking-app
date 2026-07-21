@@ -16,10 +16,16 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Responsive & Adaptive CSS with Lightened Card Shadows & High Contrast
+# Responsive & Adaptive CSS with Soft Shadows & Clean Typography
 st.markdown("""
     <style>
-    /* Smooth Scroll & Anchor Offsets so headers are not obscured when jumping */
+    /* Hide Streamlit Default Branding, Header & Footer */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display: none;}
+
+    /* Smooth Scroll & Anchor Offsets */
     html {
         scroll-behavior: smooth;
     }
@@ -27,18 +33,18 @@ st.markdown("""
         scroll-margin-top: 80px;
     }
 
-    /* Light & Dark Mode Adaptive Base with Toned Down Card Shadow */
+    /* Light & Dark Mode Adaptive Base with Toned Down Soft Card Shadows */
     :root {
-        --card-bg: rgba(128, 128, 128, 0.07);
-        --card-border: rgba(128, 128, 128, 0.18);
-        --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+        --card-bg: rgba(128, 128, 128, 0.06);
+        --card-border: rgba(128, 128, 128, 0.16);
+        --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     }
     
     @media (prefers-color-scheme: dark) {
         :root {
             --card-bg: rgba(255, 255, 255, 0.05);
-            --card-border: rgba(255, 255, 255, 0.15);
-            --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --card-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
         }
     }
 
@@ -67,8 +73,8 @@ st.markdown("""
         transition: all 0.15s ease-in-out;
     }
     .toc-button:hover {
-        background-color: rgba(128, 128, 128, 0.18);
-        border-color: rgba(128, 128, 128, 0.35);
+        background-color: rgba(128, 128, 128, 0.15);
+        border-color: rgba(128, 128, 128, 0.3);
         text-decoration: none !important;
     }
 
@@ -92,18 +98,21 @@ st.markdown("""
         margin-bottom: 0.6rem;
     }
 
-    /* Custom Color-Coded Shadowed Highlight Cards */
+    /* Custom Color-Coded Shadowed Highlight Cards with Equal Dimension Handling */
     .highlight-card {
         background-color: var(--card-bg);
         border-radius: 12px;
         padding: 12px 14px;
-        min-height: 120px;
+        min-height: 125px;
         height: 100%;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         box-shadow: var(--card-shadow);
         border: 1px solid var(--card-border);
+        box-sizing: border-box;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
     
     .card-milk { border-left: 5px solid #38bdf8; }
@@ -132,7 +141,7 @@ st.markdown("""
         margin-top: 4px;
     }
 
-    /* Force 2 Highlight Cards per Row in narrow mobile viewports */
+    /* Force Strictly 2 Highlight Cards per Row in narrow mobile viewports */
     @media (max-width: 768px) {
         div[data-testid="stHorizontalBlock"]:has(.highlight-card) {
             display: flex !important;
@@ -198,10 +207,10 @@ st.markdown('<hr style="margin: 6px 0 16px 0; opacity: 0.25;">', unsafe_allow_ht
 # ==========================================
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
 # ==========================================
+# Removed "Header" from TOC
 st.sidebar.markdown("""
     <div style="margin-bottom: 12px;">
         <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 8px;">📌 Navigation</div>
-        <a href="#top-header" class="toc-button">🏠 &nbsp;Header</a>
         <a href="#today-highlights" class="toc-button">✨ Today's Highlights</a>
         <a href="#period-highlights" class="toc-button">✨ Period Highlights</a>
         <a href="#analytics-charts" class="toc-button">📊 Analytics & Charts</a>
@@ -343,8 +352,8 @@ def format_x_label(val):
     except Exception:
         return str(val)
 
-# Compact Plotly Styling Helper displaying EVERY DATE on X-Axis with Unbolded Titles
-def style_plotly_figure(fig, title_text="", height=460, single_point=False):
+# Compact Plotly Styling Helper displaying EVERY DATE on X-Axis with m.D Date Formatting
+def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_scatter=False):
     layout_args = dict(
         title=dict(
             text=title_text,
@@ -369,8 +378,8 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False):
         ),
         font=dict(family="sans-serif", size=11),
         xaxis=dict(
-            type="category", # Strictly displays every single date as discrete category tick
-            tickformat="%m.%d",
+            type=None if is_scatter else "category",
+            tickformat="%m.%d %H:%M" if is_scatter else None, # Formats DateTime scatter ticks as m.D HH:MM without year
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
@@ -514,10 +523,10 @@ if not all_feed_events.empty:
     f_str = f"{int(last_f_df.iloc[0]['Value (Optional)'])} mL" if not last_f_df.empty else "-"
     bm_str = f"{int(last_bm_df.iloc[0]['Value (Optional)'])} mL" if not last_bm_df.empty else "-"
     
-    last_feed_sub = f"Recorded: {last_feed_time_str}<br>🍼 Form: {f_str} | 🤱 BM: {bm_str}"
+    # Removed mL from main body, kept strictly under recorded time
+    last_feed_sub = f"Recorded: {last_feed_time_str} • {last_feed_summary}<br>🍼 Form: {f_str} | 🤱 BM: {bm_str}"
 else:
     last_feed_delta = "N/A"
-    last_feed_summary = "No records"
     last_feed_sub = "No feed events"
 
 # --- A. TODAY'S HIGHLIGHTS (Dynamic Active Cards in Default Open Expander) ---
@@ -552,12 +561,12 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
     # Build Active Cards list for Today (CARD 1 IS STRICTLY LAST FEEDING)
     today_cards = []
 
-    # 1. Last Feeding (ALWAYS Active)
+    # 1. Last Feeding (ALWAYS Active) - mL removed from body next to time elapsed
     today_cards.append(f"""
         <div class="highlight-card card-feed">
             <div>
                 <div class="highlight-title">⏰ Last Feeding</div>
-                <div class="highlight-body"><b>{last_feed_delta}</b> — {last_feed_summary}</div>
+                <div class="highlight-body"><b>{last_feed_delta}</b></div>
             </div>
             <div class="highlight-sub">{last_feed_sub}</div>
         </div>
@@ -649,29 +658,16 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
             </div>
         """)
 
-    # Render Active Today Cards Dynamically Balanced Across 1 or 2 Rows
+    # Render Active Today Cards Dynamically in Equal Width 4-Column Rows
     num_active = len(today_cards)
-
-    if num_active <= 4:
-        cols = st.columns(num_active)
-        for idx, card_html in enumerate(today_cards):
-            with cols[idx]:
-                st.markdown(card_html, unsafe_allow_html=True)
-    else:
-        row1_count = (num_active + 1) // 2
-        row2_count = num_active - row1_count
-        
-        row1_cols = st.columns(row1_count)
-        for idx in range(row1_count):
-            with row1_cols[idx]:
-                st.markdown(today_cards[idx], unsafe_allow_html=True)
-                
-        st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
-        
-        row2_cols = st.columns(row2_count)
-        for idx in range(row2_count):
-            with row2_cols[idx]:
-                st.markdown(today_cards[row1_count + idx], unsafe_allow_html=True)
+    for i in range(0, num_active, 4):
+        cols = st.columns(4)
+        for j in range(4):
+            if i + j < num_active:
+                with cols[j]:
+                    st.markdown(today_cards[i + j], unsafe_allow_html=True)
+        if i + 4 < num_active:
+            st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
                 
     st.markdown('<div style="margin-bottom: 8px;"></div>', unsafe_allow_html=True)
 
@@ -814,7 +810,6 @@ def render_empty_state(title="No Data Logged in this period", subtitle="Try pick
 st.markdown('<div id="analytics-charts"></div>', unsafe_allow_html=True)
 st.subheader("📊 Analytics & Insights")
 
-# Updated Tab Selection: "🍼 Milk"
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "⏰ Today",
     "🍼 Milk", 
@@ -825,7 +820,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📈 Timeline"
 ])
 
-# TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart
+# TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart with m.D HH:MM formatting
 with tab1:
     cutoff_24h = current_local_time - timedelta(hours=24)
     today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
@@ -842,7 +837,7 @@ with tab1:
             hover_data=["Value (Optional)"],
             size_max=14
         )
-        fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=480)
+        fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=480, is_scatter=True)
         fig_today_timeline.update_layout(showlegend=False)
         st.plotly_chart(fig_today_timeline, use_container_width=True)
         st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours using exact DateTime.*")
@@ -1119,7 +1114,7 @@ with tab6:
     else:
         render_empty_state(f"No {act_option} Data Logged in this period")
 
-# TAB 7: Full Period Timeline
+# TAB 7: Full Period Timeline with m.D HH:MM formatting
 with tab7:
     if not filtered_df.empty:
         norm_filtered_df = prepare_normalized_timeline_df(filtered_df)
@@ -1133,7 +1128,7 @@ with tab7:
             hover_data=["Value (Optional)"],
             size_max=14
         )
-        fig_time = style_plotly_figure(fig_time, title_text=f"Interactive Event Timeline — {granularity}", height=480)
+        fig_time = style_plotly_figure(fig_time, title_text=f"Interactive Event Timeline — {granularity}", height=480, is_scatter=True)
         fig_time.update_layout(showlegend=False)
         st.plotly_chart(fig_time, use_container_width=True)
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
