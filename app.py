@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Responsive & Adaptive CSS: Default Light Mode & CSS Grid for Equal Card Dimensions
+# Responsive & Adaptive CSS: Strictly Light Mode with Equal Height Cards
 st.markdown("""
     <style>
     /* Hide Streamlit Default Branding while preserving Sidebar Header Toggle Button */
@@ -32,21 +32,18 @@ st.markdown("""
         scroll-margin-top: 80px;
     }
 
-    /* Base Theme Variables Defaulting to Light Mode */
+    /* Locked Light Mode Theme Variables */
     :root {
         --card-bg: #ffffff;
         --card-border: #e2e8f0;
         --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         --card-text: #1e293b;
     }
-    
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --card-bg: rgba(255, 255, 255, 0.05);
-            --card-border: rgba(255, 255, 255, 0.14);
-            --card-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-            --card-text: #f8fafc;
-        }
+
+    /* Force global text color to dark for light mode */
+    body, .stApp {
+        color: var(--card-text) !important;
+        background-color: #f8fafc !important; /* Very subtle off-white background */
     }
 
     /* Style Multiselect Tag Chips to Light Grey */
@@ -66,7 +63,7 @@ st.markdown("""
         background-color: var(--card-bg);
         border: 1px solid var(--card-border);
         box-shadow: var(--card-shadow);
-        color: inherit !important;
+        color: var(--card-text) !important;
         text-decoration: none !important;
         border-radius: 8px;
         font-size: 0.85rem;
@@ -74,8 +71,8 @@ st.markdown("""
         transition: all 0.15s ease-in-out;
     }
     .toc-button:hover {
-        background-color: rgba(128, 128, 128, 0.15);
-        border-color: rgba(128, 128, 128, 0.3);
+        background-color: #f1f5f9;
+        border-color: #cbd5e1;
         text-decoration: none !important;
     }
 
@@ -87,6 +84,7 @@ st.markdown("""
         overflow: hidden;
         text-overflow: ellipsis;
         margin-bottom: 0.2rem;
+        color: var(--card-text);
     }
 
     .section-header-single-line {
@@ -97,6 +95,7 @@ st.markdown("""
         text-overflow: ellipsis;
         margin-top: 0.8rem;
         margin-bottom: 0.6rem;
+        color: var(--card-text);
     }
 
     /* CSS Grid Container: Guarantees 100% Equal Height Cards & Strict 2-Columns on Narrow Screens */
@@ -130,7 +129,7 @@ st.markdown("""
         box-sizing: border-box;
         word-wrap: break-word;
         overflow-wrap: break-word;
-        color: var(--card-text);
+        color: var(--card-text) !important;
     }
     
     .card-milk { border-left: 5px solid #38bdf8; }
@@ -150,12 +149,14 @@ st.markdown("""
         white-space: normal !important;
         word-break: break-word !important;
         line-height: 1.25;
+        color: var(--card-text);
     }
     .highlight-body {
         font-size: 0.86rem;
         opacity: 0.92;
         line-height: 1.3;
         word-break: break-word;
+        color: var(--card-text);
     }
     .highlight-sub {
         font-size: 0.75rem;
@@ -163,11 +164,12 @@ st.markdown("""
         margin-top: 4px;
         line-height: 1.3;
         word-break: break-word;
+        color: var(--card-text);
     }
 
     /* Grey default range indicator text */
     .default-range-text {
-        color: #888888;
+        color: #64748b;
         font-size: 0.82rem;
         font-style: italic;
         margin-top: 2px;
@@ -177,7 +179,7 @@ st.markdown("""
     /* Substantially reduced row count font size in Raw Data Log */
     .raw-log-count-text {
         font-size: 0.72rem;
-        color: rgba(128, 128, 128, 0.85);
+        color: #64748b;
         margin-top: 4px;
         margin-bottom: 8px;
     }
@@ -190,6 +192,7 @@ st.markdown("""
         padding: 20px;
         text-align: center;
         margin: 12px 0;
+        color: var(--card-text);
     }
     .empty-data-title {
         font-size: 1rem;
@@ -529,6 +532,7 @@ if not all_feed_events.empty:
     f_str = f"{int(last_f_df.iloc[0]['Value (Optional)'])} mL" if not last_f_df.empty else "-"
     bm_str = f"{int(last_bm_df.iloc[0]['Value (Optional)'])} mL" if not last_bm_df.empty else "-"
     
+    # Clean subtext strictly under recorded time
     last_feed_sub = f"Recorded: {last_feed_time_str}<br>🍼 Form: {f_str} | 🤱 BM: {bm_str}"
 else:
     last_feed_delta = "N/A"
@@ -542,6 +546,7 @@ today_df = df[df['Date'] == today_date]
 
 formatted_today_code = today_date.strftime('%m.%d')
 
+# Today's highlights wrapped in a toggled expander box (default open)
 with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
     t_formula = today_df[today_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
     t_bm = today_df[today_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
@@ -561,10 +566,8 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
     t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
     t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
 
-    # Build Active Cards list for Today
     today_cards = []
 
-    # 1. Last Feeding
     today_cards.append(f"""
         <div class="highlight-card card-feed">
             <div>
@@ -575,7 +578,6 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
         </div>
     """)
 
-    # 2. Milk Intake
     if t_milk > 0 or t_feed_cnt > 0:
         today_cards.append(f"""
             <div class="highlight-card card-milk">
@@ -587,7 +589,6 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
             </div>
         """)
 
-    # 3. Diaper Output
     if t_wet + t_poop > 0:
         today_cards.append(f"""
             <div class="highlight-card card-diaper">
@@ -599,7 +600,6 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
             </div>
         """)
 
-    # 4. Pumping
     p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
     if t_pumping > 0 or p_cnt_today > 0:
         today_cards.append(f"""
@@ -612,7 +612,6 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
             </div>
         """)
 
-    # 5. Tummy Time
     tummy_cnt_today = len(today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
     if t_tummy > 0 or tummy_cnt_today > 0:
         today_cards.append(f"""
@@ -625,7 +624,6 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
             </div>
         """)
 
-    # 6. Rest & Sleep
     sleep_cnt_today = len(today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)])
     if t_sleep > 0 or sleep_cnt_today > 0:
         today_cards.append(f"""
@@ -638,7 +636,6 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
             </div>
         """)
 
-    # 7. Medication
     if t_meds > 0:
         today_cards.append(f"""
             <div class="highlight-card card-meds">
@@ -650,7 +647,6 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
             </div>
         """)
 
-    # 8. Body Temperature
     if t_latest_temp is not None:
         today_cards.append(f"""
             <div class="highlight-card card-temp">
@@ -662,7 +658,6 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
             </div>
         """)
 
-    # 9. Total Events Logged Today
     if len(today_df) > 0:
         today_cards.append(f"""
             <div class="highlight-card card-events">
@@ -674,7 +669,7 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
             </div>
         """)
 
-    # Render Today's Cards via CSS Grid Container (Equal Heights & Guaranteed 2 Cards/Row on narrow screens)
+    # Render Today Cards via CSS Grid Container correctly passing unsafe HTML
     st.markdown(f'<div class="cards-container">{"".join(today_cards)}</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
@@ -783,7 +778,7 @@ with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded
         """
     ]
 
-    # Render Range Cards via CSS Grid Container
+    # Render Range Cards via CSS Grid Container correctly passing unsafe HTML
     st.markdown(f'<div class="cards-container">{"".join(period_cards)}</div>', unsafe_allow_html=True)
 
 st.markdown("---")
@@ -797,7 +792,7 @@ def render_empty_state(title="No Data Logged in this period", subtitle="Try pick
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 5. CHARTS & ANALYTICS
+# 5. CHARTS & ANALYTICS ("⏰ Today" is placed FIRST)
 # ==========================================
 st.markdown('<div id="analytics-charts"></div>', unsafe_allow_html=True)
 st.subheader("📊 Analytics & Insights")
@@ -812,7 +807,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📈 Timeline"
 ])
 
-# TAB 1: Today 24-Hour Timeline Scatter
+# TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart with "%d-%H" x-axis formatting
 with tab1:
     cutoff_24h = current_local_time - timedelta(hours=24)
     today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
@@ -1013,7 +1008,7 @@ with tab5:
     else:
         render_empty_state("No Tummy Time Data Logged in this period")
 
-# TAB 6: Health Charts (Sleep, Temp, Meds)
+# TAB 6: Health Charts (Sleep, Temp, Meds strictly grouped by Date / GroupCol formatted m.DD)
 with tab6:
     act_option = st.radio(
         "Select Health Activity:",
@@ -1091,7 +1086,7 @@ with tab6:
     else:
         render_empty_state(f"No {act_option} Data Logged in this period")
 
-# TAB 7: Full Period Timeline Scatter
+# TAB 7: Full Period Timeline with "%-m.%d" x-axis formatting and daily ticks (dtick="D1")
 with tab7:
     if not filtered_df.empty:
         norm_filtered_df = prepare_normalized_timeline_df(filtered_df)
@@ -1204,3 +1199,4 @@ if not display_df.empty:
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
+
