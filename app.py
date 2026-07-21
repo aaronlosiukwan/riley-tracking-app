@@ -16,6 +16,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Inject Safari meta tags for translucent status bar
+st.markdown("""
+    <head>
+        <meta name="theme-color" content="#f8fafc">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    </head>
+""", unsafe_allow_html=True)
+
 # Responsive & Adaptive CSS: Strictly Light Mode with Equal Height Cards
 st.markdown("""
     <style>
@@ -40,10 +49,13 @@ st.markdown("""
         --card-text: #1e293b;
     }
 
-    /* Force global text color to dark for light mode */
-    body, .stApp {
-        color: var(--card-text) !important;
+    /* Seamless background for Safari translucency and Safe Area Padding */
+    html, body, .stApp, header {
         background-color: #f8fafc !important; /* Very subtle off-white background */
+    }
+    
+    .main .block-container {
+        padding-bottom: calc(6rem + env(safe-area-inset-bottom)) !important;
     }
 
     /* Style Multiselect Tag Chips to Light Grey */
@@ -1163,4 +1175,5 @@ if not display_df.empty:
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
+
 
