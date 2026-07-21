@@ -363,7 +363,7 @@ def format_x_label(val):
     except Exception:
         return str(val)
 
-# Compact Plotly Styling Helper configured to show ONLY DATA VALUE on hover (hovermode="closest")
+# Compact Plotly Styling Helper displaying EVERY DATE on X-Axis with Unbolded Titles
 def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_scatter=False, x_tickformat=None, x_dtick=None):
     layout_args = dict(
         title=dict(
@@ -372,7 +372,7 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_s
             x=0.5,
             xanchor="center",
             yanchor="top",
-            font=dict(size=16, weight="normal")
+            font=dict(size=16, weight="normal") # Enlarged unbolded title font
         ),
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
@@ -392,21 +392,21 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_s
             type=None if is_scatter else "category",
             tickformat=x_tickformat if x_tickformat else None,
             dtick=x_dtick if x_dtick else None,
-            title=dict(text=""),
+            title=dict(text=""), # Removed axis title labels like "DateTime" or "Daily"
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
             automargin=True
         ),
         yaxis=dict(
-            title=dict(text=""),
+            title=dict(text=""), # Stripped y-axis title label
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
             title_standoff=2,
             automargin=True
         ),
-        hovermode="closest" # Displays strictly individual target data value on hover
+        hovermode="closest"
     )
     if single_point:
         layout_args["bargap"] = 0.75
@@ -566,110 +566,93 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
     t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
     t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
 
+    # Build Active Cards list for Today
     today_cards = []
 
-    today_cards.append(f"""
-        <div class="highlight-card card-feed">
-            <div>
-                <div class="highlight-title">⏰ Last Feeding</div>
-                <div class="highlight-body"><b>{last_feed_delta}</b></div>
-            </div>
-            <div class="highlight-sub">{last_feed_sub}</div>
-        </div>
-    """)
+    today_cards.append(f"""<div class="highlight-card card-feed">
+    <div>
+        <div class="highlight-title">⏰ Last Feeding</div>
+        <div class="highlight-body"><b>{last_feed_delta}</b></div>
+    </div>
+    <div class="highlight-sub">{last_feed_sub}</div>
+</div>""")
 
     if t_milk > 0 or t_feed_cnt > 0:
-        today_cards.append(f"""
-            <div class="highlight-card card-milk">
-                <div>
-                    <div class="highlight-title">🍼 Milk Intake</div>
-                    <div class="highlight-body">Total <b>{int(t_milk):,} mL</b> across <b>{t_feed_cnt}</b> feed(s).</div>
-                </div>
-                <div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Form: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div>
-            </div>
-        """)
+        today_cards.append(f"""<div class="highlight-card card-milk">
+    <div>
+        <div class="highlight-title">🍼 Milk Intake</div>
+        <div class="highlight-body">Total <b>{int(t_milk):,} mL</b> across <b>{t_feed_cnt}</b> feed(s).</div>
+    </div>
+    <div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Form: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div>
+</div>""")
 
     if t_wet + t_poop > 0:
-        today_cards.append(f"""
-            <div class="highlight-card card-diaper">
-                <div>
-                    <div class="highlight-title">🚽 Diaper Output</div>
-                    <div class="highlight-body">Total <b>{t_wet + t_poop}</b> change(s) logged.</div>
-                </div>
-                <div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div>
-            </div>
-        """)
+        today_cards.append(f"""<div class="highlight-card card-diaper">
+    <div>
+        <div class="highlight-title">🚽 Diaper Output</div>
+        <div class="highlight-body">Total <b>{t_wet + t_poop}</b> change(s) logged.</div>
+    </div>
+    <div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div>
+</div>""")
 
     p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
     if t_pumping > 0 or p_cnt_today > 0:
-        today_cards.append(f"""
-            <div class="highlight-card card-pump">
-                <div>
-                    <div class="highlight-title">🧴 Pumping</div>
-                    <div class="highlight-body">Pumped <b>{int(t_pumping):,} mL</b> total today.</div>
-                </div>
-                <div class="highlight-sub">{p_cnt_today} pumping session(s)</div>
-            </div>
-        """)
+        today_cards.append(f"""<div class="highlight-card card-pump">
+    <div>
+        <div class="highlight-title">🧴 Pumping</div>
+        <div class="highlight-body">Pumped <b>{int(t_pumping):,} mL</b> total today.</div>
+    </div>
+    <div class="highlight-sub">{p_cnt_today} pumping session(s)</div>
+</div>""")
 
     tummy_cnt_today = len(today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
     if t_tummy > 0 or tummy_cnt_today > 0:
-        today_cards.append(f"""
-            <div class="highlight-card card-tummy">
-                <div>
-                    <div class="highlight-title">🛟 Tummy Time</div>
-                    <div class="highlight-body">Logged <b>{int(t_tummy)} min(s)</b> today.</div>
-                </div>
-                <div class="highlight-sub">{tummy_cnt_today} session(s) logged</div>
-            </div>
-        """)
+        today_cards.append(f"""<div class="highlight-card card-tummy">
+    <div>
+        <div class="highlight-title">🛟 Tummy Time</div>
+        <div class="highlight-body">Logged <b>{int(t_tummy)} min(s)</b> today.</div>
+    </div>
+    <div class="highlight-sub">{tummy_cnt_today} session(s) logged</div>
+</div>""")
 
     sleep_cnt_today = len(today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)])
     if t_sleep > 0 or sleep_cnt_today > 0:
-        today_cards.append(f"""
-            <div class="highlight-card card-sleep">
-                <div>
-                    <div class="highlight-title">🛌 Rest & Sleep</div>
-                    <div class="highlight-body">Logged <b>{int(t_sleep)} hr(s)</b> rest.</div>
-                </div>
-                <div class="highlight-sub">{sleep_cnt_today} sleep period(s)</div>
-            </div>
-        """)
+        today_cards.append(f"""<div class="highlight-card card-sleep">
+    <div>
+        <div class="highlight-title">🛌 Rest & Sleep</div>
+        <div class="highlight-body">Logged <b>{int(t_sleep)} hr(s)</b> rest.</div>
+    </div>
+    <div class="highlight-sub">{sleep_cnt_today} sleep period(s)</div>
+</div>""")
 
     if t_meds > 0:
-        today_cards.append(f"""
-            <div class="highlight-card card-meds">
-                <div>
-                    <div class="highlight-title">💊 Medication</div>
-                    <div class="highlight-body">Logged <b>{t_meds}</b> dose(s).</div>
-                </div>
-                <div class="highlight-sub">Dose(s) tracked today</div>
-            </div>
-        """)
+        today_cards.append(f"""<div class="highlight-card card-meds">
+    <div>
+        <div class="highlight-title">💊 Medication</div>
+        <div class="highlight-body">Logged <b>{t_meds}</b> dose(s).</div>
+    </div>
+    <div class="highlight-sub">Dose(s) tracked today</div>
+</div>""")
 
     if t_latest_temp is not None:
-        today_cards.append(f"""
-            <div class="highlight-card card-temp">
-                <div>
-                    <div class="highlight-title">🌡️ Body Temp</div>
-                    <div class="highlight-body"><b>{t_latest_temp:.1f} °C</b></div>
-                </div>
-                <div class="highlight-sub">{len(t_temp_df)} reading(s) logged</div>
-            </div>
-        """)
+        today_cards.append(f"""<div class="highlight-card card-temp">
+    <div>
+        <div class="highlight-title">🌡️ Body Temp</div>
+        <div class="highlight-body"><b>{t_latest_temp:.1f} °C</b></div>
+    </div>
+    <div class="highlight-sub">{len(t_temp_df)} reading(s) logged</div>
+</div>""")
 
     if len(today_df) > 0:
-        today_cards.append(f"""
-            <div class="highlight-card card-events">
-                <div>
-                    <div class="highlight-title">📊 Total Events</div>
-                    <div class="highlight-body"><b>{len(today_df):,}</b> entry(s) logged.</div>
-                </div>
-                <div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div>
-            </div>
-        """)
+        today_cards.append(f"""<div class="highlight-card card-events">
+    <div>
+        <div class="highlight-title">📊 Total Events</div>
+        <div class="highlight-body"><b>{len(today_df):,}</b> entry(s) logged.</div>
+    </div>
+    <div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div>
+</div>""")
 
-    # Render Today Cards via CSS Grid Container correctly passing unsafe HTML
+    # Render Today Cards via CSS Grid Container correctly without indentation formatting breaking HTML
     st.markdown(f'<div class="cards-container">{"".join(today_cards)}</div>', unsafe_allow_html=True)
 
 st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
@@ -704,92 +687,73 @@ with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded
     p_tummy_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
 
     period_cards = [
-        f"""
-        <div class="highlight-card card-milk">
-            <div>
-                <div class="highlight-title">🍼 Milk Intake</div>
-                <div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feed(s).</div>
-            </div>
-            <div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Form: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div>
-        </div>
-        """,
-        f"""
-        <div class="highlight-card card-diaper">
-            <div>
-                <div class="highlight-title">🚽 Diaper Output</div>
-                <div class="highlight-body">Total <b>{p_wet + p_poop}</b> diaper change(s).</div>
-            </div>
-            <div class="highlight-sub">💧 Wet: {p_wet} | 🚽 Poop: {p_poop}</div>
-        </div>
-        """,
-        f"""
-        <div class="highlight-card card-pump">
-            <div>
-                <div class="highlight-title">🧴 Pumping</div>
-                <div class="highlight-body">Pumped <b>{int(p_pumping):,} mL</b> total in range.</div>
-            </div>
-            <div class="highlight-sub">{p_pump_cnt} pumping session(s)</div>
-        </div>
-        """,
-        f"""
-        <div class="highlight-card card-tummy">
-            <div>
-                <div class="highlight-title">🛟 Tummy Time</div>
-                <div class="highlight-body">Logged <b>{int(p_tummy)} min(s)</b> total in range.</div>
-            </div>
-            <div class="highlight-sub">{p_tummy_cnt} session(s) recorded</div>
-        </div>
-        """,
-        f"""
-        <div class="highlight-card card-sleep">
-            <div>
-                <div class="highlight-title">🛌 Sleep & Rest</div>
-                <div class="highlight-body">Logged <b>{int(p_sleep)} hr(s)</b> of rest.</div>
-            </div>
-            <div class="highlight-sub">{len(filtered_df[filtered_df['Event Type'].str.contains('Sleep', case=False, na=False)])} sleep period(s)</div>
-        </div>
-        """,
-        f"""
-        <div class="highlight-card card-meds">
-            <div>
-                <div class="highlight-title">💊 Medication</div>
-                <div class="highlight-body">Logged <b>{p_meds}</b> dose(s).</div>
-            </div>
-            <div class="highlight-sub">Dose(s) tracked in log</div>
-        </div>
-        """,
-        f"""
-        <div class="highlight-card card-temp">
-            <div>
-                <div class="highlight-title">🌡️ Body Temperature</div>
-                <div class="highlight-body">{p_temp_str}</div>
-            </div>
-            <div class="highlight-sub">{len(p_temp_df)} reading(s) in period</div>
-        </div>
-        """,
-        f"""
-        <div class="highlight-card card-events">
-            <div>
-                <div class="highlight-title">📊 Total Events</div>
-                <div class="highlight-body"><b>{len(filtered_df):,}</b> entry(s) logged.</div>
-            </div>
-            <div class="highlight-sub">From {start_date} to {end_date}</div>
-        </div>
-        """
+        f"""<div class="highlight-card card-milk">
+    <div>
+        <div class="highlight-title">🍼 Milk Intake</div>
+        <div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feed(s).</div>
+    </div>
+    <div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Form: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div>
+</div>""",
+        f"""<div class="highlight-card card-diaper">
+    <div>
+        <div class="highlight-title">🚽 Diaper Output</div>
+        <div class="highlight-body">Total <b>{p_wet + p_poop}</b> diaper change(s).</div>
+    </div>
+    <div class="highlight-sub">💧 Wet: {p_wet} | 🚽 Poop: {p_poop}</div>
+</div>""",
+        f"""<div class="highlight-card card-pump">
+    <div>
+        <div class="highlight-title">🧴 Pumping</div>
+        <div class="highlight-body">Pumped <b>{int(p_pumping):,} mL</b> total in range.</div>
+    </div>
+    <div class="highlight-sub">{p_pump_cnt} pumping session(s)</div>
+</div>""",
+        f"""<div class="highlight-card card-tummy">
+    <div>
+        <div class="highlight-title">🛟 Tummy Time</div>
+        <div class="highlight-body">Logged <b>{int(p_tummy)} min(s)</b> total in range.</div>
+    </div>
+    <div class="highlight-sub">{p_tummy_cnt} session(s) recorded</div>
+</div>""",
+        f"""<div class="highlight-card card-sleep">
+    <div>
+        <div class="highlight-title">🛌 Sleep & Rest</div>
+        <div class="highlight-body">Logged <b>{int(p_sleep)} hr(s)</b> of rest.</div>
+    </div>
+    <div class="highlight-sub">{len(filtered_df[filtered_df['Event Type'].str.contains('Sleep', case=False, na=False)])} sleep period(s)</div>
+</div>""",
+        f"""<div class="highlight-card card-meds">
+    <div>
+        <div class="highlight-title">💊 Medication</div>
+        <div class="highlight-body">Logged <b>{p_meds}</b> dose(s).</div>
+    </div>
+    <div class="highlight-sub">Dose(s) tracked in log</div>
+</div>""",
+        f"""<div class="highlight-card card-temp">
+    <div>
+        <div class="highlight-title">🌡️ Body Temperature</div>
+        <div class="highlight-body">{p_temp_str}</div>
+    </div>
+    <div class="highlight-sub">{len(p_temp_df)} reading(s) in period</div>
+</div>""",
+        f"""<div class="highlight-card card-events">
+    <div>
+        <div class="highlight-title">📊 Total Events</div>
+        <div class="highlight-body"><b>{len(filtered_df):,}</b> entry(s) logged.</div>
+    </div>
+    <div class="highlight-sub">From {start_date} to {end_date}</div>
+</div>"""
     ]
 
-    # Render Range Cards via CSS Grid Container correctly passing unsafe HTML
     st.markdown(f'<div class="cards-container">{"".join(period_cards)}</div>', unsafe_allow_html=True)
 
 st.markdown("---")
 
 def render_empty_state(title="No Data Logged in this period", subtitle="Try picking a wider date range or logging new entries."):
-    st.markdown(f"""
-        <div class="empty-data-card">
-            <div class="empty-data-title">📋 {title}</div>
-            <div class="empty-data-sub">{subtitle}</div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div class="empty-data-card">
+    <div class="empty-data-title">📋 {title}</div>
+    <div class="empty-data-sub">{subtitle}</div>
+</div>""", unsafe_allow_html=True)
 
 # ==========================================
 # 5. CHARTS & ANALYTICS ("⏰ Today" is placed FIRST)
