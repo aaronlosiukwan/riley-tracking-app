@@ -13,7 +13,7 @@ st.set_page_config(
     page_title="Riley Growth Log",
     page_icon="🍼",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # Responsive & Adaptive CSS with Soft Shadows & Clean Typography
@@ -560,7 +560,7 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
     # Build Active Cards list for Today (CARD 1 IS STRICTLY LAST FEEDING)
     today_cards = []
 
-    # 1. Last Feeding (ALWAYS Active)
+    # 1. Last Feeding (ALWAYS Active) - mL removed from body next to time elapsed
     today_cards.append(f"""
         <div class="highlight-card card-feed">
             <div>
@@ -791,7 +791,7 @@ with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded
             </div>
         """, unsafe_allow_html=True)
         
-    st.markdown('<div style="margin-bottom: 12px;'></div>', unsafe_allow_html=True)
+    st.markdown('<div style="margin-bottom: 12px;"></div>', unsafe_allow_html=True)
 
 st.markdown("---")
 
