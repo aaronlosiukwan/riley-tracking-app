@@ -207,7 +207,6 @@ st.markdown('<hr style="margin: 6px 0 16px 0; opacity: 0.25;">', unsafe_allow_ht
 # ==========================================
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
 # ==========================================
-# Removed "Header" from TOC
 st.sidebar.markdown("""
     <div style="margin-bottom: 12px;">
         <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 8px;">📌 Navigation</div>
@@ -352,8 +351,8 @@ def format_x_label(val):
     except Exception:
         return str(val)
 
-# Compact Plotly Styling Helper displaying EVERY DATE on X-Axis with m.D Date Formatting
-def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_scatter=False):
+# Compact Plotly Styling Helper supporting custom tick formatting for scatter timeline charts
+def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_scatter=False, x_tickformat=None):
     layout_args = dict(
         title=dict(
             text=title_text,
@@ -379,7 +378,7 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_s
         font=dict(family="sans-serif", size=11),
         xaxis=dict(
             type=None if is_scatter else "category",
-            tickformat="%m.%d %H:%M" if is_scatter else None, # Formats DateTime scatter ticks as m.D HH:MM without year
+            tickformat=x_tickformat if x_tickformat else ("%m.%d %H:%M" if is_scatter else None),
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
@@ -561,7 +560,7 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
     # Build Active Cards list for Today (CARD 1 IS STRICTLY LAST FEEDING)
     today_cards = []
 
-    # 1. Last Feeding (ALWAYS Active) - mL removed from body next to time elapsed
+    # 1. Last Feeding (ALWAYS Active)
     today_cards.append(f"""
         <div class="highlight-card card-feed">
             <div>
@@ -792,7 +791,7 @@ with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded
             </div>
         """, unsafe_allow_html=True)
         
-    st.markdown('<div style="margin-bottom: 12px;"></div>', unsafe_allow_html=True)
+    st.markdown('<div style="margin-bottom: 12px;'></div>', unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -820,7 +819,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📈 Timeline"
 ])
 
-# TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart with m.D HH:MM formatting
+# TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart with "%d-%H" x-axis formatting
 with tab1:
     cutoff_24h = current_local_time - timedelta(hours=24)
     today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
@@ -837,7 +836,13 @@ with tab1:
             hover_data=["Value (Optional)"],
             size_max=14
         )
-        fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=480, is_scatter=True)
+        fig_today_timeline = style_plotly_figure(
+            fig_today_timeline,
+            title_text="⏰ Last 24 Hours Activity Timeline",
+            height=480,
+            is_scatter=True,
+            x_tickformat="%d-%H" # Formats Today x-axis as DD-HH
+        )
         fig_today_timeline.update_layout(showlegend=False)
         st.plotly_chart(fig_today_timeline, use_container_width=True)
         st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours using exact DateTime.*")
@@ -1114,7 +1119,7 @@ with tab6:
     else:
         render_empty_state(f"No {act_option} Data Logged in this period")
 
-# TAB 7: Full Period Timeline with m.D HH:MM formatting
+# TAB 7: Full Period Timeline with "%-m.%d-%H" x-axis formatting
 with tab7:
     if not filtered_df.empty:
         norm_filtered_df = prepare_normalized_timeline_df(filtered_df)
@@ -1128,7 +1133,13 @@ with tab7:
             hover_data=["Value (Optional)"],
             size_max=14
         )
-        fig_time = style_plotly_figure(fig_time, title_text=f"Interactive Event Timeline — {granularity}", height=480, is_scatter=True)
+        fig_time = style_plotly_figure(
+            fig_time,
+            title_text=f"Interactive Event Timeline — {granularity}",
+            height=480,
+            is_scatter=True,
+            x_tickformat="%-m.%d-%H" # Formats timeline x-axis as m.d-H
+        )
         fig_time.update_layout(showlegend=False)
         st.plotly_chart(fig_time, use_container_width=True)
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
