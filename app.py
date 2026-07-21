@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Apple Touch Icon into document <head> via JS for iOS Safari Home Screen
+# Inject Apple Touch Icon and Tap-to-Top behavior into document <head> via JS
 components.html(
     """
     <script>
@@ -37,10 +37,29 @@ components.html(
                 link.href = iconUrl;
             });
         }
+
+        // Makes the Streamlit top header clickable to scroll to top (iOS Fallback)
+        function applyTapToTop(doc) {
+            if (!doc) return;
+            const header = doc.querySelector('[data-testid="stHeader"]');
+            const container = doc.querySelector('[data-testid="stAppViewContainer"]') || doc.documentElement;
+            if (header && container) {
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', () => {
+                    container.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+            }
+        }
         
         try { applyAppleIcon(document); } catch(e) {}
         try { applyAppleIcon(window.parent.document); } catch(e) {}
         try { applyAppleIcon(window.top.document); } catch(e) {}
+
+        // Wait slightly for Streamlit DOM to render, then attach header listener
+        setTimeout(() => {
+            try { applyTapToTop(window.parent.document); } catch(e) {}
+            try { applyTapToTop(window.top.document); } catch(e) {}
+        }, 1000);
     })();
     </script>
     """,
@@ -61,7 +80,7 @@ st.markdown("""
         scroll-behavior: smooth;
     }
     [id] {
-        scroll-margin-top: 80px;
+        scroll-margin-top: 70px;
     }
 
     /* Compact Vertical Spacing Across Blocks & Expanders */
@@ -88,9 +107,10 @@ st.markdown("""
         background-color: #f8fafc !important;
     }
 
-    /* Seamless background for Safari translucency */
+    /* Seamless background for Safari translucency and iOS scroll targeting */
     [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
         background-color: #f8fafc !important; 
+        -webkit-overflow-scrolling: touch !important;
     }
     
     /* Top padding ensures the title is NOT blocked by Streamlit's fixed top header bar.
@@ -262,6 +282,13 @@ st.markdown("""
         font-size: 0.8rem;
         opacity: 0.75;
     }
+
+    /* Disable chart interaction on mobile for smooth page scrolling */
+    @media (max-width: 768px) {
+        div[data-testid="stPlotlyChart"] {
+            pointer-events: none !important;
+        }
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -428,7 +455,7 @@ def format_x_label(val):
         return str(val)
 
 # Compact Plotly Styling Helper displaying EVERY DATE on X-Axis with Unbolded Titles
-def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_scatter=False, x_tickformat=None, x_dtick=None):
+def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_scatter=False, x_tickformat=None, x_dtick=None, y_tickangle=None):
     layout_args = dict(
         title=dict(
             text=title_text,
@@ -456,17 +483,18 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_s
             type=None if is_scatter else "category",
             tickformat=x_tickformat if x_tickformat else None,
             dtick=x_dtick if x_dtick else None,
-            title=dict(text=""), # Removed axis title labels like "DateTime" or "Daily"
+            title=dict(text=""),
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
             automargin=True
         ),
         yaxis=dict(
-            title=dict(text=""), # Stripped y-axis title label
+            title=dict(text=""),
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
+            tickangle=y_tickangle if y_tickangle is not None else 0,
             title_standoff=2,
             automargin=True
         ),
@@ -860,7 +888,9 @@ with tab1:
             title_text="⏰ Last 24 Hours Activity Timeline",
             height=450,
             is_scatter=True,
-            x_tickformat="%d-%H"
+            x_tickformat="%d-%H",
+            x_dtick=10800000, # 3 hours in milliseconds
+            y_tickangle=-45   # Tilt Y-axis text
         )
         fig_today_timeline.update_layout(showlegend=False)
         st.plotly_chart(fig_today_timeline, use_container_width=True)
@@ -1229,6 +1259,8 @@ if not display_df.empty:
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
+
+
 
 
 
