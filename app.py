@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Responsive & Adaptive CSS with Soft Shadows & Clean Typography
+# Responsive & Adaptive CSS with Equal Height Cards & Soft Shadows
 st.markdown("""
     <style>
     /* Hide Streamlit Default Branding while preserving Sidebar Header Toggle Button */
@@ -97,16 +97,30 @@ st.markdown("""
         margin-bottom: 0.6rem;
     }
 
-    /* Custom Color-Coded Shadowed Highlight Cards with Clean Text Wrapping */
+    /* Force Streamlit Columns to flex stretch for 100% Equal Height Cards */
+    div[data-testid="column"] {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    div[data-testid="column"] > div {
+        flex: 1 1 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    div[data-testid="column"] > div > div {
+        height: 100% !important;
+    }
+
+    /* Custom Color-Coded Equal Height Shadowed Highlight Cards */
     .highlight-card {
         background-color: var(--card-bg);
         border-radius: 12px;
         padding: 12px 14px;
-        min-height: 125px;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        min-height: 135px;
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
         box-shadow: var(--card-shadow);
         border: 1px solid var(--card-border);
         box-sizing: border-box;
@@ -124,7 +138,7 @@ st.markdown("""
     .card-temp { border-left: 5px solid #f87171; }
     .card-events { border-left: 5px solid #94a3b8; }
 
-    /* Title text wrapping fix prevents overflow in card headers */
+    /* Clean text wrapping inside cards prevents title text overflow */
     .highlight-title {
         font-weight: 600;
         font-size: 0.9rem;
@@ -147,8 +161,8 @@ st.markdown("""
         word-break: break-word;
     }
 
-    /* Force Strictly 2 Highlight Cards per Row in mobile viewports */
-    @media (max-width: 768px) {
+    /* Force Strictly 2 Highlight Cards per Row on narrow viewports or mobile */
+    @media (max-width: 1024px) {
         div[data-testid="stHorizontalBlock"]:has(.highlight-card) {
             display: flex !important;
             flex-direction: row !important;
@@ -357,8 +371,8 @@ def format_x_label(val):
     except Exception:
         return str(val)
 
-# Compact Plotly Styling Helper: Enlarged Unbolded Titles, Stripped Axis Titles
-def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_scatter=False, x_tickformat=None):
+# Compact Plotly Styling Helper supporting dtick and tickformat configurations
+def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_scatter=False, x_tickformat=None, x_dtick=None):
     layout_args = dict(
         title=dict(
             text=title_text,
@@ -385,6 +399,7 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_s
         xaxis=dict(
             type=None if is_scatter else "category",
             tickformat=x_tickformat if x_tickformat else None,
+            dtick=x_dtick if x_dtick else None,
             title=dict(text=""), # Removed axis title labels like "DateTime" or "Daily"
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
@@ -1107,7 +1122,7 @@ with tab6:
     else:
         render_empty_state(f"No {act_option} Data Logged in this period")
 
-# TAB 7: Full Period Timeline with "%-m.%d" x-axis formatting
+# TAB 7: Full Period Timeline with "%-m.%d" x-axis formatting and daily ticks (dtick="D1")
 with tab7:
     if not filtered_df.empty:
         norm_filtered_df = prepare_normalized_timeline_df(filtered_df)
@@ -1126,7 +1141,8 @@ with tab7:
             title_text=f"📈 Interactive Event Timeline — {granularity}",
             height=480,
             is_scatter=True,
-            x_tickformat="%-m.%d" # Formats timeline x-axis as m.d
+            x_tickformat="%-m.%d",
+            x_dtick="D1" # Forces x-axis to show every single day tick
         )
         fig_time.update_layout(showlegend=False)
         st.plotly_chart(fig_time, use_container_width=True)
