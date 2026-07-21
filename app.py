@@ -283,12 +283,21 @@ st.markdown("""
         opacity: 0.75;
     }
 
-    /* Disable chart interaction on mobile for smooth page scrolling */
+    /* Force completely disable chart interaction on mobile via invisible overlay to preserve touch scrolling */
     @media (max-width: 768px) {
-        div[data-testid="stPlotlyChart"],
+        div[data-testid="stPlotlyChart"] {
+            position: relative !important;
+        }
         div[data-testid="stPlotlyChart"] iframe {
             pointer-events: none !important;
-            touch-action: none !important;
+        }
+        /* Invisible shield overlay catching all touches so the page scrolls instead */
+        div[data-testid="stPlotlyChart"]::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 999;
+            background: rgba(0,0,0,0);
         }
     }
     </style>
@@ -485,14 +494,14 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_s
             type=None if is_scatter else "category",
             tickformat=x_tickformat if x_tickformat else None,
             dtick=x_dtick if x_dtick else None,
-            title=dict(text=""),
+            title=dict(text=""), # Removed axis title labels like "DateTime" or "Daily"
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
             automargin=True
         ),
         yaxis=dict(
-            title=dict(text=""),
+            title=dict(text=""), # Stripped y-axis title label
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
             tickfont=dict(size=9.5),
@@ -1215,22 +1224,13 @@ if search_query:
 if 'DateTime' in table_df.columns:
     table_df = table_df.sort_values('DateTime', ascending=False)
 
-def format_value(val):
-    if pd.isna(val):
-        return ""
-    try:
-        f_val = float(val)
-        if f_val.is_integer():
-            return f"{int(f_val)}"
-        return f"{f_val:.1f}"
-    except ValueError:
-        return str(val)
-
+# Ensure Value remains numeric for accurate math sorting in the UI
 if 'Value (Optional)' in table_df.columns:
-    table_df['Value (Optional)'] = table_df['Value (Optional)'].apply(format_value)
+    table_df['Value (Optional)'] = pd.to_numeric(table_df['Value (Optional)'], errors='coerce')
 
+# Keep DateTime pure for sorting, but duplicate mapping into columns
 if 'DateTime' in table_df.columns:
-    table_df['DateTime_Display'] = table_df['DateTime'].dt.strftime('%Y-%m-%d %H:%M')
+    table_df['DateTime_Display'] = table_df['DateTime']
 
 # REORDER COLUMNS: DateTime and Event Type ARE STRICTLY COLUMNS 1 AND 2
 desired_cols = [
@@ -1244,26 +1244,19 @@ if 'DateTime_Display' in display_df.columns:
     display_df = display_df.rename(columns={'DateTime_Display': 'DateTime'})
 
 if not display_df.empty:
+    # Use native DatetimeColumn and NumberColumn to strictly enforce numeric/date sorting
     st.dataframe(
         display_df,
         use_container_width=True,
         height=700,
         column_config={
-            "DateTime": st.column_config.TextColumn("DateTime", width="medium"),
+            "DateTime": st.column_config.DatetimeColumn("DateTime", format="YYYY-MM-DD HH:mm", width="medium"),
             "Event Type": st.column_config.TextColumn("Event Type", width="medium"),
-            "Value (Optional)": st.column_config.TextColumn("Value", width="small"),
-            "Notes / Details (Optional)": st.column_config.TextColumn(
-                "Notes / Details (Optional)",
-                width="large"
-            )
+            "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
+            "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
         }
     )
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
-
-
-
-
-
 
