@@ -22,26 +22,47 @@ components.html(
     """
     <script>
     (function() {
-        const iconUrl = "https://em-content.zobj.net/source/apple/391/baby-bottle_1f37c.png";
+    const iconUrl = "https://em-content.zobj.net/source/apple/391/baby-bottle_1f37c.png";
+    
+    function applyAppleMeta(doc) {
+        if (!doc || !doc.head) return;
         
-        function applyAppleIcon(doc) {
-            if (!doc || !doc.head) return;
-            const rels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon', 'shortcut icon'];
-            rels.forEach(function(rel) {
-                let link = doc.querySelector("link[rel='" + rel + "']");
-                if (!link) {
-                    link = doc.createElement('link');
-                    link.rel = rel;
-                    doc.head.appendChild(link);
-                }
-                link.href = iconUrl;
-            });
+        // Add Apple Touch Icon
+        const rels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon'];
+        rels.forEach(function(rel) {
+            let link = doc.querySelector("link[rel='" + rel + "']");
+            if (!link) {
+                link = doc.createElement('link');
+                link.rel = rel;
+                doc.head.appendChild(link);
+            }
+            link.href = iconUrl;
+        });
+
+        // Add iOS Safari Light/Dark theme-color meta tags
+        let metaLight = doc.querySelector("meta[name='theme-color'][media*='light']");
+        if (!metaLight) {
+            metaLight = doc.createElement('meta');
+            metaLight.name = "theme-color";
+            metaLight.media = "(prefers-color-scheme: light)";
+            metaLight.content = "#ffffff";
+            doc.head.appendChild(metaLight);
         }
-        
-        try { applyAppleIcon(document); } catch(e) {}
-        try { applyAppleIcon(window.parent.document); } catch(e) {}
-        try { applyAppleIcon(window.top.document); } catch(e) {}
-    })();
+
+        let metaDark = doc.querySelector("meta[name='theme-color'][media*='dark']");
+        if (!metaDark) {
+            metaDark = doc.createElement('meta');
+            metaDark.name = "theme-color";
+            metaDark.media = "(prefers-color-scheme: dark)";
+            metaDark.content = "#000000";
+            doc.head.appendChild(metaDark);
+        }
+    }
+    
+    try { applyAppleMeta(document); } catch(e) {}
+    try { applyAppleMeta(window.parent.document); } catch(e) {}
+    try { applyAppleMeta(window.top.document); } catch(e) {}
+})();
     </script>
     """,
     height=0,
@@ -64,18 +85,30 @@ st.markdown("""
         scroll-margin-top: 80px;
     }
 
-    /* Locked Light Mode Theme Variables */
+        /* 1. Default Light Mode Variables (iOS Light Standard) */
     :root {
-        --card-bg: #ffffff;
+        --app-bg: #ffffff;
+        --card-bg: #f8fafc;
         --card-border: #e2e8f0;
         --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        --card-text: #1e293b;
+        --card-text: #0f172a;
     }
 
-    /* Force global text color to dark for light mode */
-    body, .stApp {
+    /* 2. iOS Dark Mode Overrides (Native Dark Standard) */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --app-bg: #000000;          /* True iOS Dark Background */
+            --card-bg: #1c1c1e;        /* iOS Card Surface Dark */
+            --card-border: #2c2c2e;
+            --card-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+            --card-text: #f8fafc;
+        }
+    }
+
+    /* 3. Apply Theme Variables to Page Background & Containers */
+    body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
         color: var(--card-text) !important;
-        background-color: #f8fafc !important; /* Very subtle off-white background */
+        background-color: var(--app-bg) !important;
     }
 
     /* Seamless background for Safari translucency and Safe Area Padding */
