@@ -100,46 +100,47 @@ st.markdown("""
     }
 
     /* Shrink Add and Refresh buttons in the header row */
-    div[data-testid="stHorizontalBlock"]:has(#desktop-title) [data-testid="baseButton-secondary"] {
-        min-height: 2.2rem !important;
-        height: 2.2rem !important;
+    div[data-testid="stHorizontalBlock"]:has(#header-marker) [data-testid="baseButton-secondary"] {
+        min-height: 2.0rem !important;
+        height: 2.0rem !important;
         padding: 0 0.5rem !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(#desktop-title) [data-testid="baseButton-secondary"] p {
-        font-size: 0.9rem !important;
+    div[data-testid="stHorizontalBlock"]:has(#header-marker) [data-testid="baseButton-secondary"] p {
+        font-size: 0.85rem !important;
         margin: 0 !important;
     }
 
     /* ------------------------------------------------------------------------
-       Responsive Header Configuration (Solves Mobile 50/50 Layout & Line Breaks)
+       Responsive Header Configuration (Desktop vs Mobile layout)
        ------------------------------------------------------------------------ */
     @media (max-width: 768px) {
-        #desktop-title, .desktop-hr { display: none !important; }
-        #mobile-title, .mobile-hr { display: block !important; }
+        .desktop-hr { display: none !important; } /* Hide the desktop bottom HR on mobile */
         
-        /* Force buttons onto a single 50/50 row on mobile */
-        div[data-testid="stHorizontalBlock"]:has(#desktop-title) {
+        /* Force buttons onto a split row on mobile using flex wrap */
+        div[data-testid="stHorizontalBlock"]:has(#header-marker) {
             display: flex !important;
             flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            gap: 0.5rem !important;
-            align-items: center !important;
+            flex-wrap: wrap !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+            row-gap: 0.5rem !important;
         }
-        /* Hide the empty title column on mobile */
-        div[data-testid="stHorizontalBlock"]:has(#desktop-title) > div[data-testid="column"]:nth-child(1) {
-            display: none !important;
+        /* Mobile: Title column gets 100% width and a bottom border acting as the HR */
+        div[data-testid="stHorizontalBlock"]:has(#header-marker) > div[data-testid="column"]:nth-child(1) {
+            width: 100% !important;
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+            border-bottom: 1px solid rgba(128,128,128,0.25);
+            padding-bottom: 0.6rem !important;
+            margin-bottom: 0.2rem !important;
         }
-        /* Expand Add & Refresh columns to exactly 50% each */
-        div[data-testid="stHorizontalBlock"]:has(#desktop-title) > div[data-testid="column"]:nth-child(2),
-        div[data-testid="stHorizontalBlock"]:has(#desktop-title) > div[data-testid="column"]:nth-child(3) {
-            width: 50% !important;
-            min-width: 50% !important;
-            flex: 1 1 50% !important;
+        /* Mobile: Buttons perfectly split the bottom row (48% each to allow safe gap) */
+        div[data-testid="stHorizontalBlock"]:has(#header-marker) > div[data-testid="column"]:nth-child(2),
+        div[data-testid="stHorizontalBlock"]:has(#header-marker) > div[data-testid="column"]:nth-child(3) {
+            width: 48% !important;
+            min-width: 48% !important;
+            flex: 1 1 48% !important;
         }
-    }
-    @media (min-width: 769px) {
-        #mobile-title, .mobile-hr { display: none !important; }
-        #desktop-title, .desktop-hr { display: block !important; }
     }
     /* ------------------------------------------------------------------------ */
 
@@ -331,16 +332,11 @@ st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 # ---------------------------------------------------------
 # RESPONSIVE HEADER SECTION
 # ---------------------------------------------------------
-
-# Displayed ONLY on Mobile (Title -> HR -> Buttons)
-st.markdown('<div id="mobile-title" class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
-st.markdown('<hr class="mobile-hr" style="margin: 4px 0 8px 0; opacity: 0.25;">', unsafe_allow_html=True)
-
 header_c1, header_c2, header_c3 = st.columns([0.65, 0.175, 0.175], vertical_alignment="center")
 
 with header_c1:
-    # Displayed ONLY on Desktop
-    st.markdown('<div id="desktop-title" class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
+    # #header-marker anchors the CSS targeting logic
+    st.markdown('<div id="header-marker"></div><div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
 
 with header_c2:
     st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
@@ -350,7 +346,7 @@ with header_c3:
         st.cache_data.clear()
         st.rerun()
 
-# Displayed ONLY on Desktop (Below Title + Buttons)
+# Desktop HR (hidden on mobile via CSS since mobile uses title bottom-border)
 st.markdown('<hr class="desktop-hr" style="margin: 4px 0 10px 0; opacity: 0.25;">', unsafe_allow_html=True)
 
 
@@ -1189,7 +1185,7 @@ with tab5:
     else:
         render_empty_state("No Tummy Time Data Logged in this period")
 
-# TAB 6: Health Charts (Sleep, Temp, Meds)
+# TAB 6: Health Charts (Sleep, Temp, Meds strictly grouped by Date / GroupCol formatted m.DD)
 with tab6:
     act_option = st.radio(
         "Select Health Activity:",
