@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Apple Touch Icon and Tap-to-Top behavior into document <head> via JS
+# Inject Apple Touch Icon into document <head> via JS for iOS Safari Home Screen
 components.html(
     """
     <script>
@@ -37,29 +37,10 @@ components.html(
                 link.href = iconUrl;
             });
         }
-
-        // Makes the Streamlit top header clickable to scroll to top (iOS Fallback)
-        function applyTapToTop(doc) {
-            if (!doc) return;
-            const header = doc.querySelector('[data-testid="stHeader"]');
-            const container = doc.querySelector('[data-testid="stAppViewContainer"]') || doc.documentElement;
-            if (header && container) {
-                header.style.cursor = 'pointer';
-                header.addEventListener('click', () => {
-                    container.scrollTo({ top: 0, behavior: 'smooth' });
-                });
-            }
-        }
         
         try { applyAppleIcon(document); } catch(e) {}
         try { applyAppleIcon(window.parent.document); } catch(e) {}
         try { applyAppleIcon(window.top.document); } catch(e) {}
-
-        // Wait slightly for Streamlit DOM to render, then attach header listener
-        setTimeout(() => {
-            try { applyTapToTop(window.parent.document); } catch(e) {}
-            try { applyTapToTop(window.top.document); } catch(e) {}
-        }, 1000);
     })();
     </script>
     """,
@@ -67,7 +48,7 @@ components.html(
     width=0
 )
 
-# Responsive & Adaptive CSS: Strictly Light Mode with Equal Height Cards & Safari Spacing
+# Responsive & Adaptive CSS
 st.markdown("""
     <style>
     /* Hide Streamlit Default Branding while preserving Sidebar Header Toggle Button */
@@ -81,6 +62,25 @@ st.markdown("""
     }
     [id] {
         scroll-margin-top: 70px;
+    }
+
+    /* Native iOS Tap Status Bar to Scroll to Top Fix */
+    html, body {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        height: auto !important;
+    }
+    
+    [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+        overflow: visible !important;
+        height: auto !important;
+        background-color: #f8fafc !important; 
+    }
+    
+    [data-testid="stHeader"] {
+        position: fixed !important;
+        top: 0;
+        background-color: #f8fafc !important; 
     }
 
     /* Compact Vertical Spacing Across Blocks & Expanders */
@@ -106,18 +106,45 @@ st.markdown("""
         color: var(--card-text) !important;
         background-color: #f8fafc !important;
     }
-
-    /* Seamless background for Safari translucency and iOS scroll targeting */
-    [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
-        background-color: #f8fafc !important; 
-        -webkit-overflow-scrolling: touch !important;
-    }
     
-    /* Top padding ensures the title is NOT blocked by Streamlit's fixed top header bar.
-       Bottom padding adds extra space so content scrolls fully above Safari's floating bar. */
+    /* Adds extra spacing at bottom so content scrolls fully above Safari's floating bar */
     [data-testid="stMainBlockContainer"] {
         padding-top: calc(3.5rem + env(safe-area-inset-top)) !important;
         padding-bottom: calc(8rem + env(safe-area-inset-bottom)) !important;
+        overflow: visible !important;
+    }
+
+    /* Shrink Add and Refresh buttons in the header row */
+    div[data-testid="stHorizontalBlock"]:has(#title-anchor) [data-testid="baseButton-secondary"] {
+        min-height: 2.2rem !important;
+        height: 2.2rem !important;
+        padding: 0 0.5rem !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(#title-anchor) [data-testid="baseButton-secondary"] p {
+        font-size: 0.9rem !important;
+        margin: 0 !important;
+    }
+
+    /* Mobile Header Layout: Title full width, Buttons side-by-side (50/50) */
+    @media (max-width: 768px) {
+        div[data-testid="stHorizontalBlock"]:has(#title-anchor) {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(#title-anchor) > div[data-testid="column"]:nth-child(1) {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+            margin-bottom: 0.25rem;
+        }
+        div[data-testid="stHorizontalBlock"]:has(#title-anchor) > div[data-testid="column"]:nth-child(2),
+        div[data-testid="stHorizontalBlock"]:has(#title-anchor) > div[data-testid="column"]:nth-child(3) {
+            width: calc(50% - 0.25rem) !important;
+            flex: 1 1 calc(50% - 0.25rem) !important;
+            min-width: calc(50% - 0.25rem) !important;
+        }
     }
 
     /* Style Multiselect Tag Chips to Light Grey */
@@ -291,14 +318,6 @@ st.markdown("""
         div[data-testid="stPlotlyChart"] iframe {
             pointer-events: none !important;
         }
-        /* Invisible shield overlay catching all touches so the page scrolls instead */
-    @media (max-width: 768px) {
-        div[data-testid="stPlotlyChart"] {
-            position: relative !important;
-        }
-        div[data-testid="stPlotlyChart"] iframe {
-            pointer-events: none !important;
-        }
         div[data-testid="stPlotlyChart"]::after {
             content: "";
             position: absolute;
@@ -313,10 +332,11 @@ st.markdown("""
 # Main Title Anchor and Title with Header Buttons
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
-header_c1, header_c2, header_c3 = st.columns([0.56, 0.20, 0.24], vertical_alignment="center")
+# Using 0.65 for title, and evenly splitting the remaining 0.35 between the buttons. 
+header_c1, header_c2, header_c3 = st.columns([0.65, 0.175, 0.175], vertical_alignment="center")
 
 with header_c1:
-    st.markdown('<div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
+    st.markdown('<div id="title-anchor"></div><div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
 
 with header_c2:
     st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
@@ -1269,5 +1289,4 @@ if not display_df.empty:
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
-
 
