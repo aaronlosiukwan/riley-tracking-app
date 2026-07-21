@@ -18,31 +18,61 @@ st.set_page_config(
 # Responsive & Adaptive CSS for Light & Dark Theme Support
 st.markdown("""
     <style>
-    /* Equal height and width highlight cards */
+    /* Prevent title word cutting on mobile screen width */
+    .app-main-title {
+        font-size: clamp(1.4rem, 5vw, 2.2rem);
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 0.5rem;
+    }
+
+    .section-header-single-line {
+        font-size: clamp(1.1rem, 4vw, 1.45rem);
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 0.8rem;
+        margin-bottom: 0.6rem;
+    }
+
+    /* Custom Color-Coded Highlight Cards */
     .highlight-card {
         background-color: rgba(128, 128, 128, 0.07);
-        border-left: 4px solid #2563eb;
-        border-radius: 10px;
-        padding: 14px 16px;
-        min-height: 125px;
+        border-radius: 12px;
+        padding: 12px 14px;
+        min-height: 120px;
         height: 100%;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         box-shadow: 0 2px 6px rgba(0,0,0,0.03);
     }
+    
+    .card-milk { border-left: 5px solid #2563eb; }
+    .card-feed { border-left: 5px solid #a855f7; }
+    .card-diaper { border-left: 5px solid #0284c7; }
+    .card-pump { border-left: 5px solid #10b981; }
+    .card-sleep { border-left: 5px solid #6366f1; }
+    .card-meds { border-left: 5px solid #f59e0b; }
+    .card-temp { border-left: 5px solid #ef4444; }
+    .card-events { border-left: 5px solid #64748b; }
+
     .highlight-title {
         font-weight: 600;
-        font-size: 0.95rem;
+        font-size: 0.92rem;
         margin-bottom: 4px;
+        white-space: nowrap;
     }
     .highlight-body {
-        font-size: 0.88rem;
+        font-size: 0.86rem;
         opacity: 0.88;
-        line-height: 1.35;
+        line-height: 1.3;
     }
     .highlight-sub {
-        font-size: 0.78rem;
+        font-size: 0.76rem;
         opacity: 0.65;
         margin-top: 4px;
     }
@@ -50,10 +80,18 @@ st.markdown("""
     /* Grey default range indicator text */
     .default-range-text {
         color: #888888;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         font-style: italic;
-        margin-top: 4px;
+        margin-top: 2px;
         display: inline-block;
+    }
+
+    /* Substantially reduced row count font size in Raw Data Log */
+    .raw-log-count-text {
+        font-size: 0.72rem;
+        color: rgba(128, 128, 128, 0.85);
+        margin-top: 4px;
+        margin-bottom: 8px;
     }
 
     /* Empty state notice */
@@ -61,28 +99,29 @@ st.markdown("""
         background-color: rgba(128, 128, 128, 0.06);
         border: 1.5px dashed rgba(128, 128, 128, 0.25);
         border-radius: 12px;
-        padding: 24px;
+        padding: 20px;
         text-align: center;
-        margin: 16px 0;
+        margin: 12px 0;
     }
     .empty-data-title {
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 600;
         margin-bottom: 4px;
     }
     .empty-data-sub {
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         opacity: 0.7;
     }
 
     /* Streamlit Padding Fixes */
     .stApp {
-        padding-top: 0.5rem;
+        padding-top: 0.25rem;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🍼 Riley Growth Log")
+# Main Title kept strictly in 1 row for mobile screens
+st.markdown('<div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
 
 # ==========================================
 # 2. GOOGLE SHEET CONNECTOR & AUTO SYNC
@@ -111,7 +150,7 @@ def get_csv_export_url(url_or_id):
             return None
     return f"https://docs.google.com/spreadsheets/d/{url_or_id}/export?format=csv"
 
-# Fetch Google Sheet data in real time (5-second cache)
+# Real-time auto sync fetcher (5-second cache handles auto-update on open/refresh)
 @st.cache_data(ttl=5)
 def load_sheet_data(csv_url):
     try:
@@ -193,20 +232,20 @@ ALL_EVENT_CATEGORIES = [
 ]
 
 COLOR_MAP = {
-    "🍼 Formula (mL)": "#2563eb",
-    "🤱 Breast Milk (mL)": "#ec4899",
-    "💧 Wet Diaper (Cnt)": "#0284c7",
-    "💩 Poop (Cnt)": "#d97706",
-    "🧴 Pumping (mL)": "#8b5cf6",
-    "🛟 Tummy Time (Mins)": "#10b981",
-    "🛌 Sleep (hrs)": "#6366f1",
-    "🌡️ Temp (°C)": "#ef4444",
-    "💊 Meds (Cnt)": "#f59e0b",
+    "🍼 Formula (mL)": "#2563eb",      # Royal Blue
+    "🤱 Breast Milk (mL)": "#ec4899",  # Rosy Pink
+    "💧 Wet Diaper (Cnt)": "#0284c7",   # Ocean Cyan
+    "💩 Poop (Cnt)": "#d97706",         # Warm Amber
+    "🧴 Pumping (mL)": "#a855f7",       # Purple
+    "🛟 Tummy Time (Mins)": "#10b981", # Emerald Green
+    "🛌 Sleep (hrs)": "#6366f1",        # Indigo
+    "🌡️ Temp (°C)": "#ef4444",         # Crimson
+    "💊 Meds (Cnt)": "#f59e0b",         # Bright Amber
     "Other": "#6b7280"
 }
 
-# Mobile-friendly Plotly Styling Helper with Separated Title & Legend
-def style_plotly_figure(fig, title_text="", height=480):
+# Compact Plotly Styling Helper tailored for mobile viewing
+def style_plotly_figure(fig, title_text="", height=460):
     fig.update_layout(
         title=dict(
             text=title_text,
@@ -214,24 +253,24 @@ def style_plotly_figure(fig, title_text="", height=480):
             x=0.5,
             xanchor="center",
             yanchor="top",
-            font=dict(size=15, weight="bold")
+            font=dict(size=14, weight="bold")
         ),
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=15, r=15, t=90, b=35), # Top margin prevents legend/title overlap
+        margin=dict(l=8, r=8, t=85, b=25), # Compact margins prevent clipping on mobile
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02, # Legend placed cleanly on 2nd row beneath title
+            y=1.02, # Legend placed on 2nd row below title
             xanchor="center",
             x=0.5,
             title_text="",
-            font=dict(size=12)
+            font=dict(size=10.5)
         ),
-        font=dict(family="sans-serif", size=12),
-        xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.18)"),
-        yaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.18)"),
+        font=dict(family="sans-serif", size=11),
+        xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=10)),
+        yaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=10)),
         hovermode="x unified"
     )
     return fig
@@ -285,22 +324,16 @@ group_col = group_col_map[granularity]
 # Filter main dataset by inclusive date bounds
 filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
 
-# Sync refresh button top header
-top_col1, top_col2 = st.columns([3, 1])
-with top_col2:
-    if st.button("🔄 Sync Sheet Data", use_container_width=True):
-        st.cache_data.clear()
-        st.rerun()
-
 # ==========================================
 # 4. HIGHLIGHTS & SUMMARY CARDS
 # ==========================================
 
-# --- A. TODAY'S HIGHLIGHTS (Always Visible, Focused Strictly on Today) ---
+# --- A. TODAY'S HIGHLIGHTS (Always Visible, Single-row mobile title with [MM.DD] format) ---
 today_date = max(datetime.now().date(), max_data_date)
 today_df = df[df['Date'] == today_date]
 
-st.markdown(f"### ✨ Today's Highlights (`{today_date.strftime('%b %d, %Y')}`)")
+formatted_today_code = today_date.strftime('%m.%d')
+st.markdown(f'<div class="section-header-single-line">✨ Highlights [{formatted_today_code}]</div>', unsafe_allow_html=True)
 
 t_formula = today_df[today_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
 t_bm = today_df[today_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
@@ -343,10 +376,10 @@ th_col1, th_col2, th_col3, th_col4 = st.columns(4)
 
 with th_col1:
     st.markdown(f"""
-        <div class="highlight-card">
+        <div class="highlight-card card-milk">
             <div>
-                <div class="highlight-title">🍼 Milk Intake Today</div>
-                <div class="highlight-body">Total <b>{int(t_milk):,} mL</b> across <b>{t_feed_cnt}</b> feeds.</div>
+                <div class="highlight-title">🍼 Milk Intake</div>
+                <div class="highlight-body">Total <b>{int(t_milk):,} mL</b> across <b>{t_feed_cnt}</b> feed(s).</div>
             </div>
             <div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Formula: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div>
         </div>
@@ -354,7 +387,7 @@ with th_col1:
 
 with th_col2:
     st.markdown(f"""
-        <div class="highlight-card">
+        <div class="highlight-card card-feed">
             <div>
                 <div class="highlight-title">⏰ Last Feeding</div>
                 <div class="highlight-body"><b>{last_feed_delta}</b></div>
@@ -365,23 +398,24 @@ with th_col2:
 
 with th_col3:
     st.markdown(f"""
-        <div class="highlight-card">
+        <div class="highlight-card card-diaper">
             <div>
-                <div class="highlight-title">🚽 Diaper Output Today</div>
-                <div class="highlight-body">Total <b>{t_wet + t_poop}</b> diaper changes logged.</div>
+                <div class="highlight-title">🚽 Diaper Output</div>
+                <div class="highlight-body">Total <b>{t_wet + t_poop}</b> change(s) logged.</div>
             </div>
             <div class="highlight-sub">💧 Wet: {t_wet} | 💩 Poop: {t_poop}</div>
         </div>
     """, unsafe_allow_html=True)
 
 with th_col4:
+    p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
     st.markdown(f"""
-        <div class="highlight-card">
+        <div class="highlight-card card-pump">
             <div>
                 <div class="highlight-title">🧴 Pumping & Tummy Time</div>
-                <div class="highlight-body">Pumped <b>{int(t_pumping):,} mL</b> | 🛟 <b>{int(t_tummy)} mins</b> tummy.</div>
+                <div class="highlight-body">Pumped <b>{int(t_pumping):,} mL</b> | 🛟 <b>{int(t_tummy)} min(s)</b> tummy.</div>
             </div>
-            <div class="highlight-sub">{len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])} pumping sessions today</div>
+            <div class="highlight-sub">{p_cnt_today} pumping session(s)</div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -390,48 +424,49 @@ st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 th_row2_c1, th_row2_c2, th_row2_c3, th_row2_c4 = st.columns(4)
 
 with th_row2_c1:
+    sleep_cnt_today = len(today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)])
     st.markdown(f"""
-        <div class="highlight-card">
+        <div class="highlight-card card-sleep">
             <div>
-                <div class="highlight-title">🛌 Rest & Sleep Today</div>
-                <div class="highlight-body">Logged <b>{int(t_sleep)} hrs</b> rest today.</div>
+                <div class="highlight-title">🛌 Rest & Sleep</div>
+                <div class="highlight-body">Logged <b>{int(t_sleep)} hr(s)</b> rest.</div>
             </div>
-            <div class="highlight-sub">{len(today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)])} sleep periods today</div>
+            <div class="highlight-sub">{sleep_cnt_today} sleep period(s)</div>
         </div>
     """, unsafe_allow_html=True)
 
 with th_row2_c2:
     st.markdown(f"""
-        <div class="highlight-card">
+        <div class="highlight-card card-meds">
             <div>
-                <div class="highlight-title">💊 Medication Today</div>
-                <div class="highlight-body">Logged <b>{t_meds}</b> doses today.</div>
+                <div class="highlight-title">💊 Medication</div>
+                <div class="highlight-body">Logged <b>{t_meds}</b> dose(s).</div>
             </div>
-            <div class="highlight-sub">Doses tracked today</div>
+            <div class="highlight-sub">Dose(s) tracked in log</div>
         </div>
     """, unsafe_allow_html=True)
 
 t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
 t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
-t_temp_str = f"<b>{t_latest_temp:.1f} °C</b>" if t_latest_temp else "No readings today"
+t_temp_str = f"<b>{t_latest_temp:.1f} °C</b>" if t_latest_temp else "No readings"
 
 with th_row2_c3:
     st.markdown(f"""
-        <div class="highlight-card">
+        <div class="highlight-card card-temp">
             <div>
-                <div class="highlight-title">🌡️ Latest Temp Today</div>
+                <div class="highlight-title">🌡️ Latest Body Temp</div>
                 <div class="highlight-body">{t_temp_str}</div>
             </div>
-            <div class="highlight-sub">{len(t_temp_df)} temperature logs today</div>
+            <div class="highlight-sub">{len(t_temp_df)} temperature reading(s)</div>
         </div>
     """, unsafe_allow_html=True)
 
 with th_row2_c4:
     st.markdown(f"""
-        <div class="highlight-card">
+        <div class="highlight-card card-events">
             <div>
-                <div class="highlight-title">📊 Total Events Today</div>
-                <div class="highlight-body"><b>{len(today_df):,}</b> entries logged today.</div>
+                <div class="highlight-title">📊 Total Events</div>
+                <div class="highlight-body"><b>{len(today_df):,}</b> entry(s) logged.</div>
             </div>
             <div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div>
         </div>
@@ -440,14 +475,10 @@ with th_row2_c4:
 st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
 # --- B. PERIOD HIGHLIGHTS (Toggled Hidden Position) ---
-period_headers = {
-    "Daily": "Daily Range Highlights",
-    "Weekly": "Weekly Highlights",
-    "Monthly": "Monthly Highlights",
-    "All Time": "All-Time Highlights"
-}
+start_code = start_date.strftime('%m.%d')
+end_code = end_date.strftime('%m.%d')
 
-with st.expander(f"✨ {period_headers[granularity]} ({start_date.strftime('%b %d')} – {end_date.strftime('%b %d, %Y')}) (Click to expand)", expanded=False):
+with st.expander(f"✨ Selected Period Highlights [{start_code} – {end_code}] (Click to expand)", expanded=False):
     p_formula = filtered_df[filtered_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
     p_bm = filtered_df[filtered_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
     p_milk = p_formula + p_bm
@@ -466,10 +497,10 @@ with st.expander(f"✨ {period_headers[granularity]} ({start_date.strftime('%b %
     pr1_c1, pr1_c2, pr1_c3, pr1_c4 = st.columns(4)
     with pr1_c1:
         st.markdown(f"""
-            <div class="highlight-card">
+            <div class="highlight-card card-milk">
                 <div>
-                    <div class="highlight-title">🍼 Milk ({granularity})</div>
-                    <div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feeds.</div>
+                    <div class="highlight-title">🍼 Milk Intake</div>
+                    <div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feed(s).</div>
                 </div>
                 <div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Formula: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div>
             </div>
@@ -477,34 +508,35 @@ with st.expander(f"✨ {period_headers[granularity]} ({start_date.strftime('%b %
 
     with pr1_c2:
         st.markdown(f"""
-            <div class="highlight-card">
+            <div class="highlight-card card-diaper">
                 <div>
-                    <div class="highlight-title">🚽 Diapers ({granularity})</div>
-                    <div class="highlight-body">Total <b>{p_wet + p_poop}</b> diaper changes.</div>
+                    <div class="highlight-title">🚽 Diaper Output</div>
+                    <div class="highlight-body">Total <b>{p_wet + p_poop}</b> diaper change(s).</div>
                 </div>
                 <div class="highlight-sub">💧 Wet: {p_wet} | 💩 Poop: {p_poop}</div>
             </div>
         """, unsafe_allow_html=True)
 
     with pr1_c3:
+        p_pump_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)])
         st.markdown(f"""
-            <div class="highlight-card">
+            <div class="highlight-card card-pump">
                 <div>
                     <div class="highlight-title">🧴 Pumping & Tummy Time</div>
-                    <div class="highlight-body">Pumped <b>{int(p_pumping):,} mL</b> | 🛟 <b>{int(p_tummy)} mins</b> tummy time.</div>
+                    <div class="highlight-body">Pumped <b>{int(p_pumping):,} mL</b> | 🛟 <b>{int(p_tummy)} min(s)</b> tummy.</div>
                 </div>
-                <div class="highlight-sub">{len(filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)])} sessions in selected period</div>
+                <div class="highlight-sub">{p_pump_cnt} pumping session(s)</div>
             </div>
         """, unsafe_allow_html=True)
 
     with pr1_c4:
         st.markdown(f"""
-            <div class="highlight-card">
+            <div class="highlight-card card-sleep">
                 <div>
                     <div class="highlight-title">🛌 Sleep & Meds</div>
-                    <div class="highlight-body">Rest: <b>{int(p_sleep)} hrs</b> | Meds: <b>{p_meds} doses</b>.</div>
+                    <div class="highlight-body">Rest: <b>{int(p_sleep)} hr(s)</b> | Meds: <b>{p_meds} dose(s)</b>.</div>
                 </div>
-                <div class="highlight-sub">Total {len(filtered_df):,} events in selected range</div>
+                <div class="highlight-sub">Total {len(filtered_df):,} event(s) in selected range</div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -523,14 +555,15 @@ def render_empty_state(title="No Data Logged in this period", subtitle="Try pick
 # ==========================================
 st.subheader("📊 Analytics & Insights")
 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "🍼 Milk Intake & Feed Count", 
-    "🚽 Diaper Output", 
-    "🧴 Activity Charts", 
-    "📈 Event Timeline"
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🍼 Milk Intake", 
+    "🚽 Diapers", 
+    "🧴 Pumping & Tummy Time",
+    "🩺 Sleep & Health", 
+    "📈 Timeline"
 ])
 
-# TAB 1: Milk Intake Stacked + Dual Axis Feeding Counts
+# TAB 1: Milk Intake Stacked + Smooth Spline Dual Axis Feed Count
 with tab1:
     milk_df = filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)].copy()
     
@@ -551,7 +584,7 @@ with tab1:
                     name='🍼 Formula (mL)',
                     x=df_f[group_col],
                     y=df_f['Value (Optional)'],
-                    marker_color=COLOR_MAP['🍼 Formula (mL)']
+                    marker_color="#2563eb" # High-contrast Royal Blue
                 ),
                 secondary_y=False
             )
@@ -563,21 +596,23 @@ with tab1:
                     name='🤱 Breast Milk (mL)',
                     x=df_bm[group_col],
                     y=df_bm['Value (Optional)'],
-                    marker_color=COLOR_MAP['🤱 Breast Milk (mL)']
+                    marker_color="#ec4899" # Rosy Pink
                 ),
                 secondary_y=False
             )
             
+        # Smooth Spline Line with Circular Markers for Total Feeds Count
         fig_milk.add_trace(
             go.Scatter(
-                name='🔢 Total Feeds Count',
+                name='🔢 Feed Count(s)',
                 x=grouped_count[group_col],
                 y=grouped_count['Total Feeds Count'],
                 mode='lines+markers+text',
                 text=grouped_count['Total Feeds Count'],
                 textposition="top center",
-                line=dict(color='#10b981', width=3),
-                marker=dict(size=8)
+                textfont=dict(size=10.5),
+                line=dict(color='#10b981', width=3, shape='spline', smoothing=1.3),
+                marker=dict(size=9, symbol='circle', color='#10b981', line=dict(width=2, color='#ffffff'))
             ),
             secondary_y=True
         )
@@ -590,31 +625,31 @@ with tab1:
                 x=0.5,
                 xanchor="center",
                 yanchor="top",
-                font=dict(size=15, weight="bold")
+                font=dict(size=14, weight="bold")
             ),
-            height=520,
+            height=510,
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=15, r=15, t=90, b=35), # Top margin separates title & legend
+            margin=dict(l=8, r=8, t=85, b=25),
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=1.02, # Legend on row 2 below title
+                y=1.02, # Legend placed cleanly on separate row below title
                 xanchor="center",
                 x=0.5,
                 title_text="",
-                font=dict(size=12)
+                font=dict(size=10.5)
             ),
-            font=dict(family="sans-serif", size=12),
-            xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.18)"),
+            font=dict(family="sans-serif", size=11),
+            xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=10)),
             hovermode="x unified"
         )
         
-        fig_milk.update_yaxes(title_text="Volume (mL)", secondary_y=False, showgrid=True, gridcolor="rgba(128,128,128,0.18)")
-        fig_milk.update_yaxes(title_text="Number of Feeds", secondary_y=True, showgrid=False)
+        fig_milk.update_yaxes(title_text="Volume (mL)", secondary_y=False, showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=10), titlefont=dict(size=11))
+        fig_milk.update_yaxes(title_text="Feeds", secondary_y=True, showgrid=False, tickfont=dict(size=10), titlefont=dict(size=11))
         
         st.plotly_chart(fig_milk, use_container_width=True)
-        st.caption(f"ℹ️ *Combines stacked **Formula and Breast Milk volume (mL)** on the left axis with total **Feeding Event Counts** (green line) on the right axis grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
+        st.caption(f"ℹ️ *Combines stacked **Formula and Breast Milk volume (mL)** on the left axis with total **Feed Count(s)** (emerald line) on the right axis grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Feeding Data Logged in this period")
 
@@ -634,34 +669,66 @@ with tab2:
             color="Category",
             barmode="group",
             color_discrete_map=COLOR_MAP,
-            labels={"Count": "Diaper Count", group_col: granularity}
+            labels={"Count": "Diaper Count(s)", group_col: granularity}
         )
-        fig_diaper = style_plotly_figure(fig_diaper, title_text=f"Diaper Changes Count — {granularity}", height=480)
+        fig_diaper = style_plotly_figure(fig_diaper, title_text=f"Diaper Changes Count — {granularity}", height=460)
         st.plotly_chart(fig_diaper, use_container_width=True)
         st.caption(f"ℹ️ *Compares Wet Diapers and Poop counts grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Diaper Data Logged in this period")
 
-# TAB 3: Dedicated Activity Selector Charts
+# TAB 3: Dedicated Pumping & Tummy Time Chart (Horizontal Button Pills for Mobile)
 with tab3:
-    act_option = st.selectbox(
-        "🏷️ Select Activity Chart:",
+    pt_option = st.radio(
+        "Select View:",
+        options=["🧴 Pumping (mL)", "🛟 Tummy Time (Mins)"],
+        horizontal=True, # Touch-friendly button selector for mobile view
+        label_visibility="collapsed"
+    )
+    
+    if "Pumping" in pt_option:
+        pt_keyword = "Pumping"
+        pt_y_title = "Volume (mL)"
+        pt_color = COLOR_MAP["🧴 Pumping (mL)"]
+    else:
+        pt_keyword = "Tummy Time"
+        pt_y_title = "Duration (Mins)"
+        pt_color = COLOR_MAP["🛟 Tummy Time (Mins)"]
+
+    pt_df = filtered_df[filtered_df['Event Type'].str.contains(pt_keyword, case=False, na=False)].copy()
+    
+    if not pt_df.empty:
+        grouped_pt = pt_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
+        fig_pt = px.bar(
+            grouped_pt,
+            x=group_col,
+            y="Value (Optional)",
+            color_discrete_sequence=[pt_color],
+            labels={"Value (Optional)": pt_y_title, group_col: granularity}
+        )
+        fig_pt = style_plotly_figure(fig_pt, title_text=f"{pt_option} Summary — {granularity}", height=460)
+        st.plotly_chart(fig_pt, use_container_width=True)
+        st.caption(f"ℹ️ *Displays recorded **{pt_option}** data grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
+    else:
+        render_empty_state(f"No {pt_option} Data Logged in this period")
+
+# TAB 4: Other Sleep & Health Charts (Horizontal Button Pills for Mobile)
+with tab4:
+    act_option = st.radio(
+        "Select Health Activity:",
         options=[
-            "🧴 Pumping",
-            "🛟 Tummy Time",
-            "🛌 Sleep",
-            "🌡️ Temperature",
-            "💊 Medication"
+            "🛌 Sleep (hrs)",
+            "🌡️ Temp (°C)",
+            "💊 Meds (Cnt)"
         ],
-        index=0
+        horizontal=True, # Touch-friendly button selector for mobile view
+        label_visibility="collapsed"
     )
     
     act_mapping = {
-        "🧴 Pumping": ("Pumping", "Volume (mL)", "#8b5cf6"),
-        "🛟 Tummy Time": ("Tummy Time", "Duration (Mins)", "#10b981"),
-        "🛌 Sleep": ("Sleep", "Hours (hrs)", "#6366f1"),
-        "🌡️ Temperature": ("Temp", "Temperature (°C)", "#ef4444"),
-        "💊 Medication": ("Meds", "Doses Count", "#f59e0b")
+        "🛌 Sleep (hrs)": ("Sleep", "Duration (hrs)", COLOR_MAP["🛌 Sleep (hrs)"]),
+        "🌡️ Temp (°C)": ("Temp", "Temperature (°C)", COLOR_MAP["🌡️ Temp (°C)"]),
+        "💊 Meds (Cnt)": ("Meds", "Dose Count(s)", COLOR_MAP["💊 Meds (Cnt)"])
     }
     
     keyword, y_title, act_color = act_mapping[act_option]
@@ -669,7 +736,6 @@ with tab3:
     
     if not act_df.empty:
         if keyword == "Temp":
-            # For Temperature, plot average reading per period with line + markers
             grouped_act = act_df.groupby(group_col)['Value (Optional)'].mean().reset_index()
             fig_act = px.line(
                 grouped_act,
@@ -679,8 +745,11 @@ with tab3:
                 color_discrete_sequence=[act_color],
                 labels={"Value (Optional)": y_title, group_col: granularity}
             )
-            fig_act.update_traces(line=dict(width=3), marker=dict(size=8))
-        elif keyword in ["Pumping", "Tummy Time", "Sleep"]:
+            fig_act.update_traces(
+                line=dict(width=3, shape='spline', smoothing=1.3),
+                marker=dict(size=8, symbol='circle', line=dict(width=2, color='#ffffff'))
+            )
+        elif keyword == "Sleep":
             grouped_act = act_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
             fig_act = px.bar(
                 grouped_act,
@@ -699,14 +768,14 @@ with tab3:
                 labels={"Value (Optional)": y_title, group_col: granularity}
             )
             
-        fig_act = style_plotly_figure(fig_act, title_text=f"{act_option} Summary — {granularity}", height=480)
+        fig_act = style_plotly_figure(fig_act, title_text=f"{act_option} Summary — {granularity}", height=460)
         st.plotly_chart(fig_act, use_container_width=True)
         st.caption(f"ℹ️ *Displays recorded **{act_option}** data grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state(f"No {act_option} Data Logged in this period")
 
-# TAB 4: Timeline
-with tab4:
+# TAB 5: Timeline
+with tab5:
     if not filtered_df.empty:
         fig_time = px.scatter(
             filtered_df,
@@ -715,9 +784,9 @@ with tab4:
             size="Value (Optional)",
             color="Event Type",
             color_discrete_map=COLOR_MAP,
-            size_max=18
+            size_max=16
         )
-        fig_time = style_plotly_figure(fig_time, title_text=f"Interactive Event Timeline — {granularity}", height=500)
+        fig_time = style_plotly_figure(fig_time, title_text=f"Interactive Event Timeline — {granularity}", height=480)
         fig_time.update_layout(showlegend=False)
         st.plotly_chart(fig_time, use_container_width=True)
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
@@ -793,7 +862,7 @@ if not display_df.empty:
     st.dataframe(
         display_df,
         use_container_width=True,
-        height=720,
+        height=700,
         column_config={
             "DateTime": st.column_config.TextColumn("DateTime", width="medium"),
             "Event Type": st.column_config.TextColumn("Event Type", width="medium"),
@@ -804,6 +873,7 @@ if not display_df.empty:
             )
         }
     )
-    st.caption(f"Showing **{len(display_df)}** entries matching your criteria sorted in descending order.")
+    # Substantially reduced row count font size using custom HTML styling
+    st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
