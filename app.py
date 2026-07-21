@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -15,17 +16,38 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Responsive & Adaptive CSS for Light & Dark Theme Support
+# Responsive & Adaptive CSS for Light & Dark Mode High Visibility
 st.markdown("""
     <style>
+    /* Light & Dark Mode High-Contrast Adaptive Base */
+    :root {
+        --card-bg: rgba(128, 128, 128, 0.08);
+        --card-border: rgba(128, 128, 128, 0.2);
+    }
+    
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --card-bg: rgba(255, 255, 255, 0.06);
+            --card-border: rgba(255, 255, 255, 0.18);
+        }
+    }
+
+    /* Style Multiselect Tag Chips to Light Grey */
+    span[data-baseweb="tag"] {
+        background-color: #e5e7eb !important;
+        color: #1f2937 !important;
+        border: 1px solid #d1d5db !important;
+        font-weight: 500 !important;
+    }
+
     /* Table of Contents Navigation Buttons */
     .toc-button {
         display: block;
         width: 100%;
         padding: 8px 12px;
         margin: 4px 0;
-        background-color: rgba(128, 128, 128, 0.08);
-        border: 1px solid rgba(128, 128, 128, 0.15);
+        background-color: var(--card-bg);
+        border: 1px solid var(--card-border);
         color: inherit !important;
         text-decoration: none !important;
         border-radius: 8px;
@@ -35,11 +57,11 @@ st.markdown("""
     }
     .toc-button:hover {
         background-color: rgba(128, 128, 128, 0.18);
-        border-color: rgba(128, 128, 128, 0.3);
+        border-color: rgba(128, 128, 128, 0.35);
         text-decoration: none !important;
     }
 
-    /* Prevent title word cutting on mobile screen width */
+    /* Mobile Single-Row Titles */
     .app-main-title {
         font-size: clamp(1.4rem, 5vw, 2.2rem);
         font-weight: 700;
@@ -61,7 +83,7 @@ st.markdown("""
 
     /* Custom Color-Coded Highlight Cards */
     .highlight-card {
-        background-color: rgba(128, 128, 128, 0.07);
+        background-color: var(--card-bg);
         border-radius: 12px;
         padding: 12px 14px;
         min-height: 120px;
@@ -72,14 +94,14 @@ st.markdown("""
         box-shadow: 0 2px 6px rgba(0,0,0,0.03);
     }
     
-    .card-milk { border-left: 5px solid #2563eb; }
-    .card-feed { border-left: 5px solid #a855f7; }
-    .card-diaper { border-left: 5px solid #0284c7; }
-    .card-pump { border-left: 5px solid #10b981; }
-    .card-sleep { border-left: 5px solid #6366f1; }
-    .card-meds { border-left: 5px solid #f59e0b; }
-    .card-temp { border-left: 5px solid #ef4444; }
-    .card-events { border-left: 5px solid #64748b; }
+    .card-milk { border-left: 5px solid #3b82f6; }
+    .card-feed { border-left: 5px solid #c084fc; }
+    .card-diaper { border-left: 5px solid #38bdf8; }
+    .card-pump { border-left: 5px solid #34d399; }
+    .card-sleep { border-left: 5px solid #818cf8; }
+    .card-meds { border-left: 5px solid #fbbf24; }
+    .card-temp { border-left: 5px solid #f87171; }
+    .card-events { border-left: 5px solid #94a3b8; }
 
     .highlight-title {
         font-weight: 600;
@@ -89,12 +111,12 @@ st.markdown("""
     }
     .highlight-body {
         font-size: 0.86rem;
-        opacity: 0.88;
+        opacity: 0.92;
         line-height: 1.3;
     }
     .highlight-sub {
         font-size: 0.76rem;
-        opacity: 0.65;
+        opacity: 0.75;
         margin-top: 4px;
     }
 
@@ -117,8 +139,8 @@ st.markdown("""
 
     /* Empty state notice */
     .empty-data-card {
-        background-color: rgba(128, 128, 128, 0.06);
-        border: 1.5px dashed rgba(128, 128, 128, 0.25);
+        background-color: var(--card-bg);
+        border: 1.5px dashed var(--card-border);
         border-radius: 12px;
         padding: 20px;
         text-align: center;
@@ -131,7 +153,7 @@ st.markdown("""
     }
     .empty-data-sub {
         font-size: 0.82rem;
-        opacity: 0.7;
+        opacity: 0.75;
     }
 
     /* Streamlit Padding Fixes */
@@ -241,7 +263,7 @@ if df.empty:
     st.warning("⚠️ No data retrieved. Ensure Google Sheet sharing is set to 'Anyone with the link can view'.")
     st.stop()
 
-# Master Emoji Normalization for all data rows (🚽 Poop updated)
+# Master Emoji Normalization
 def standardize_event_name(event_str):
     s = str(event_str).strip()
     mapping = {
@@ -285,7 +307,7 @@ COLOR_MAP = {
     "Other": "#6b7280"
 }
 
-# Compact Plotly Styling Helper with Adaptive Single-Point Proportions
+# Compact Plotly Styling Helper tailored for maximum chart width (>75%) on Mobile
 def style_plotly_figure(fig, title_text="", height=460, single_point=False):
     layout_args = dict(
         title=dict(
@@ -299,7 +321,7 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False):
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=8, r=8, t=85, b=25),
+        margin=dict(l=2, r=2, t=75, b=20), # Ultra-narrow margins so canvas takes >80% width
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -307,17 +329,49 @@ def style_plotly_figure(fig, title_text="", height=460, single_point=False):
             xanchor="center",
             x=0.5,
             title_text="",
-            font=dict(size=10.5)
+            font=dict(size=10)
         ),
         font=dict(family="sans-serif", size=11),
-        xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=10)),
-        yaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=10)),
+        xaxis=dict(
+            type="category" if single_point else None,
+            showgrid=True,
+            gridcolor="rgba(128,128,128,0.15)",
+            tickfont=dict(size=9.5),
+            automargin=True
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor="rgba(128,128,128,0.15)",
+            tickfont=dict(size=9.5),
+            title_standoff=2,
+            automargin=True
+        ),
         hovermode="x unified"
     )
     if single_point:
-        layout_args["bargap"] = 0.7
+        layout_args["bargap"] = 0.75
     fig.update_layout(**layout_args)
     return fig
+
+# Helper to normalize bubble sizes strictly within each category so bubbles never cross rows
+def prepare_normalized_timeline_df(input_df):
+    if input_df.empty:
+        return input_df
+    
+    res_df = input_df.copy()
+    
+    def scale_group(group):
+        vals = group['Value (Optional)'].values
+        min_v, max_v = vals.min(), vals.max()
+        if max_v == min_v:
+            group['CategoryBubbleSize'] = 10.0
+        else:
+            # Scale proportionally within category between 8.0 and 14.0px maximum
+            group['CategoryBubbleSize'] = 8.0 + (vals - min_v) / (max_v - min_v) * 6.0
+        return group
+    
+    res_df = res_df.groupby('Event Type', group_keys=False).apply(scale_group)
+    return res_df
 
 # ==========================================
 # 3. EXPANDABLE FILTERS & GROUPING
@@ -384,7 +438,6 @@ if not all_feed_events.empty:
     total_seconds = int(time_diff.total_seconds())
     
     if total_seconds < 0:
-        # Fallback if log time is ahead of configured timezone
         current_local_time = last_feed_dt
         total_seconds = 0
 
@@ -403,7 +456,7 @@ else:
     last_feed_delta = "N/A"
     last_feed_sub = "No feed events"
 
-# --- A. TODAY'S HIGHLIGHTS (Header changed to "✨ Today [MM.DD]") ---
+# --- A. TODAY'S HIGHLIGHTS ---
 st.markdown('<div id="today-highlights"></div>', unsafe_allow_html=True)
 
 today_date = max(current_local_time.date(), max_data_date)
@@ -610,24 +663,47 @@ def render_empty_state(title="No Data Logged in this period", subtitle="Try pick
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 5. CHARTS & ANALYTICS
+# 5. CHARTS & ANALYTICS ("⏰ Today" is placed FIRST)
 # ==========================================
 st.markdown('<div id="analytics-charts"></div>', unsafe_allow_html=True)
 st.subheader("📊 Analytics & Insights")
 
-# Updated Tab Label for Tummy Time -> "🛟 Tummy"
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    "⏰ Today",
     "🍼 Milk Intake", 
     "🚽 Diapers", 
     "🧴 Pumping",
     "🛟 Tummy",
     "🩺 Health", 
-    "⏰ Today",
     "📈 Timeline"
 ])
 
-# TAB 1: Milk Intake
+# TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart with Normalized Bubble Sizes
 with tab1:
+    cutoff_24h = current_local_time - timedelta(hours=24)
+    today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
+    
+    if not today_24h_df.empty:
+        norm_today_df = prepare_normalized_timeline_df(today_24h_df)
+        fig_today_timeline = px.scatter(
+            norm_today_df,
+            x="DateTime",
+            y="Event Type",
+            size="CategoryBubbleSize",
+            color="Event Type",
+            color_discrete_map=COLOR_MAP,
+            hover_data={"Value (Optional)": True, "CategoryBubbleSize": False},
+            size_max=14
+        )
+        fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=480)
+        fig_today_timeline.update_layout(showlegend=False)
+        st.plotly_chart(fig_today_timeline, use_container_width=True)
+        st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours using exact DateTime.*")
+    else:
+        render_empty_state("No Events Logged in the Last 24 Hours")
+
+# TAB 2: Milk Intake
+with tab2:
     milk_df = filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)].copy()
     
     if not milk_df.empty:
@@ -638,7 +714,7 @@ with tab1:
         grouped_vol = milk_df.groupby([group_col, 'Category'])['Value (Optional)'].sum().reset_index()
         grouped_count = milk_df.groupby(group_col).size().reset_index(name='Total Feeds Count')
         
-        is_single = len(grouped_count) == 1
+        is_single = len(grouped_count[group_col].unique()) == 1
         
         fig_milk = make_subplots(specs=[[{"secondary_y": True}]])
         
@@ -696,8 +772,8 @@ with tab1:
             height=510,
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=8, r=8, t=85, b=25),
-            bargap=0.6 if is_single else 0.2,
+            margin=dict(l=2, r=2, t=80, b=20),
+            bargap=0.75 if is_single else 0.2,
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
@@ -705,10 +781,16 @@ with tab1:
                 xanchor="center",
                 x=0.5,
                 title_text="",
-                font=dict(size=10.5)
+                font=dict(size=10)
             ),
             font=dict(family="sans-serif", size=11),
-            xaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=10)),
+            xaxis=dict(
+                type="category" if is_single else None,
+                showgrid=True,
+                gridcolor="rgba(128,128,128,0.15)",
+                tickfont=dict(size=9.5),
+                automargin=True
+            ),
             hovermode="x unified"
         )
         
@@ -717,15 +799,19 @@ with tab1:
             secondary_y=False,
             showgrid=True,
             gridcolor="rgba(128,128,128,0.15)",
-            tickfont=dict(size=10),
-            title_font=dict(size=11)
+            tickfont=dict(size=9.5),
+            title_font=dict(size=10.5),
+            title_standoff=2,
+            automargin=True
         )
         fig_milk.update_yaxes(
             title_text="Feeds",
             secondary_y=True,
             showgrid=False,
-            tickfont=dict(size=10),
-            title_font=dict(size=11)
+            tickfont=dict(size=9.5),
+            title_font=dict(size=10.5),
+            title_standoff=2,
+            automargin=True
         )
         
         st.plotly_chart(fig_milk, use_container_width=True)
@@ -733,8 +819,8 @@ with tab1:
     else:
         render_empty_state("No Feeding Data Logged in this period")
 
-# TAB 2: Diaper Output
-with tab2:
+# TAB 3: Diaper Output
+with tab3:
     diaper_df = filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)].copy()
     if not diaper_df.empty:
         diaper_df['Category'] = diaper_df['Event Type'].apply(
@@ -761,13 +847,13 @@ with tab2:
     else:
         render_empty_state("No Diaper Data Logged in this period")
 
-# TAB 3: Dedicated Pumping Chart
-with tab3:
+# TAB 4: Dedicated Pumping Chart
+with tab4:
     pump_df = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)].copy()
     if not pump_df.empty:
         grouped_pump = pump_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
         grouped_pump[group_col] = grouped_pump[group_col].astype(str)
-        is_single = len(grouped_pump) == 1
+        is_single = len(grouped_pump[group_col].unique()) == 1
         
         fig_pump = px.bar(
             grouped_pump,
@@ -784,13 +870,13 @@ with tab3:
     else:
         render_empty_state("No Pumping Data Logged in this period")
 
-# TAB 4: Dedicated Tummy Time Chart (Title kept as "🛟 Tummy Time — {granularity}", single-point proportion fix applied)
-with tab4:
+# TAB 5: Dedicated Tummy Time Chart
+with tab5:
     tummy_df = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)].copy()
     if not tummy_df.empty:
         grouped_tummy = tummy_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
         grouped_tummy[group_col] = grouped_tummy[group_col].astype(str)
-        is_single = len(grouped_tummy) == 1
+        is_single = len(grouped_tummy[group_col].unique()) == 1
         
         fig_tummy = px.bar(
             grouped_tummy,
@@ -807,8 +893,8 @@ with tab4:
     else:
         render_empty_state("No Tummy Time Data Logged in this period")
 
-# TAB 5: Health Charts (Sleep, Temp, Meds with single-point proportion fix)
-with tab5:
+# TAB 6: Health Charts (Sleep, Temp, Meds strictly grouped by Date / GroupCol)
+with tab6:
     act_option = st.radio(
         "Select Health Activity:",
         options=[
@@ -833,7 +919,7 @@ with tab5:
         if keyword == "Temp":
             grouped_act = act_df.groupby(group_col)['Value (Optional)'].mean().reset_index()
             grouped_act[group_col] = grouped_act[group_col].astype(str)
-            is_single = len(grouped_act) == 1
+            is_single = len(grouped_act[group_col].unique()) == 1
             
             fig_act = px.line(
                 grouped_act,
@@ -850,7 +936,7 @@ with tab5:
         elif keyword == "Sleep":
             grouped_act = act_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
             grouped_act[group_col] = grouped_act[group_col].astype(str)
-            is_single = len(grouped_act) == 1
+            is_single = len(grouped_act[group_col].unique()) == 1
             
             fig_act = px.bar(
                 grouped_act,
@@ -864,7 +950,7 @@ with tab5:
         else: # Meds count
             grouped_act = act_df.groupby(group_col).size().reset_index(name='Value (Optional)')
             grouped_act[group_col] = grouped_act[group_col].astype(str)
-            is_single = len(grouped_act) == 1
+            is_single = len(grouped_act[group_col].unique()) == 1
             
             fig_act = px.bar(
                 grouped_act,
@@ -882,39 +968,19 @@ with tab5:
     else:
         render_empty_state(f"No {act_option} Data Logged in this period")
 
-# TAB 6: "Today" 24-Hour Timeline Chart
-with tab6:
-    cutoff_24h = current_local_time - timedelta(hours=24)
-    today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
-    
-    if not today_24h_df.empty:
-        fig_today_timeline = px.scatter(
-            today_24h_df,
-            x="DateTime",
-            y="Event Type",
-            size="Value (Optional)",
-            color="Event Type",
-            color_discrete_map=COLOR_MAP,
-            size_max=16
-        )
-        fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=480)
-        fig_today_timeline.update_layout(showlegend=False)
-        st.plotly_chart(fig_today_timeline, use_container_width=True)
-        st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours using exact DateTime.*")
-    else:
-        render_empty_state("No Events Logged in the Last 24 Hours")
-
-# TAB 7: Full Period Timeline
+# TAB 7: Full Period Timeline with Category-Normalized Bubble Sizes
 with tab7:
     if not filtered_df.empty:
+        norm_filtered_df = prepare_normalized_timeline_df(filtered_df)
         fig_time = px.scatter(
-            filtered_df,
+            norm_filtered_df,
             x="DateTime",
             y="Event Type",
-            size="Value (Optional)",
+            size="CategoryBubbleSize",
             color="Event Type",
             color_discrete_map=COLOR_MAP,
-            size_max=16
+            hover_data={"Value (Optional)": True, "CategoryBubbleSize": False},
+            size_max=14
         )
         fig_time = style_plotly_figure(fig_time, title_text=f"Interactive Event Timeline — {granularity}", height=480)
         fig_time.update_layout(showlegend=False)
@@ -934,7 +1000,6 @@ st.subheader("📋 Raw Data Logs")
 filter_c1, filter_c2 = st.columns([1, 1])
 
 with filter_c1:
-    # Default pre-selected event types set to Breast Milk and Formula
     selected_events = st.multiselect(
         "🏷️ Filter Event Types:",
         options=ALL_EVENT_CATEGORIES,
