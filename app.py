@@ -18,6 +18,27 @@ st.set_page_config(
 # Responsive & Adaptive CSS for Light & Dark Theme Support
 st.markdown("""
     <style>
+    /* Table of Contents Navigation Buttons */
+    .toc-button {
+        display: block;
+        width: 100%;
+        padding: 8px 12px;
+        margin: 4px 0;
+        background-color: rgba(128, 128, 128, 0.08);
+        border: 1px solid rgba(128, 128, 128, 0.15);
+        color: inherit !important;
+        text-decoration: none !important;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.15s ease-in-out;
+    }
+    .toc-button:hover {
+        background-color: rgba(128, 128, 128, 0.18);
+        border-color: rgba(128, 128, 128, 0.3);
+        text-decoration: none !important;
+    }
+
     /* Prevent title word cutting on mobile screen width */
     .app-main-title {
         font-size: clamp(1.4rem, 5vw, 2.2rem);
@@ -120,12 +141,26 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Main Title kept strictly in 1 row for mobile screens
+# Main Title Anchor
+st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 st.markdown('<div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 2. GOOGLE SHEET CONNECTOR & AUTO SYNC
+# 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
 # ==========================================
+# Navigation TOC Menu above Sheet Settings
+st.sidebar.markdown("""
+    <div style="margin-bottom: 12px;">
+        <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 8px;">📌 Navigation</div>
+        <a href="#top-header" class="toc-button">🏠 Header</a>
+        <a href="#today-highlights" class="toc-button">✨ Today's Highlights</a>
+        <a href="#period-highlights" class="toc-button">✨ Period Highlights</a>
+        <a href="#analytics-charts" class="toc-button">📊 Analytics & Charts</a>
+        <a href="#raw-logs" class="toc-button">📋 Raw Data Logs</a>
+    </div>
+    <hr style="margin: 12px 0; opacity: 0.2;">
+""", unsafe_allow_html=True)
+
 DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
 
 st.sidebar.header("⚙️ Sheet Settings")
@@ -329,6 +364,8 @@ filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
 # ==========================================
 
 # --- A. TODAY'S HIGHLIGHTS (Always Visible, Single-row mobile title with [MM.DD] format) ---
+st.markdown('<div id="today-highlights"></div>', unsafe_allow_html=True)
+
 today_date = max(datetime.now().date(), max_data_date)
 today_df = df[df['Date'] == today_date]
 
@@ -475,6 +512,8 @@ with th_row2_c4:
 st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
 # --- B. PERIOD HIGHLIGHTS (Toggled Hidden Position) ---
+st.markdown('<div id="period-highlights"></div>', unsafe_allow_html=True)
+
 start_code = start_date.strftime('%m.%d')
 end_code = end_date.strftime('%m.%d')
 
@@ -553,12 +592,14 @@ def render_empty_state(title="No Data Logged in this period", subtitle="Try pick
 # ==========================================
 # 5. CHARTS & ANALYTICS
 # ==========================================
+st.markdown('<div id="analytics-charts"></div>', unsafe_allow_html=True)
 st.subheader("📊 Analytics & Insights")
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "🍼 Milk Intake", 
     "🚽 Diapers", 
-    "🧴 Pumping & Tummy Time",
+    "🧴 Pumping",
+    "🛟 Tummy Time",
     "🩺 Sleep & Health", 
     "📈 Timeline"
 ])
@@ -645,7 +686,6 @@ with tab1:
             hovermode="x unified"
         )
         
-        # Fixed title_font property to resolve Plotly ValueError
         fig_milk.update_yaxes(
             title_text="Volume (mL)",
             secondary_y=False,
@@ -691,43 +731,44 @@ with tab2:
     else:
         render_empty_state("No Diaper Data Logged in this period")
 
-# TAB 3: Dedicated Pumping & Tummy Time Chart (Horizontal Button Pills for Mobile)
+# TAB 3: Dedicated Pumping Chart
 with tab3:
-    pt_option = st.radio(
-        "Select View:",
-        options=["🧴 Pumping (mL)", "🛟 Tummy Time (Mins)"],
-        horizontal=True, # Touch-friendly button selector for mobile view
-        label_visibility="collapsed"
-    )
-    
-    if "Pumping" in pt_option:
-        pt_keyword = "Pumping"
-        pt_y_title = "Volume (mL)"
-        pt_color = COLOR_MAP["🧴 Pumping (mL)"]
-    else:
-        pt_keyword = "Tummy Time"
-        pt_y_title = "Duration (Mins)"
-        pt_color = COLOR_MAP["🛟 Tummy Time (Mins)"]
-
-    pt_df = filtered_df[filtered_df['Event Type'].str.contains(pt_keyword, case=False, na=False)].copy()
-    
-    if not pt_df.empty:
-        grouped_pt = pt_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
-        fig_pt = px.bar(
-            grouped_pt,
+    pump_df = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)].copy()
+    if not pump_df.empty:
+        grouped_pump = pump_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
+        fig_pump = px.bar(
+            grouped_pump,
             x=group_col,
             y="Value (Optional)",
-            color_discrete_sequence=[pt_color],
-            labels={"Value (Optional)": pt_y_title, group_col: granularity}
+            color_discrete_sequence=[COLOR_MAP["🧴 Pumping (mL)"]],
+            labels={"Value (Optional)": "Volume (mL)", group_col: granularity}
         )
-        fig_pt = style_plotly_figure(fig_pt, title_text=f"{pt_option} Summary — {granularity}", height=460)
-        st.plotly_chart(fig_pt, use_container_width=True)
-        st.caption(f"ℹ️ *Displays recorded **{pt_option}** data grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
+        fig_pump = style_plotly_figure(fig_pump, title_text=f"Pumping Volume (mL) — {granularity}", height=460)
+        st.plotly_chart(fig_pump, use_container_width=True)
+        st.caption(f"ℹ️ *Displays recorded pumping volume (mL) grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
-        render_empty_state(f"No {pt_option} Data Logged in this period")
+        render_empty_state("No Pumping Data Logged in this period")
 
-# TAB 4: Other Sleep & Health Charts (Horizontal Button Pills for Mobile)
+# TAB 4: Dedicated Tummy Time Chart
 with tab4:
+    tummy_df = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)].copy()
+    if not tummy_df.empty:
+        grouped_tummy = tummy_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
+        fig_tummy = px.bar(
+            grouped_tummy,
+            x=group_col,
+            y="Value (Optional)",
+            color_discrete_sequence=[COLOR_MAP["🛟 Tummy Time (Mins)"]],
+            labels={"Value (Optional)": "Duration (Mins)", group_col: granularity}
+        )
+        fig_tummy = style_plotly_figure(fig_tummy, title_text=f"Tummy Time Duration (Mins) — {granularity}", height=460)
+        st.plotly_chart(fig_tummy, use_container_width=True)
+        st.caption(f"ℹ️ *Displays recorded tummy time duration (Mins) grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
+    else:
+        render_empty_state("No Tummy Time Data Logged in this period")
+
+# TAB 5: Other Sleep & Health Charts
+with tab5:
     act_option = st.radio(
         "Select Health Activity:",
         options=[
@@ -735,7 +776,7 @@ with tab4:
             "🌡️ Temp (°C)",
             "💊 Meds (Cnt)"
         ],
-        horizontal=True, # Touch-friendly button selector for mobile view
+        horizontal=True,
         label_visibility="collapsed"
     )
     
@@ -788,8 +829,8 @@ with tab4:
     else:
         render_empty_state(f"No {act_option} Data Logged in this period")
 
-# TAB 5: Timeline
-with tab5:
+# TAB 6: Timeline
+with tab6:
     if not filtered_df.empty:
         fig_time = px.scatter(
             filtered_df,
@@ -812,6 +853,7 @@ st.markdown("---")
 # ==========================================
 # 6. EXPANDED RAW DATA LOGS TABLE
 # ==========================================
+st.markdown('<div id="raw-logs"></div>', unsafe_allow_html=True)
 st.subheader("📋 Raw Data Logs")
 
 filter_c1, filter_c2 = st.columns([1, 1])
