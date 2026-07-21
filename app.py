@@ -48,7 +48,7 @@ components.html(
     width=0
 )
 
-# Responsive & Adaptive CSS: Compact Vertical Spacing & Light Mode Grid Cards
+# Responsive & Adaptive CSS: Strictly Light Mode with Equal Height Cards & Safari Spacing
 st.markdown("""
     <style>
     /* Hide Streamlit Default Branding while preserving Sidebar Header Toggle Button */
@@ -85,7 +85,7 @@ st.markdown("""
     /* Force global text color to dark for light mode */
     body, .stApp {
         color: var(--card-text) !important;
-        background-color: #f8fafc !important; /* Very subtle off-white background */
+        background-color: #f8fafc !important;
     }
 
     /* Seamless background for Safari translucency and Safe Area Padding */
@@ -422,7 +422,7 @@ def format_x_label(val):
         return str(val)
 
 # Compact Plotly Styling Helper displaying EVERY DATE on X-Axis with Unbolded Titles
-def style_plotly_figure(fig, title_text="", height=450, single_point=False, is_scatter=False, x_tickformat=None, x_dtick=None):
+def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_scatter=False, x_tickformat=None, x_dtick=None):
     layout_args = dict(
         title=dict(
             text=title_text,
@@ -430,12 +430,12 @@ def style_plotly_figure(fig, title_text="", height=450, single_point=False, is_s
             x=0.5,
             xanchor="center",
             yanchor="top",
-            font=dict(size=15, weight="normal")
+            font=dict(size=16, weight="normal")
         ),
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=2, r=2, t=65, b=15),
+        margin=dict(l=2, r=2, t=75, b=20),
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -710,7 +710,6 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
     <div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div>
 </div>""")
 
-    # Render Today Cards via CSS Grid Container
     st.markdown(f'<div class="cards-container">{"".join(today_cards)}</div>', unsafe_allow_html=True)
 
 # --- B. PERIOD HIGHLIGHTS ---
@@ -812,7 +811,7 @@ def render_empty_state(title="No Data Logged in this period", subtitle="Try pick
 </div>""", unsafe_allow_html=True)
 
 # ==========================================
-# 5. CHARTS & ANALYTICS ("⏰ Today" is placed FIRST)
+# 5. CHARTS & ANALYTICS
 # ==========================================
 st.markdown('<div id="analytics-charts"></div>', unsafe_allow_html=True)
 st.subheader("📊 Analytics & Insights")
@@ -827,7 +826,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📈 Timeline"
 ])
 
-# TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart with "%d-%H" x-axis formatting
+# TAB 1: Today 24-Hour Timeline Scatter
 with tab1:
     cutoff_24h = current_local_time - timedelta(hours=24)
     today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
@@ -1028,7 +1027,7 @@ with tab5:
     else:
         render_empty_state("No Tummy Time Data Logged in this period")
 
-# TAB 6: Health Charts (Sleep, Temp, Meds strictly grouped by Date / GroupCol formatted m.DD)
+# TAB 6: Health Charts (Sleep, Temp, Meds)
 with tab6:
     act_option = st.radio(
         "Select Health Activity:",
@@ -1106,7 +1105,7 @@ with tab6:
     else:
         render_empty_state(f"No {act_option} Data Logged in this period")
 
-# TAB 7: Full Period Timeline with "%-m.%d" x-axis formatting and daily ticks (dtick="D1")
+# TAB 7: Full Period Timeline Scatter
 with tab7:
     if not filtered_df.empty:
         norm_filtered_df = prepare_normalized_timeline_df(filtered_df)
@@ -1219,4 +1218,3 @@ if not display_df.empty:
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
-```eof
