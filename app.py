@@ -40,16 +40,20 @@ components.html(
         function setupRefreshLogic(doc, win) {
             if (!win.triggerRefresh) {
                 win.triggerRefresh = function(element) {
-                    element.innerHTML = '⏳ Fetching...';
+                    if (element) {
+                        element.innerHTML = '⏳ Fetching...';
+                        element.style.pointerEvents = 'none';
+                        element.style.opacity = '0.7';
+                    }
                     win.sessionStorage.setItem('reloaded', 'true');
                     
                     // Intuitive "Refreshing..." Toast Notification
                     let refreshToast = doc.createElement('div');
                     refreshToast.innerHTML = '⏳ Refreshing data...';
-                    refreshToast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #fffbeb; color: #854d0e; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600; z-index: 10000; border: 1px solid #fde047; font-family: sans-serif; transition: opacity 0.2s ease;';
+                    refreshToast.style.cssText = 'position: fixed; top: 1.5rem; right: 1.5rem; background: #fffbeb; color: #854d0e; padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); font-weight: 600; font-family: sans-serif; z-index: 999999; border: 1px solid #fde047; transition: opacity 0.3s ease;';
                     doc.body.appendChild(refreshToast);
                     
-                    setTimeout(() => { win.location.reload(true); }, 200);
+                    setTimeout(() => { win.location.reload(true); }, 500);
                 };
             }
             if (win.sessionStorage.getItem('reloaded')) {
@@ -58,27 +62,33 @@ components.html(
                 // Pop up Notification for "Data successfully updated"
                 let toast = doc.createElement('div');
                 toast.innerHTML = '✅ Data successfully updated!';
-                toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #dcfce7; color: #166534; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600; z-index: 10000; opacity: 0; transition: opacity 0.4s ease; border: 1px solid #86efac; font-family: sans-serif;';
+                toast.style.cssText = 'position: fixed; top: 1.5rem; right: 1.5rem; background: #dcfce7; color: #166534; padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); font-weight: 600; font-family: sans-serif; z-index: 999999; border: 1px solid #86efac; opacity: 0; transition: opacity 0.3s ease;';
                 doc.body.appendChild(toast);
+                
                 setTimeout(() => { toast.style.opacity = '1'; }, 100);
-                setTimeout(() => { 
-                    toast.style.opacity = '0'; 
-                    setTimeout(() => toast.remove(), 500);
-                }, 3000);
+                setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+                setTimeout(() => { toast.remove(); }, 3500);
 
                 let attempts = 0;
                 const interval = setInterval(() => {
                     const btns = doc.querySelectorAll('.refresh-btn');
                     if (btns.length > 0) {
                         btns.forEach(btn => {
-                            btn.innerHTML = '🔄 Refresh'; 
-                            btn.style.backgroundColor = '';
-                            btn.style.borderColor = '';
+                            btn.innerHTML = '✅ Done!'; 
+                            btn.style.backgroundColor = '#dcfce7';
+                            btn.style.borderColor = '#86efac';
+                            setTimeout(() => {
+                                btn.innerHTML = '🔄 Refresh';
+                                btn.style.backgroundColor = '';
+                                btn.style.borderColor = '';
+                                btn.style.pointerEvents = 'auto';
+                                btn.style.opacity = '1';
+                            }, 2500);
                         });
                         clearInterval(interval);
                     }
                     attempts++;
-                    if (attempts > 20) clearInterval(interval);
+                    if (attempts > 50) clearInterval(interval);
                 }, 100);
             }
         }
@@ -216,10 +226,9 @@ st.markdown("""
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
 # ==========================================
 st.sidebar.markdown("""
-    <div style="margin-bottom: 2rem;">
-        <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">📌 Quick Navigation</div>
+    <div style="margin-bottom: 12px;">
+        <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">📌 Quick Navigation</div>
         <a href="#today" class="toc-button">✨ Today</a>
-        <a href="#period-highlights" class="toc-button">📅 Range Highlights</a>
         <a href="#insights" class="toc-button">📊 Insights</a>
         <a href="#database" class="toc-button">📋 Database</a>
     </div>
@@ -471,54 +480,10 @@ else:
     st.markdown(f'<div class="cards-container">{"".join(formatted_today_cards)}</div>', unsafe_allow_html=True)
 
 
-# --- B. RANGE HIGHLIGHTS ---
-st.markdown('<div id="period-highlights" style="margin-top: 3.5rem;"></div>', unsafe_allow_html=True)
-st.subheader("📅 Range Highlights")
-
-if filtered_df.empty:
-    st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 No Data Logged in this Period</div><div class="empty-data-sub">Expand date range to view aggregate highlights.</div></div>""", unsafe_allow_html=True)
-else:
-    p_formula = filtered_df[filtered_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
-    p_bm = filtered_df[filtered_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
-    p_milk = p_formula + p_bm
-    p_feed_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
-    p_avg_feed = (p_milk / p_feed_cnt) if p_feed_cnt > 0 else 0
-    p_wet = len(filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
-    p_poop = len(filtered_df[filtered_df['Event Type'].str.contains("Poop", case=False, na=False)])
-    p_pumping = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
-    p_tummy = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
-    p_sleep = filtered_df[filtered_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
-    p_meds = len(filtered_df[filtered_df['Event Type'].str.contains("Meds", case=False, na=False)])
-    p_temp_df = filtered_df[filtered_df['Event Type'].str.contains("Temp", case=False, na=False)]
-    p_latest_temp = p_temp_df.iloc[0]['Value (Optional)'] if not p_temp_df.empty else None
-    p_pump_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)])
-    p_tummy_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
-
-    period_cards = []
-    if p_milk > 0 or p_feed_cnt > 0: period_cards.append(f"""<div class="highlight-card card-milk"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Form: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div></div>""")
-    if p_wet + p_poop > 0: period_cards.append(f"""<div class="highlight-card card-diaper"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body">Total <b>{p_wet + p_poop}</b> change(s).</div></div><div class="highlight-sub">💧 Wet: {p_wet} | 🚽 Poop: {p_poop}</div></div>""")
-    if p_pumping > 0 or p_pump_cnt > 0: period_cards.append(f"""<div class="highlight-card card-pump"><div><div class="highlight-title">🧴 Pumping</div><div class="highlight-body">Pumped <b>{int(p_pumping):,} mL</b> in range.</div></div><div class="highlight-sub">{p_pump_cnt} pumping session(s)</div></div>""")
-    if p_tummy > 0 or p_tummy_cnt > 0: period_cards.append(f"""<div class="highlight-card card-tummy"><div><div class="highlight-title">🛟 Tummy Time</div><div class="highlight-body">Logged <b>{int(p_tummy)} min(s)</b> in range.</div></div><div class="highlight-sub">{p_tummy_cnt} session(s) recorded</div></div>""")
-    if p_sleep > 0: period_cards.append(f"""<div class="highlight-card card-sleep"><div><div class="highlight-title">🛌 Sleep & Rest</div><div class="highlight-body">Logged <b>{int(p_sleep)} hr(s)</b> of rest.</div></div><div class="highlight-sub">{len(filtered_df[filtered_df['Event Type'].str.contains('Sleep', case=False, na=False)])} sleep period(s)</div></div>""")
-    if p_meds > 0: period_cards.append(f"""<div class="highlight-card card-meds"><div><div class="highlight-title">💊 Medication</div><div class="highlight-body">Logged <b>{p_meds}</b> dose(s).</div></div><div class="highlight-sub">Dose(s) tracked in log</div></div>""")
-    if len(p_temp_df) > 0: period_cards.append(f"""<div class="highlight-card card-temp"><div><div class="highlight-title">🌡️ Body Temperature</div><div class="highlight-body"><b>{p_latest_temp:.1f} °C</b></div></div><div class="highlight-sub">{len(p_temp_df)} reading(s) in period</div></div>""")
-    if len(filtered_df) > 0: period_cards.append(f"""<div class="highlight-card card-events"><div><div class="highlight-title">📊 Total Events</div><div class="highlight-body"><b>{len(filtered_df):,}</b> entry(s) logged.</div></div><div class="highlight-sub">From {start_date} to {end_date}</div></div>""")
-
-    p_card_count = len(period_cards)
-    p_base_span = "card-span-3" if p_card_count >= 4 else ("card-span-4" if p_card_count == 3 else ("card-span-6" if p_card_count == 2 else "card-span-12"))
-
-    formatted_p_cards = []
-    for i, card in enumerate(period_cards):
-        cls = f"highlight-card {p_base_span}"
-        if p_card_count % 2 != 0 and i == 0 and p_card_count > 1: cls += " mobile-full-width"
-        formatted_p_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
-    st.markdown(f'<div class="cards-container">{"".join(formatted_p_cards)}</div>', unsafe_allow_html=True)
-
-
 # ==========================================
 # 5. CHARTS & ANALYTICS
 # ==========================================
-st.markdown('<div id="insights" style="margin-top: 3.5rem;"></div>', unsafe_allow_html=True)
+st.markdown('<div id="insights" style="padding-top: 2rem;"></div>', unsafe_allow_html=True)
 st.subheader("📊 Insights")
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
@@ -1042,4 +1007,5 @@ else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
 
 st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
+
 
