@@ -357,7 +357,7 @@ st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
 # Desktop Header Structure
 st.markdown("""
-<div class="custom-header-desktop">
+<div class="custom-header-desktop" style="padding-bottom: 0.2rem;">
     <div class="desktop-header-row">
         <div class="app-main-title">🍼 Riley Growth Log</div>
         <div class="desktop-header-controls">
@@ -365,19 +365,19 @@ st.markdown("""
             <a href="javascript:window.location.reload(true);" class="custom-btn">🔄 Refresh</a>
         </div>
     </div>
-    <hr style="margin: 4px 0 10px 0; border: none; border-top: 1px solid rgba(128,128,128,0.25);">
+    <div style="width: 100%; height: 1px; background-color: rgba(128,128,128,0.25); margin-top: 0.6rem; margin-bottom: 0.4rem;"></div>
 </div>
 """, unsafe_allow_html=True)
 
 # Mobile Header Structure (With perfectly mirrored 0.35rem spacing gaps requested)
 st.markdown("""
-<div class="custom-header-mobile">
-    <div class="app-main-title" style="margin-bottom: 0.35rem;">🍼 Riley Growth Log</div>
+<div class="custom-header-mobile" style="padding-bottom: 0.4rem;">
+    <div class="app-main-title" style="margin-bottom: 0.4rem;">🍼 Riley Growth Log</div>
     <div class="mobile-header-controls">
         <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
         <a href="javascript:window.location.reload(true);" class="custom-btn">🔄 Refresh</a>
     </div>
-    <hr style="margin: 0.5rem 0 0.35rem 0; border: none; border-top: 1px solid rgba(128,128,128,0.25);">
+    <div style="width: 100%; height: 1px; background-color: rgba(128,128,128,0.25); margin-top: 0.8rem; margin-bottom: 0.4rem;"></div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1322,5 +1322,6 @@ with tab7:
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Events Logged in this period")
+
 
 
