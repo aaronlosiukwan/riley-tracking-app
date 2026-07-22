@@ -576,10 +576,41 @@ with tab2:
     milk_df = filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)].copy()
     if not milk_df.empty:
         milk_df['Category'] = milk_df['Event Type'].apply(lambda x: "🤱 Breast Milk (mL)" if "breast" in x.lower() else "🍼 Formula (mL)")
+        
+        # --- Aggregations ---
         grouped_vol = milk_df.groupby([group_col, 'Category'])['Value (Optional)'].sum().reset_index()
         grouped_count = milk_df.groupby(group_col).size().reset_index(name='Total Feeds Count')
+        
+        # --- Trend & Target Math ---
+        total_per_x = milk_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
+        total_per_x = total_per_x.sort_values(group_col)
+        # 7-period rolling average for Trend Line
+        total_per_x['Trend'] = total_per_x['Value (Optional)'].rolling(window=min(7, len(total_per_x)), min_periods=1).mean()
+        
+        # Dynamic Target Calculation Based on Riley's Age
+        def get_target_vol(date_val, gran):
+            try:
+                if gran == "Monthly": d = pd.to_datetime(str(date_val) + "-01").date()
+                else: d = pd.to_datetime(date_val).date()
+                
+                age_days = (d - baby_dob).days
+                if age_days < 30: daily_tgt = 700
+                elif age_days < 180: daily_tgt = 900
+                elif age_days < 365: daily_tgt = 800
+                else: daily_tgt = 500
+                
+                if gran == "Weekly": return daily_tgt * 7
+                elif gran == "Monthly": return daily_tgt * 30.4
+                return daily_tgt
+            except:
+                return 800 # Fallback safety
+                
+        total_per_x['Target'] = total_per_x[group_col].apply(lambda x: get_target_vol(x, granularity))
+
+        # --- Apply Formatting ---
         grouped_vol[group_col] = grouped_vol[group_col].apply(format_x_label)
         grouped_count[group_col] = grouped_count[group_col].apply(format_x_label)
+        total_per_x[group_col] = total_per_x[group_col].apply(format_x_label)
         is_single = len(grouped_count[group_col].unique()) == 1
         
         fig_milk = make_subplots(specs=[[{"secondary_y": True}]])
@@ -597,11 +628,18 @@ with tab2:
             fig_milk.add_trace(go.Bar(name='🤱 Breast Milk (mL)', x=df_bm[group_col].astype(str), y=df_bm['Value (Optional)'], marker_color="#9ca3af", width=0.25 if is_single else None, hovertemplate='%{y} mL<extra></extra>'), secondary_y=False)
             
         fig_milk.add_trace(go.Scatter(name='🔢 Feed Count(s)', x=grouped_count[group_col].astype(str), y=grouped_count['Total Feeds Count'], mode='lines+markers+text', text=grouped_count['Total Feeds Count'], textposition="top center", textfont=dict(size=10.5, weight='bold'), line=dict(color='#f97316', width=3, shape='spline', smoothing=1.3), marker=dict(size=10, symbol='circle', color='#f97316', line=dict(width=2, color='#ffffff')), hovertemplate='%{y} feeds<extra></extra>'), secondary_y=True)
+        
+        # --- Add Trend & Target Lines ---
+        fig_milk.add_trace(go.Scatter(name='📈 Vol Trend', x=total_per_x[group_col].astype(str), y=total_per_x['Trend'], mode='lines', line=dict(color='#8b5cf6', width=3, shape='spline'), hovertemplate='Avg Trend: %{y:.0f} mL<extra></extra>'), secondary_y=False)
+        fig_milk.add_trace(go.Scatter(name='🎯 Target Vol', x=total_per_x[group_col].astype(str), y=total_per_x['Target'], mode='lines', line=dict(color='#10b981', width=2, dash='dot'), hovertemplate='Target: %{y:.0f} mL<extra></extra>'), secondary_y=False)
+        
         fig_milk = style_plotly_figure(fig_milk, title_text=f"🍼 Milk Intake Volume & Feed Count — {granularity}", height=490, single_point=is_single)
         fig_milk.update_layout(barmode='stack')
         fig_milk.update_yaxes(title_text="", secondary_y=False, showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=9.5), automargin=True)
         fig_milk.update_yaxes(title_text="", secondary_y=True, showgrid=False, tickfont=dict(size=9.5), automargin=True)
         st.plotly_chart(fig_milk, use_container_width=True)
+        
+        st.caption(f"ℹ️ *Combines stacked Formula and Breast Milk volume (mL) on left axis with Feed Count(s) (orange) on right axis.*<br>🎯 **Target Volume Guidelines:** *0-1 Mo (~700mL/day), 1-6 Mo (~900mL/day), 6-12 Mo (~800mL/day), 1+ Yr (~500mL/day).* The green line plots your active target based on Riley's age, and the purple line plots the 7-period rolling average.", unsafe_allow_html=True)
     else: render_empty_state("No Feeding Data Logged in this period")
 
 # TAB 3: Diaper Output
@@ -888,17 +926,18 @@ with tab8:
     else:
         styled_df = styled_df.sort_values(by="Days").reset_index(drop=True)
 
-    # Pre-compute exact row colors (Green = Done, Yellow = Due Soon, Red = Overdue, Gray = Optional Not Done)
-    colors = []
-    for _, row in styled_df.iterrows():
-        if '✅' in row['Status']: colors.append(['background-color: #dcfce7; color: #166534'] * len(row))
-        elif '🟡' in row['Status']: colors.append(['background-color: #fef08a; color: #854d0e'] * len(row))
-        elif '⚠️' in row['Status']: colors.append(['background-color: #fee2e2; color: #991b1b'] * len(row))
-        elif row['Optional']: colors.append(['background-color: #e2e8f0; color: #475569'] * len(row))
-        else: colors.append([''] * len(row))
-        
+    # Cleanly drop unneeded columns first to lock in the 7-column width for the styler
     styled_df = styled_df.drop(columns=["Days", "Group", "Optional"])
-    styled_table = styled_df.style.apply(lambda x: colors[x.name], axis=1)
+
+    # Safely apply styles checking directly against rows in the already-dropped format
+    def apply_vaccine_colors(row):
+        if '✅' in row['Status']: return ['background-color: #dcfce7; color: #166534'] * 7
+        elif '🟡' in row['Status']: return ['background-color: #fef08a; color: #854d0e'] * 7
+        elif '⚠️' in row['Status']: return ['background-color: #fee2e2; color: #991b1b'] * 7
+        elif '(Optional)' in row['Vaccine / 疫苗']: return ['background-color: #f1f5f9; color: #475569'] * 7
+        else: return [''] * 7
+
+    styled_table = styled_df.style.apply(apply_vaccine_colors, axis=1)
     
     st.dataframe(
         styled_table,
@@ -932,4 +971,5 @@ with tab8:
             }
         )
     else: render_empty_state("No Vaccine Data Logged")
+
 
