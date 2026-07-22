@@ -64,19 +64,10 @@ st.markdown("""
         scroll-margin-top: 70px;
     }
 
-    /* Native iOS Tap-to-Top Scroll Fix: Force the document body to be the scrolling element */
-    html, body, #root {
-        height: auto !important;
-        min-height: 100vh !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
+    /* Native iOS Tap-to-Top Scroll Fix: Cleanly force Streamlit container to register as iOS primary scroll */
+    [data-testid="stAppViewContainer"] {
+        overflow-y: scroll !important;
         -webkit-overflow-scrolling: touch !important;
-    }
-    .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
-        height: auto !important;
-        min-height: 100vh !important;
-        overflow: visible !important;
-        position: relative !important;
     }
 
     /* Compact Vertical Spacing Across Blocks & Expanders */
@@ -360,7 +351,7 @@ st.markdown("""
             content: "";
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 999;
+            z-index: 99; /* Reduced z-index to avoid clipping Streamlit multiselect dropdown popovers */
             background: rgba(0,0,0,0);
         }
     }
@@ -508,7 +499,8 @@ def standardize_event_name(event_str):
         "Meds (Cnt)": "💊 Meds (Cnt)",
         "Weight (kg)": "⚖️ Weight (kg)",
         "Height (cm)": "🏔️ Height (cm)",
-        "Vaccine": "💉 Vaccine"
+        "Vaccine": "💉 Vaccine (Cnt)",
+        "Vaccine (Cnt)": "💉 Vaccine (Cnt)"
     }
     return mapping.get(s, s)
 
@@ -526,7 +518,7 @@ ALL_EVENT_CATEGORIES = [
     "💊 Meds (Cnt)",
     "⚖️ Weight (kg)",
     "🏔️ Height (cm)",
-    "💉 Vaccine",
+    "💉 Vaccine (Cnt)",
     "Other"
 ]
 
@@ -542,7 +534,7 @@ COLOR_MAP = {
     "💊 Meds (Cnt)": "#f59e0b",         # Bright Amber
     "⚖️ Weight (kg)": "#14b8a6",        # Teal
     "🏔️ Height (cm)": "#0ea5e9",        # Light Blue
-    "💉 Vaccine": "#f43f5e",            # Rose/Red
+    "💉 Vaccine (Cnt)": "#f43f5e",      # Rose/Red
     "Other": "#6b7280"
 }
 
@@ -1251,8 +1243,7 @@ with tab6:
             "🌡️ Temp (°C)",
             "💊 Meds (Cnt)",
             "⚖️ Weight (kg)",
-            "🏔️ Height (cm)",
-            "💉 Vaccine"
+            "🏔️ Height (cm)"
         ],
         horizontal=True,
         label_visibility="collapsed"
@@ -1263,8 +1254,7 @@ with tab6:
         "🌡️ Temp (°C)": ("Temp", "Temperature (°C)", COLOR_MAP["🌡️ Temp (°C)"], "°C"),
         "💊 Meds (Cnt)": ("Meds", "Dose Count(s)", COLOR_MAP["💊 Meds (Cnt)"], "doses"),
         "⚖️ Weight (kg)": ("Weight", "Weight (kg)", COLOR_MAP["⚖️ Weight (kg)"], "kg"),
-        "🏔️ Height (cm)": ("Height", "Height (cm)", COLOR_MAP["🏔️ Height (cm)"], "cm"),
-        "💉 Vaccine": ("Vaccine", "Dose Count(s)", COLOR_MAP["💉 Vaccine"], "doses")
+        "🏔️ Height (cm)": ("Height", "Height (cm)", COLOR_MAP["🏔️ Height (cm)"], "cm")
     }
     
     keyword, y_title, act_color, unit = act_mapping[act_option]
@@ -1354,6 +1344,7 @@ with tab7:
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Events Logged in this period")
+
 
 
 
