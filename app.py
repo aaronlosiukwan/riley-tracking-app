@@ -43,12 +43,11 @@ components.html(
                     element.innerHTML = '⏳ Fetching...';
                     win.sessionStorage.setItem('reloaded', 'true');
                     
-                    // Intuitive Full-Screen Refresh Overlay
-                    let overlay = doc.createElement('div');
-                    overlay.id = 'refresh-overlay';
-                    overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(248,250,252,0.85); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:1.2rem; font-weight:600; color:#0ea5e9; backdrop-filter:blur(4px);';
-                    overlay.innerHTML = '<div style="font-size:3rem; margin-bottom:1rem;">🔄</div><div>Syncing Latest Data...</div>';
-                    doc.body.appendChild(overlay);
+                    // Intuitive "Refreshing..." Toast Notification
+                    let refreshToast = doc.createElement('div');
+                    refreshToast.innerHTML = '⏳ Refreshing data...';
+                    refreshToast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #fffbeb; color: #854d0e; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600; z-index: 10000; border: 1px solid #fde047; font-family: sans-serif; transition: opacity 0.2s ease;';
+                    doc.body.appendChild(refreshToast);
                     
                     setTimeout(() => { win.location.reload(true); }, 200);
                 };
@@ -56,19 +55,16 @@ components.html(
             if (win.sessionStorage.getItem('reloaded')) {
                 win.sessionStorage.removeItem('reloaded');
                 
-                // Guaranteed Pop up Notification for "Data successfully updated"
-                setTimeout(() => {
-                    if(!doc.body) return;
-                    let toast = doc.createElement('div');
-                    toast.innerHTML = '✅ Data successfully updated!';
-                    toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #dcfce7; color: #166534; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600; z-index: 10000; opacity: 0; transition: opacity 0.4s ease; border: 1px solid #86efac; font-family: sans-serif;';
-                    doc.body.appendChild(toast);
-                    setTimeout(() => { toast.style.opacity = '1'; }, 50);
-                    setTimeout(() => { 
-                        toast.style.opacity = '0'; 
-                        setTimeout(() => toast.remove(), 500);
-                    }, 3000);
-                }, 400);
+                // Pop up Notification for "Data successfully updated"
+                let toast = doc.createElement('div');
+                toast.innerHTML = '✅ Data successfully updated!';
+                toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #dcfce7; color: #166534; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600; z-index: 10000; opacity: 0; transition: opacity 0.4s ease; border: 1px solid #86efac; font-family: sans-serif;';
+                doc.body.appendChild(toast);
+                setTimeout(() => { toast.style.opacity = '1'; }, 100);
+                setTimeout(() => { 
+                    toast.style.opacity = '0'; 
+                    setTimeout(() => toast.remove(), 500);
+                }, 3000);
 
                 let attempts = 0;
                 const interval = setInterval(() => {
@@ -129,18 +125,18 @@ st.markdown("""
         --card-bg: #ffffff; --card-border: #e2e8f0; --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); --card-text: #1e293b;
     }
 
-    /* Title Styling - Enforced definitively larger than standard headers */
+    /* Title Styling - Enforced much larger than subheaders but wraps cleanly on tiny mobile screens */
     .app-main-title {
-        font-size: clamp(1.8rem, 5vw + 0.8rem, 2.8rem) !important;
+        font-size: clamp(1.4rem, 5vw + 0.5rem, 2.4rem) !important;
         font-weight: 700 !important;
         line-height: 1.25 !important;
-        white-space: normal !important; 
-        padding-right: 45px; 
+        white-space: normal !important; /* Allows wrapping instead of cutting off */
+        padding-right: 45px; /* Protects from Streamlit's hamburger menu overlapping */
         color: var(--card-text);
         margin: 0;
     }
 
-    /* Custom Header Buttons - Locked 44px Height & Equal Width Rules */
+    /* Custom Header Buttons - Locked 44px Height & Equal Widths */
     .custom-btn {
         display: inline-flex; align-items: center; justify-content: center;
         background-color: var(--card-bg) !important; color: #1e293b !important;
@@ -156,22 +152,21 @@ st.markdown("""
         .custom-header-mobile { display: none !important; }
         .custom-header-desktop { display: block !important; margin-top: 1.5rem; margin-bottom: 1.0rem; }
         .desktop-header-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; }
-        .desktop-header-controls { display: flex; gap: 0.5rem; justify-content: flex-end; }
-        .desktop-header-controls .custom-btn { width: 130px !important; flex: 0 0 130px !important; padding: 0; }
+        .desktop-header-controls { display: flex; gap: 0.5rem; }
+        .desktop-header-controls .custom-btn { width: 130px; padding: 0; } /* Strict identical widths on desktop */
     }
 
     @media (max-width: 768px) {
         .custom-header-desktop { display: none !important; }
+        /* Pushed down and robust bottom margin to prevent overlap */
         .custom-header-mobile { display: block !important; width: 100%; margin-top: 1.5rem; margin-bottom: 2.0rem !important; }
         .mobile-header-controls { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; gap: 0.5rem; }
-        .mobile-header-controls .custom-btn { flex: 1 1 0px !important; width: 100% !important; text-align: center; } 
+        .mobile-header-controls .custom-btn { flex: 1; text-align: center; } /* 50/50 flex split on mobile */
     }
 
     span[data-baseweb="tag"] { background-color: #e5e7eb !important; color: #1f2937 !important; border: 1px solid #d1d5db !important; font-weight: 500 !important; }
     .toc-button { display: block; width: 100%; padding: 8px 12px; margin: 4px 0; background-color: var(--card-bg); border: 1px solid var(--card-border); box-shadow: var(--card-shadow); color: var(--card-text) !important; text-decoration: none !important; border-radius: 8px; font-size: 0.9rem; font-weight: 500; transition: all 0.15s ease-in-out; }
     .toc-button:hover { background-color: #f1f5f9; border-color: #cbd5e1; text-decoration: none !important; }
-    
-    .sidebar-header { font-weight: 700; font-size: 1.05rem; margin-bottom: 0px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; margin-top: 32px; }
 
     .cards-container { display: grid !important; grid-template-columns: repeat(12, 1fr) !important; gap: 8px !important; align-items: stretch !important; margin-bottom: 2px !important; width: 100% !important; margin-top: 8px !important; }
     .card-span-3 { grid-column: span 3 !important; } .card-span-4 { grid-column: span 4 !important; } .card-span-6 { grid-column: span 6 !important; } .card-span-12 { grid-column: span 12 !important; } 
@@ -221,10 +216,9 @@ st.markdown("""
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
 # ==========================================
 st.sidebar.markdown("""
-    <div style="margin-bottom: 8px;">
-        <div class="sidebar-header" style="margin-top: 0;">📌 Quick Navigation</div>
+    <div style="margin-bottom: 12px;">
+        <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">📌 Quick Navigation</div>
         <a href="#today" class="toc-button">✨ Today</a>
-        <a href="#period-highlights" class="toc-button">📅 Range Highlights</a>
         <a href="#insights" class="toc-button">📊 Insights</a>
         <a href="#database" class="toc-button">📋 Database</a>
     </div>
@@ -232,16 +226,14 @@ st.sidebar.markdown("""
 
 DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
 
-# Added rigid pixel height blocks to guarantee margin visibility below custom HTML headers
-st.sidebar.markdown("<div class='sidebar-header'>⚙️ Configuration</div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True) 
+st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
 sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
 tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
-
 if sheet_url_input: st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
 
-st.sidebar.markdown("<div class='sidebar-header'>👶 Baby Settings</div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True) 
+st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
 baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
@@ -358,7 +350,7 @@ def get_unit_from_name(name):
 def render_insight_card(text):
     html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
     st.markdown(f"""
-    <div style="background-color: #f8fafc; border-left: 4px solid #8b5cf6; padding: 12px 16px; border-radius: 8px; margin: 12px 0 16px 0; font-size: 0.88rem; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+    <div style="background-color: #f8fafc; border-left: 4px solid #8b5cf6; padding: 12px 16px; border-radius: 8px; margin: 16px 0 24px 0; font-size: 0.88rem; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
         <strong style="color: #6d28d9;">✨ AI Insight:</strong> {html_text}
     </div>
     """, unsafe_allow_html=True)
@@ -377,10 +369,8 @@ if 'ed' not in st.session_state:
 cur_sd = st.session_state.sd
 cur_ed = st.session_state.ed
 
-exp_title = f"⚙️ Filter & Grouping Settings — Data Aggregated from {cur_sd.strftime('%Y-%m-%d')} to {cur_ed.strftime('%Y-%m-%d')}"
-
-with st.expander(exp_title, expanded=False):
-    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+with st.expander("⚙️ Filter & Grouping Settings", expanded=False):
+    st.markdown(f"<div style='color: #64748b; font-size: 0.9rem; margin-top: 0.2rem; margin-bottom: 1.2rem; padding-bottom: 0.8rem; border-bottom: 1px solid rgba(128,128,128,0.15); font-weight: 500;'>Data Aggregated from <span style='color: #334155;'>{cur_sd.strftime('%Y-%m-%d')}</span> to <span style='color: #334155;'>{cur_ed.strftime('%Y-%m-%d')}</span></div>", unsafe_allow_html=True)
     f_col1, f_col2, f_col3 = st.columns([1.5, 1, 1])
     with f_col1:
         granularity = st.radio("Chart Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0, horizontal=True)
@@ -481,50 +471,6 @@ else:
     st.markdown(f'<div class="cards-container">{"".join(formatted_today_cards)}</div>', unsafe_allow_html=True)
 
 
-# --- B. RANGE HIGHLIGHTS ---
-st.markdown('<div id="period-highlights" style="padding-top: 2rem;"></div>', unsafe_allow_html=True)
-st.subheader("📅 Range Highlights")
-
-if filtered_df.empty:
-    st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 No Data Logged in this Period</div><div class="empty-data-sub">Expand date range to view aggregate highlights.</div></div>""", unsafe_allow_html=True)
-else:
-    p_formula = filtered_df[filtered_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
-    p_bm = filtered_df[filtered_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
-    p_milk = p_formula + p_bm
-    p_feed_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
-    p_avg_feed = (p_milk / p_feed_cnt) if p_feed_cnt > 0 else 0
-    p_wet = len(filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
-    p_poop = len(filtered_df[filtered_df['Event Type'].str.contains("Poop", case=False, na=False)])
-    p_pumping = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
-    p_tummy = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
-    p_sleep = filtered_df[filtered_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
-    p_meds = len(filtered_df[filtered_df['Event Type'].str.contains("Meds", case=False, na=False)])
-    p_temp_df = filtered_df[filtered_df['Event Type'].str.contains("Temp", case=False, na=False)]
-    p_latest_temp = p_temp_df.iloc[0]['Value (Optional)'] if not p_temp_df.empty else None
-    p_pump_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)])
-    p_tummy_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
-
-    period_cards = []
-    if p_milk > 0 or p_feed_cnt > 0: period_cards.append(f"""<div class="highlight-card card-milk"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Form: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div></div>""")
-    if p_wet + p_poop > 0: period_cards.append(f"""<div class="highlight-card card-diaper"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body">Total <b>{p_wet + p_poop}</b> change(s).</div></div><div class="highlight-sub">💧 Wet: {p_wet} | 🚽 Poop: {p_poop}</div></div>""")
-    if p_pumping > 0 or p_pump_cnt > 0: period_cards.append(f"""<div class="highlight-card card-pump"><div><div class="highlight-title">🧴 Pumping</div><div class="highlight-body">Pumped <b>{int(p_pumping):,} mL</b> in range.</div></div><div class="highlight-sub">{p_pump_cnt} pumping session(s)</div></div>""")
-    if p_tummy > 0 or p_tummy_cnt > 0: period_cards.append(f"""<div class="highlight-card card-tummy"><div><div class="highlight-title">🛟 Tummy Time</div><div class="highlight-body">Logged <b>{int(p_tummy)} min(s)</b> in range.</div></div><div class="highlight-sub">{p_tummy_cnt} session(s) recorded</div></div>""")
-    if p_sleep > 0: period_cards.append(f"""<div class="highlight-card card-sleep"><div><div class="highlight-title">🛌 Sleep & Rest</div><div class="highlight-body">Logged <b>{int(p_sleep)} hr(s)</b> of rest.</div></div><div class="highlight-sub">{len(filtered_df[filtered_df['Event Type'].str.contains('Sleep', case=False, na=False)])} sleep period(s)</div></div>""")
-    if p_meds > 0: period_cards.append(f"""<div class="highlight-card card-meds"><div><div class="highlight-title">💊 Medication</div><div class="highlight-body">Logged <b>{p_meds}</b> dose(s).</div></div><div class="highlight-sub">Dose(s) tracked in log</div></div>""")
-    if len(p_temp_df) > 0: period_cards.append(f"""<div class="highlight-card card-temp"><div><div class="highlight-title">🌡️ Body Temperature</div><div class="highlight-body"><b>{p_latest_temp:.1f} °C</b></div></div><div class="highlight-sub">{len(p_temp_df)} reading(s) in period</div></div>""")
-    if len(filtered_df) > 0: period_cards.append(f"""<div class="highlight-card card-events"><div><div class="highlight-title">📊 Total Events</div><div class="highlight-body"><b>{len(filtered_df):,}</b> entry(s) logged.</div></div><div class="highlight-sub">From {start_date} to {end_date}</div></div>""")
-
-    p_card_count = len(period_cards)
-    p_base_span = "card-span-3" if p_card_count >= 4 else ("card-span-4" if p_card_count == 3 else ("card-span-6" if p_card_count == 2 else "card-span-12"))
-
-    formatted_p_cards = []
-    for i, card in enumerate(period_cards):
-        cls = f"highlight-card {p_base_span}"
-        if p_card_count % 2 != 0 and i == 0 and p_card_count > 1: cls += " mobile-full-width"
-        formatted_p_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
-    st.markdown(f'<div class="cards-container">{"".join(formatted_p_cards)}</div>', unsafe_allow_html=True)
-
-
 # ==========================================
 # 5. CHARTS & ANALYTICS
 # ==========================================
@@ -576,7 +522,7 @@ with tab1:
         st.plotly_chart(fig_today_timeline, use_container_width=True)
         
         st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours. Markers size and label text correspond to the recorded volume/duration.*")
-        
+
         feed_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Formula|Breast Milk")])
         diaper_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Diaper|Poop")])
         analysis = f"Riley has had **{feed_cnt} feeds** and **{diaper_cnt} diaper changes** in the past 24 hours. "
@@ -703,9 +649,9 @@ with tab5:
 # ==============================================================================
 with tab6:
     st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-    
+    st.markdown("<p style='font-size: 0.85rem; text-align: center; margin-bottom: 10px;'><a href='https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf' target='_blank' style='color: #64748b; text-decoration: none; opacity: 0.8;'>📄 Official HK Growth Charts Reference (PDF)</a></p>", unsafe_allow_html=True)
+
     who_option = st.radio("Select Growth Chart:", options=["⚖️ Weight", "🏔️ Height", "🐷 Head"], horizontal=True, label_visibility="collapsed")
-    st.markdown("<p style='font-size: 0.85rem; margin-top: 5px; margin-bottom: 10px;'><a href='https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf' target='_blank' style='color: #64748b; text-decoration: none; opacity: 0.8;'>🔗 Official HK Growth Charts Reference (PDF)</a></p>", unsafe_allow_html=True)
     
     def get_who_data(gen, met):
         if "Weight" in met:
