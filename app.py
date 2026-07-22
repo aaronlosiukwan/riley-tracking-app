@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 # 1. APP CONFIGURATION & STYLING
 # ==========================================
 st.set_page_config(
-    page_title="Riley Growth Log",
+    page_title="Riley's Growth Tracker",
     page_icon="🍼",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -209,8 +209,9 @@ st.markdown("""
 
     /* Title Styling */
     .app-main-title {
-        font-size: calc(1.3rem + 0.6vw); /* Matches Streamlit st.subheader exactly */
-        font-weight: 600; /* Match subheader weight */
+        font-size: calc(1.3rem + 0.6vw) !important; /* Matches Streamlit st.subheader exactly */
+        font-weight: 600 !important; /* Match subheader weight */
+        line-height: 1.2 !important;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -368,27 +369,27 @@ st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
 # Desktop Header Structure
 st.markdown("""
-<div class="custom-header-desktop" style="padding-bottom: 0.2rem;">
+<div class="custom-header-desktop">
     <div class="desktop-header-row">
-        <div class="app-main-title">🍼 Riley Growth Log</div>
+        <div class="app-main-title">🍼 Riley's Growth Tracker</div>
         <div class="desktop-header-controls">
             <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
             <a href="javascript:window.location.reload(true);" class="custom-btn">🔄 Refresh</a>
         </div>
     </div>
-    <div style="width: 100%; height: 1px; background-color: rgba(128,128,128,0.25); margin-top: 0.6rem; margin-bottom: 0.4rem;"></div>
+    <div style="width: 100%; height: 1px; background-color: rgba(128,128,128,0.25); margin-top: 0.6rem; margin-bottom: 0.6rem;"></div>
 </div>
 """, unsafe_allow_html=True)
 
-# Mobile Header Structure (With perfectly mirrored 0.35rem spacing gaps requested)
+# Mobile Header Structure (With perfectly balanced 0.6rem spacing gaps above and below the line break)
 st.markdown("""
-<div class="custom-header-mobile" style="padding-bottom: 0.4rem;">
-    <div class="app-main-title" style="margin-bottom: 0.4rem;">🍼 Riley Growth Log</div>
+<div class="custom-header-mobile">
+    <div class="app-main-title" style="margin-bottom: 0.6rem;">🍼 Riley's Growth Tracker</div>
     <div class="mobile-header-controls">
         <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
         <a href="javascript:window.location.reload(true);" class="custom-btn">🔄 Refresh</a>
     </div>
-    <div style="width: 100%; height: 1px; background-color: rgba(128,128,128,0.25); margin-top: 0.8rem; margin-bottom: 0.4rem;"></div>
+    <div style="width: 100%; height: 1px; background-color: rgba(128,128,128,0.25); margin-top: 0.6rem; margin-bottom: 0.6rem;"></div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1333,6 +1334,7 @@ with tab7:
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Events Logged in this period")
+
 
 
 
