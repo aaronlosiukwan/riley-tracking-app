@@ -1234,7 +1234,7 @@ with tab5:
     else:
         render_empty_state("No Tummy Time Data Logged in this period")
 
-# TAB 6: Health Charts (Sleep, Temp, Meds, Weight, Height strictly grouped by Date / GroupCol formatted m.DD)
+# TAB 6: Health Charts (Sleep, Temp, Meds strictly grouped by Date / GroupCol formatted m.DD)
 with tab6:
     act_option = st.radio(
         "Select Health Activity:",
@@ -1242,79 +1242,164 @@ with tab6:
             "🛌 Sleep (hrs)",
             "🌡️ Temp (°C)",
             "💊 Meds (Cnt)",
-            "⚖️ Weight (kg)",
-            "🏔️ Height (cm)"
+            "⚖️ Weight & 🏔️ Height",
+            "💉 Vaccine"
         ],
         horizontal=True,
         label_visibility="collapsed"
     )
     
-    act_mapping = {
-        "🛌 Sleep (hrs)": ("Sleep", "Duration (hrs)", COLOR_MAP["🛌 Sleep (hrs)"], "hrs"),
-        "🌡️ Temp (°C)": ("Temp", "Temperature (°C)", COLOR_MAP["🌡️ Temp (°C)"], "°C"),
-        "💊 Meds (Cnt)": ("Meds", "Dose Count(s)", COLOR_MAP["💊 Meds (Cnt)"], "doses"),
-        "⚖️ Weight (kg)": ("Weight", "Weight (kg)", COLOR_MAP["⚖️ Weight (kg)"], "kg"),
-        "🏔️ Height (cm)": ("Height", "Height (cm)", COLOR_MAP["🏔️ Height (cm)"], "cm")
-    }
-    
-    keyword, y_title, act_color, unit = act_mapping[act_option]
-    act_df = filtered_df[filtered_df['Event Type'].str.contains(keyword, case=False, na=False)].copy()
-    
-    if not act_df.empty:
-        if keyword in ["Temp", "Weight", "Height"]:
-            grouped_act = act_df.groupby(group_col)['Value (Optional)'].mean().reset_index()
-            grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
-            is_single = len(grouped_act[group_col].unique()) == 1
+    if act_option == "⚖️ Weight & 🏔️ Height":
+        wh_df = filtered_df[filtered_df['Event Type'].isin(["⚖️ Weight (kg)", "🏔️ Height (cm)"])].copy()
+        if not wh_df.empty:
+            grouped_wh = wh_df.groupby([group_col, 'Event Type'])['Value (Optional)'].mean().reset_index()
+            grouped_wh[group_col] = grouped_wh[group_col].apply(format_x_label)
+            is_single = len(grouped_wh[group_col].unique()) == 1
             
-            fig_act = px.line(
-                grouped_act,
-                x=group_col,
-                y="Value (Optional)",
-                markers=True,
-                color_discrete_sequence=[act_color],
-                labels={"Value (Optional)": y_title, group_col: granularity}
-            )
-            fig_act.update_traces(
-                line=dict(width=3, shape='spline', smoothing=1.3),
-                marker=dict(size=12 if is_single else 8, symbol='circle', line=dict(width=2, color='#ffffff')),
-                hovertemplate=f'%{{y:.1f}} {unit}<extra></extra>'
-            )
-        elif keyword == "Sleep":
-            grouped_act = act_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
-            grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
-            is_single = len(grouped_act[group_col].unique()) == 1
+            fig_wh = make_subplots(specs=[[{"secondary_y": True}]])
             
-            fig_act = px.bar(
-                grouped_act,
-                x=group_col,
-                y="Value (Optional)",
-                color_discrete_sequence=[act_color],
-                labels={"Value (Optional)": y_title, group_col: granularity}
+            w_df = grouped_wh[grouped_wh['Event Type'] == "⚖️ Weight (kg)"]
+            if not w_df.empty:
+                fig_wh.add_trace(
+                    go.Scatter(
+                        name="⚖️ Weight (kg)",
+                        x=w_df[group_col].astype(str),
+                        y=w_df['Value (Optional)'],
+                        mode='lines+markers',
+                        line=dict(color=COLOR_MAP["⚖️ Weight (kg)"], width=3, shape='spline', smoothing=1.3),
+                        marker=dict(size=12 if is_single else 8, symbol='circle', color=COLOR_MAP["⚖️ Weight (kg)"], line=dict(width=2, color='#ffffff')),
+                        hovertemplate='%{y:.2f} kg<extra></extra>'
+                    ),
+                    secondary_y=False
+                )
+                
+            h_df = grouped_wh[grouped_wh['Event Type'] == "🏔️ Height (cm)"]
+            if not h_df.empty:
+                fig_wh.add_trace(
+                    go.Scatter(
+                        name="🏔️ Height (cm)",
+                        x=h_df[group_col].astype(str),
+                        y=h_df['Value (Optional)'],
+                        mode='lines+markers',
+                        line=dict(color=COLOR_MAP["🏔️ Height (cm)"], width=3, shape='spline', smoothing=1.3),
+                        marker=dict(size=12 if is_single else 8, symbol='circle', color=COLOR_MAP["🏔️ Height (cm)"], line=dict(width=2, color='#ffffff')),
+                        hovertemplate='%{y:.1f} cm<extra></extra>'
+                    ),
+                    secondary_y=True
+                )
+                
+            fig_wh = style_plotly_figure(
+                fig_wh,
+                title_text=f"⚖️ Weight & 🏔️ Height — {granularity}",
+                height=450,
+                single_point=is_single
             )
-            if is_single:
-                fig_act.update_traces(width=0.25)
-            fig_act.update_traces(hovertemplate=f'%{{y}} {unit}<extra></extra>')
-        else: # Meds count
-            grouped_act = act_df.groupby(group_col).size().reset_index(name='Value (Optional)')
-            grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
-            is_single = len(grouped_act[group_col].unique()) == 1
             
-            fig_act = px.bar(
-                grouped_act,
-                x=group_col,
-                y="Value (Optional)",
-                color_discrete_sequence=[act_color],
-                labels={"Value (Optional)": y_title, group_col: granularity}
+            fig_wh.update_yaxes(title_text="", secondary_y=False, showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=9.5), automargin=True)
+            fig_wh.update_yaxes(title_text="", secondary_y=True, showgrid=False, tickfont=dict(size=9.5), automargin=True)
+            
+            st.plotly_chart(fig_wh, use_container_width=True)
+            st.caption(f"ℹ️ *Displays recorded Weight (left axis) and Height (right axis) grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
+        else:
+            render_empty_state("No Weight or Height Data Logged in this period")
+            
+    elif act_option == "💉 Vaccine":
+        vac_df = filtered_df[filtered_df['Event Type'].str.contains("Vaccine", case=False, na=False)].copy()
+        
+        if not vac_df.empty:
+            # Strictly sort by DateTime Ascending for chronological history
+            if 'DateTime' in vac_df.columns:
+                vac_df = vac_df.sort_values('DateTime', ascending=True)
+                vac_df['DateTime_Display'] = vac_df['DateTime']
+            
+            desired_cols = ['DateTime_Display', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']
+            actual_cols = [c for c in desired_cols if c in vac_df.columns]
+            
+            display_vac = vac_df[actual_cols].copy()
+            if 'DateTime_Display' in display_vac.columns:
+                display_vac = display_vac.rename(columns={'DateTime_Display': 'DateTime'})
+                
+            st.dataframe(
+                display_vac,
+                use_container_width=True,
+                hide_index=True,
+                height=450,
+                column_config={
+                    "DateTime": st.column_config.DatetimeColumn("Date Logged", format="YYYY-MM-DD HH:mm", width="medium"),
+                    "Event Type": st.column_config.TextColumn("Event", width="medium"),
+                    "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
+                    "Notes / Details (Optional)": st.column_config.TextColumn("Vaccine Notes / Details", width="large")
+                }
             )
-            if is_single:
-                fig_act.update_traces(width=0.25)
-            fig_act.update_traces(hovertemplate=f'%{{y}} {unit}<extra></extra>')
+            st.caption(f"ℹ️ *Showing {len(display_vac)} vaccine record(s) matching your criteria sorted in chronological (ascending) order.*")
+        else:
+            render_empty_state("No Vaccine Data Logged in this period")
             
-        fig_act = style_plotly_figure(fig_act, title_text=f"🩺 Health — {act_option}", height=450, single_point=is_single)
-        st.plotly_chart(fig_act, use_container_width=True)
-        st.caption(f"ℹ️ *Displays recorded **{act_option}** data grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
-        render_empty_state(f"No {act_option.split(' ')[1]} Data Logged in this period")
+        act_mapping = {
+            "🛌 Sleep (hrs)": ("Sleep", "Duration (hrs)", COLOR_MAP["🛌 Sleep (hrs)"], "hrs"),
+            "🌡️ Temp (°C)": ("Temp", "Temperature (°C)", COLOR_MAP["🌡️ Temp (°C)"], "°C"),
+            "💊 Meds (Cnt)": ("Meds", "Dose Count(s)", COLOR_MAP["💊 Meds (Cnt)"], "doses")
+        }
+        
+        keyword, y_title, act_color, unit = act_mapping[act_option]
+        act_df = filtered_df[filtered_df['Event Type'].str.contains(keyword, case=False, na=False)].copy()
+        
+        if not act_df.empty:
+            if keyword == "Temp":
+                grouped_act = act_df.groupby(group_col)['Value (Optional)'].mean().reset_index()
+                grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
+                is_single = len(grouped_act[group_col].unique()) == 1
+                
+                fig_act = px.line(
+                    grouped_act,
+                    x=group_col,
+                    y="Value (Optional)",
+                    markers=True,
+                    color_discrete_sequence=[act_color],
+                    labels={"Value (Optional)": y_title, group_col: granularity}
+                )
+                fig_act.update_traces(
+                    line=dict(width=3, shape='spline', smoothing=1.3),
+                    marker=dict(size=12 if is_single else 8, symbol='circle', line=dict(width=2, color='#ffffff')),
+                    hovertemplate=f'%{{y:.1f}} {unit}<extra></extra>'
+                )
+            elif keyword == "Sleep":
+                grouped_act = act_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
+                grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
+                is_single = len(grouped_act[group_col].unique()) == 1
+                
+                fig_act = px.bar(
+                    grouped_act,
+                    x=group_col,
+                    y="Value (Optional)",
+                    color_discrete_sequence=[act_color],
+                    labels={"Value (Optional)": y_title, group_col: granularity}
+                )
+                if is_single:
+                    fig_act.update_traces(width=0.25)
+                fig_act.update_traces(hovertemplate=f'%{{y}} {unit}<extra></extra>')
+            else: # Meds count
+                grouped_act = act_df.groupby(group_col).size().reset_index(name='Value (Optional)')
+                grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
+                is_single = len(grouped_act[group_col].unique()) == 1
+                
+                fig_act = px.bar(
+                    grouped_act,
+                    x=group_col,
+                    y="Value (Optional)",
+                    color_discrete_sequence=[act_color],
+                    labels={"Value (Optional)": y_title, group_col: granularity}
+                )
+                if is_single:
+                    fig_act.update_traces(width=0.25)
+                fig_act.update_traces(hovertemplate=f'%{{y}} {unit}<extra></extra>')
+                
+            fig_act = style_plotly_figure(fig_act, title_text=f"🩺 Health — {act_option}", height=450, single_point=is_single)
+            st.plotly_chart(fig_act, use_container_width=True)
+            st.caption(f"ℹ️ *Displays recorded **{act_option}** data grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
+        else:
+            render_empty_state(f"No {act_option.split(' ')[1]} Data Logged in this period")
 
 # TAB 7: Full Period Timeline Scatter
 with tab7:
@@ -1344,6 +1429,7 @@ with tab7:
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Events Logged in this period")
+
 
 
 
