@@ -17,13 +17,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Apple Touch Icon into document <head> via JS for iOS Safari Home Screen
+# Inject Apple Touch Icon, Refresh Logic, and JS Handlers
 components.html(
     """
     <script>
     (function() {
+        // 1. Apple Touch Icon Injection
         const iconUrl = "https://em-content.zobj.net/source/apple/391/baby-bottle_1f37c.png";
-        
         function applyAppleIcon(doc) {
             if (!doc || !doc.head) return;
             const rels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon', 'shortcut icon'];
@@ -38,9 +38,44 @@ components.html(
             });
         }
         
+        // 2. Refresh Button Interactive Logic
+        function setupRefreshLogic(doc, win) {
+            if (!win.triggerRefresh) {
+                win.triggerRefresh = function(element) {
+                    element.innerHTML = '⏳ Refreshing...';
+                    win.sessionStorage.setItem('reloaded', 'true');
+                    setTimeout(() => { win.location.reload(true); }, 200);
+                };
+            }
+            
+            // If page just loaded from a refresh, show 'Done!' for 2 seconds
+            if (win.sessionStorage.getItem('reloaded')) {
+                win.sessionStorage.removeItem('reloaded');
+                let attempts = 0;
+                const interval = setInterval(() => {
+                    const btns = doc.querySelectorAll('.refresh-btn');
+                    if (btns.length > 0) {
+                        btns.forEach(btn => {
+                            btn.innerHTML = '✅ Done!';
+                            btn.style.backgroundColor = '#dcfce7'; 
+                            btn.style.borderColor = '#86efac';
+                            setTimeout(() => { 
+                                btn.innerHTML = '🔄 Refresh'; 
+                                btn.style.backgroundColor = '';
+                                btn.style.borderColor = '';
+                            }, 2000);
+                        });
+                        clearInterval(interval);
+                    }
+                    attempts++;
+                    if (attempts > 20) clearInterval(interval);
+                }, 100);
+            }
+        }
+        
         try { applyAppleIcon(document); } catch(e) {}
-        try { applyAppleIcon(window.parent.document); } catch(e) {}
-        try { applyAppleIcon(window.top.document); } catch(e) {}
+        try { applyAppleIcon(window.parent.document); setupRefreshLogic(window.parent.document, window.parent); } catch(e) {}
+        try { applyAppleIcon(window.top.document); setupRefreshLogic(window.top.document, window.top); } catch(e) {}
     })();
     </script>
     """,
@@ -64,10 +99,17 @@ st.markdown("""
         scroll-margin-top: 70px;
     }
 
-    /* Native iOS Tap-to-Top Scroll Fix: Cleanly force Streamlit container to register as iOS primary scroll */
-    [data-testid="stAppViewContainer"] {
-        overflow-y: scroll !important;
+    /* Ultimate Native iOS Tap-to-Top Scroll Fix: Force the document body to be the main scroll element */
+    html, body {
+        height: auto !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
         -webkit-overflow-scrolling: touch !important;
+    }
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], [data-testid="stMainBlockContainer"] {
+        height: auto !important;
+        min-height: auto !important;
+        overflow: visible !important;
     }
 
     /* Compact Vertical Spacing Across Blocks & Expanders */
@@ -228,25 +270,29 @@ st.markdown("""
         color: var(--card-text);
     }
 
-    /* CSS Grid Container: Guarantees 100% Equal Height Cards & Strict 2-Columns on Narrow Screens */
+    /* CSS Grid Container: 12-Column System for Absolute Desktop/Mobile Math Layouts */
     .cards-container {
         display: grid !important;
-        grid-template-columns: repeat(4, 1fr) !important;
+        grid-template-columns: repeat(12, 1fr) !important;
         gap: 8px !important;
         align-items: stretch !important;
         margin-bottom: 2px !important;
         width: 100% !important;
     }
 
-    @media (max-width: 1024px) {
-        .cards-container {
-            grid-template-columns: repeat(2, 1fr) !important;
-        }
-    }
+    /* Desktop View Span Logic */
+    .card-span-3 { grid-column: span 3 !important; } /* 4 per row */
+    .card-span-4 { grid-column: span 4 !important; } /* 3 per row */
+    .card-span-6 { grid-column: span 6 !important; } /* 2 per row */
+    .card-span-12 { grid-column: span 12 !important; } /* 1 per row */
 
-    /* Make odd-count grids span full width for the first item */
-    .full-width-card {
-        grid-column: 1 / -1 !important;
+    /* Mobile View Overrides (<= 1024px) */
+    @media (max-width: 1024px) {
+        /* Default mobile is strictly 2 per row (span 6) */
+        .card-span-3, .card-span-4 { grid-column: span 6 !important; }
+        
+        /* Forces odd-numbered cards like 'Last Feeding' to span the full mobile screen */
+        .mobile-full-width { grid-column: span 12 !important; }
     }
 
     /* Highlight Card Component with Flexbox Layout */
@@ -372,7 +418,7 @@ st.markdown("""
         <div class="app-main-title">🍼 Riley's Growth Tracker</div>
         <div class="desktop-header-controls">
             <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
-            <a href="javascript:window.location.reload(true);" class="custom-btn">🔄 Refresh</a>
+            <a href="javascript:void(0);" onclick="window.triggerRefresh ? window.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
         </div>
     </div>
 </div>
@@ -384,7 +430,7 @@ st.markdown("""
     <div class="app-main-title" style="margin-bottom: 0.6rem;">🍼 Riley's Growth Tracker</div>
     <div class="mobile-header-controls">
         <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
-        <a href="javascript:window.location.reload(true);" class="custom-btn">🔄 Refresh</a>
+        <a href="javascript:void(0);" onclick="window.triggerRefresh ? window.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -836,12 +882,26 @@ with st.expander(f"✨ Today [{formatted_today_code}]", expanded=True):
     <div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div>
 </div>""")
 
-    # If total active cards is odd, make the first card (Last Feeding) span full width
-    if len(today_cards) % 2 != 0:
-        today_cards[0] = today_cards[0].replace('class="highlight-card', 'class="highlight-card full-width-card')
+    # --- Responsive Layout Logic for Today's Cards ---
+    card_count = len(today_cards)
+    base_span = "card-span-3" # Default 4 per row
+    if card_count == 3: base_span = "card-span-4"
+    elif card_count == 2: base_span = "card-span-6"
+    elif card_count == 1: base_span = "card-span-12"
+
+    formatted_today_cards = []
+    for i, card in enumerate(today_cards):
+        # Inject the computed base span class
+        cls = f"highlight-card {base_span}"
+        
+        # If mobile and total cards are odd, force the FIRST card (Last Feeding) to stretch full width mathematically
+        if card_count % 2 != 0 and i == 0 and card_count > 1:
+            cls += " mobile-full-width"
+            
+        formatted_today_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
 
     # Render Today Cards via CSS Grid Container
-    st.markdown(f'<div class="cards-container">{"".join(today_cards)}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="cards-container">{"".join(formatted_today_cards)}</div>', unsafe_allow_html=True)
 
 # --- B. PERIOD HIGHLIGHTS ---
 st.markdown('<div id="period-highlights"></div>', unsafe_allow_html=True)
@@ -872,57 +932,58 @@ with st.expander(f"✨ Range Highlights [{start_code} – {end_code}]", expanded
     p_pump_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)])
     p_tummy_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
 
+    # Period highlight cards are fixed to 8, so we hardcode card-span-3 to enforce 4-per-row on desktop natively
     period_cards = [
-        f"""<div class="highlight-card card-milk">
+        f"""<div class="highlight-card card-span-3 card-milk">
     <div>
         <div class="highlight-title">🍼 Milk Intake</div>
         <div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feed(s).</div>
     </div>
     <div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Form: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div>
 </div>""",
-        f"""<div class="highlight-card card-diaper">
+        f"""<div class="highlight-card card-span-3 card-diaper">
     <div>
         <div class="highlight-title">🚽 Diaper Output</div>
         <div class="highlight-body">Total <b>{p_wet + p_poop}</b> diaper change(s).</div>
     </div>
     <div class="highlight-sub">💧 Wet: {p_wet} | 🚽 Poop: {p_poop}</div>
 </div>""",
-        f"""<div class="highlight-card card-pump">
+        f"""<div class="highlight-card card-span-3 card-pump">
     <div>
         <div class="highlight-title">🧴 Pumping</div>
         <div class="highlight-body">Pumped <b>{int(p_pumping):,} mL</b> total in range.</div>
     </div>
     <div class="highlight-sub">{p_pump_cnt} pumping session(s)</div>
 </div>""",
-        f"""<div class="highlight-card card-tummy">
+        f"""<div class="highlight-card card-span-3 card-tummy">
     <div>
         <div class="highlight-title">🛟 Tummy Time</div>
         <div class="highlight-body">Logged <b>{int(p_tummy)} min(s)</b> total in range.</div>
     </div>
     <div class="highlight-sub">{p_tummy_cnt} session(s) recorded</div>
 </div>""",
-        f"""<div class="highlight-card card-sleep">
+        f"""<div class="highlight-card card-span-3 card-sleep">
     <div>
         <div class="highlight-title">🛌 Sleep & Rest</div>
         <div class="highlight-body">Logged <b>{int(p_sleep)} hr(s)</b> of rest.</div>
     </div>
     <div class="highlight-sub">{len(filtered_df[filtered_df['Event Type'].str.contains('Sleep', case=False, na=False)])} sleep period(s)</div>
 </div>""",
-        f"""<div class="highlight-card card-meds">
+        f"""<div class="highlight-card card-span-3 card-meds">
     <div>
         <div class="highlight-title">💊 Medication</div>
         <div class="highlight-body">Logged <b>{p_meds}</b> dose(s).</div>
     </div>
     <div class="highlight-sub">Dose(s) tracked in log</div>
 </div>""",
-        f"""<div class="highlight-card card-temp">
+        f"""<div class="highlight-card card-span-3 card-temp">
     <div>
         <div class="highlight-title">🌡️ Body Temperature</div>
         <div class="highlight-body">{p_temp_str}</div>
     </div>
     <div class="highlight-sub">{len(p_temp_df)} reading(s) in period</div>
 </div>""",
-        f"""<div class="highlight-card card-events">
+        f"""<div class="highlight-card card-span-3 card-events">
     <div>
         <div class="highlight-title">📊 Total Events</div>
         <div class="highlight-body"><b>{len(filtered_df):,}</b> entry(s) logged.</div>
@@ -1429,6 +1490,7 @@ with tab7:
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Events Logged in this period")
+
 
 
 
