@@ -207,6 +207,17 @@ st.markdown("""
         text-decoration: none !important;
     }
 
+    /* Title Styling */
+    .app-main-title {
+        font-size: calc(1.3rem + 0.6vw); /* Matches Streamlit st.subheader exactly */
+        font-weight: 600; /* Match subheader weight */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--card-text);
+        margin: 0;
+    }
+
     .section-header-single-line {
         font-size: clamp(1.05rem, 3.8vw, 1.35rem);
         font-weight: 600;
@@ -1322,6 +1333,7 @@ with tab7:
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Events Logged in this period")
+
 
 
 
