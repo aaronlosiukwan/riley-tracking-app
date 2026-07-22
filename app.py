@@ -217,20 +217,22 @@ st.sidebar.markdown("""
         <div class="sidebar-header" style="margin-top: 0;">📌 Quick Navigation</div>
         <a href="#period-highlights" class="toc-button">📅 Range Highlights</a>
         <a href="#today-highlights" class="toc-button">✨ Today's Highlights</a>
-        <a href="#database" class="toc-button">📋 Database</a>
         <a href="#insights" class="toc-button">📊 Insights</a>
+        <a href="#database" class="toc-button">📋 Database</a>
     </div>
 """, unsafe_allow_html=True)
 
 DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
 
-st.sidebar.markdown("<div class='sidebar-header'>⚙️ Configuration</div>", unsafe_allow_html=True)
+st.sidebar.markdown('<hr style="margin: 20px 0; opacity: 0.2;">', unsafe_allow_html=True)
+st.sidebar.markdown("<div class='sidebar-header' style='margin-top: 0;'>⚙️ Configuration</div>", unsafe_allow_html=True)
 sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
 tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
 
 if sheet_url_input: st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
 
-st.sidebar.markdown("<div class='sidebar-header'>👶 Baby Settings</div>", unsafe_allow_html=True)
+st.sidebar.markdown('<hr style="margin: 20px 0; opacity: 0.2;">', unsafe_allow_html=True)
+st.sidebar.markdown("<div class='sidebar-header' style='margin-top: 0;'>👶 Baby Settings</div>", unsafe_allow_html=True)
 baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
@@ -369,8 +371,17 @@ with st.expander("⚙️ Filter & Grouping Settings", expanded=False):
     elif granularity == "Monthly": default_start = max(min_data_date, max_data_date - timedelta(days=180))
     else: default_start = min_data_date
 
-    with f_col2: st.date_input("Start Date (Inclusive)", default_start, min_value=min_data_date, max_value=max_data_date, key="sd")
-    with f_col3: st.date_input("End Date (Inclusive)", max_data_date, min_value=min_data_date, max_value=max_data_date, key="ed")
+    if 'sd' not in st.session_state: st.session_state.sd = default_start
+    if 'ed' not in st.session_state: st.session_state.ed = max_data_date
+
+    def set_all_data():
+        st.session_state.sd = min_data_date
+        st.session_state.ed = max_data_date
+
+    with f_col2: st.date_input("Start Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="sd")
+    with f_col3: st.date_input("End Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="ed")
+    
+    st.button("🗓️ Select All Data Range", on_click=set_all_data, use_container_width=True)
 
 start_date = st.session_state.sd
 end_date = st.session_state.ed
@@ -403,6 +414,9 @@ if not all_feed_events.empty:
     last_feed_sub = f"Recorded: {last_feed_time_str}<br>🍼 Form: {f_str} | 🤱 BM: {bm_str}"
 else:
     last_feed_delta, last_feed_sub = "N/A", "No feed events"
+
+def render_empty_state(title="No Data Logged", subtitle="Try picking a wider date range or logging new entries."):
+    st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 {title}</div><div class="empty-data-sub">{subtitle}</div></div>""", unsafe_allow_html=True)
 
 # --- A. RANGE HIGHLIGHTS ---
 st.markdown('<div id="period-highlights" style="padding-top: 2rem;"></div>', unsafe_allow_html=True)
@@ -497,63 +511,12 @@ else:
         formatted_today_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
     st.markdown(f'<div class="cards-container">{"".join(formatted_today_cards)}</div>', unsafe_allow_html=True)
 
-st.markdown('<hr style="margin: 4px 0; opacity: 0.2;">', unsafe_allow_html=True)
-
-def render_empty_state(title="No Data Logged", subtitle="Try picking a wider date range or logging new entries."):
-    st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 {title}</div><div class="empty-data-sub">{subtitle}</div></div>""", unsafe_allow_html=True)
 
 # ==========================================
-# 5. EXPANDED DATABASE TABLE
-# ==========================================
-st.markdown('<div id="database" style="padding-top: 2rem;"></div>', unsafe_allow_html=True)
-st.subheader("📋 Database")
-
-filter_c1, filter_c2 = st.columns([1, 1])
-with filter_c1: selected_events = st.multiselect("🏷️ Filter Event Types:", options=ALL_EVENT_CATEGORIES, default=[], placeholder="Choose event types (Leave empty for All)")
-with filter_c2: search_query = st.text_input("🔍 Search Anything:", "", placeholder="Type date (e.g. 07-21), Formula, notes...")
-
-table_df = filtered_df.copy()
-if selected_events: table_df = table_df[table_df['Event Type'].isin(selected_events)]
-if search_query:
-    search_mask = table_df.astype(str).apply(lambda row: row.str.contains(search_query, case=False, na=False).any(), axis=1)
-    table_df = table_df[search_mask]
-
-if 'DateTime' in table_df.columns:
-    table_df = table_df.sort_values('DateTime', ascending=False).reset_index(drop=True)
-if 'Value (Optional)' in table_df.columns:
-    table_df['Value (Optional)'] = pd.to_numeric(table_df['Value (Optional)'], errors='coerce')
-if 'DateTime' in table_df.columns:
-    table_df['DateTime_Display'] = table_df['DateTime']
-
-desired_cols = ['DateTime_Display', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)', 'Date', 'Week', 'Month']
-actual_cols = [c for c in desired_cols if c in table_df.columns or c == 'DateTime_Display']
-display_df = table_df[actual_cols].copy()
-if 'DateTime_Display' in display_df.columns: display_df = display_df.rename(columns={'DateTime_Display': 'DateTime'})
-
-if not display_df.empty:
-    st.dataframe(
-        display_df, use_container_width=True, height=490,
-        column_config={
-            "DateTime": st.column_config.DatetimeColumn("DateTime", format="YYYY-MM-DD HH:mm", width="medium"),
-            "Event Type": st.column_config.TextColumn("Event Type", width="medium"),
-            "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
-            "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large"),
-            "Date": st.column_config.TextColumn("Date", width="small"),
-            "Week": st.column_config.TextColumn("Week", width="small"),
-            "Month": st.column_config.TextColumn("Month", width="small")
-        }
-    )
-    st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
-else:
-    render_empty_state("No Raw Data Rows Match Your Search Criteria")
-
-st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
-
-# ==========================================
-# 6. CHARTS & ANALYTICS
+# 5. CHARTS & ANALYTICS
 # ==========================================
 st.markdown('<div id="insights" style="padding-top: 2rem;"></div>', unsafe_allow_html=True)
-st.subheader("📊 Insights")
+st.subheader("📊 Analytics & Insights")
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "⏰ Today", "🍼 Milk", "🚽 Diapers", "🧴 Pumping", "🛟 Tummy", "📈 Growth", "🩺 Health", "💉 Vaccine"
@@ -661,7 +624,7 @@ with tab3:
         avg_diapers = len(diaper_df) / max(1, (end_date - start_date).days + 1)
         wets = len(diaper_df[diaper_df['Category'] == '💧 Wet Diaper (Cnt)'])
         poops = len(diaper_df[diaper_df['Category'] == '🚽 Poop (Cnt)'])
-        render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diapers, averaging **{avg_diapers:.1f} changes per day**. Consistent output is an excellent indicator that Riley is digesting properly!")
+        render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diapers, averaging **{avg_diapers:.1f}** changes per day. Consistent output is an excellent indicator that Riley is digesting properly!")
     else: render_empty_state("No Diaper Data Logged in this period")
 
 # TAB 4: Dedicated Pumping Chart
@@ -680,7 +643,7 @@ with tab4:
         st.caption(f"ℹ️ *Displays recorded pumping volume (mL) grouped {granularity.lower()} from {start_date} to {end_date}.*")
         
         avg_pump = pump_df['Value (Optional)'].sum() / max(1, len(pump_df))
-        render_insight_card(f"Across **{len(pump_df)} sessions**, the average yield is **{avg_pump:.0f} mL per session**. Maintaining regular pumping intervals is key to sustaining supply.")
+        render_insight_card(f"Across **{len(pump_df)}** sessions, the average yield is **{avg_pump:.0f} mL** per session. Maintaining regular pumping intervals is key to sustaining supply.")
     else: render_empty_state("No Pumping Data Logged in this period")
 
 # TAB 5: Dedicated Tummy Time Chart
@@ -728,7 +691,6 @@ with tab6:
         if "Height" in met: return (0.95, 0.975, 1.025, 1.05)
         return (0.96, 0.98, 1.02, 1.04)
 
-    # Use entire dataset for growth charting, bypassing the date filter
     db_keyword = "⚖️ Weight (kg)" if "Weight" in who_option else ("🏔️ Height (cm)" if "Height" in who_option else "🐷 Head Size (cm)")
     who_df = df[df['Event Type'] == db_keyword].copy()
     
@@ -1006,4 +968,54 @@ with tab8:
             }
         )
     else: render_empty_state("No Vaccine Data Logged")
+
+# ==========================================
+# 6. EXPANDED DATABASE TABLE (MOVED TO BOTTOM)
+# ==========================================
+st.markdown('<div id="database" style="padding-top: 2rem;"></div>', unsafe_allow_html=True)
+st.subheader("📋 Database")
+
+filter_c1, filter_c2 = st.columns([1, 1])
+with filter_c1: selected_events = st.multiselect("🏷️ Filter Event Types:", options=ALL_EVENT_CATEGORIES, default=[], placeholder="Choose event types (Leave empty for All)")
+with filter_c2: search_query = st.text_input("🔍 Search Anything:", "", placeholder="Type date (e.g. 07-21), Formula, notes...")
+
+table_df = filtered_df.copy()
+if selected_events: table_df = table_df[table_df['Event Type'].isin(selected_events)]
+if search_query:
+    search_mask = table_df.astype(str).apply(lambda row: row.str.contains(search_query, case=False, na=False).any(), axis=1)
+    table_df = table_df[search_mask]
+
+if 'DateTime' in table_df.columns:
+    table_df = table_df.sort_values('DateTime', ascending=False).reset_index(drop=True)
+if 'Value (Optional)' in table_df.columns:
+    table_df['Value (Optional)'] = pd.to_numeric(table_df['Value (Optional)'], errors='coerce')
+if 'DateTime' in table_df.columns:
+    table_df['DateTime_Display'] = table_df['DateTime']
+
+desired_cols = ['DateTime_Display', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)', 'Date', 'Week', 'Month']
+actual_cols = [c for c in desired_cols if c in table_df.columns or c == 'DateTime_Display']
+display_df = table_df[actual_cols].copy()
+if 'DateTime_Display' in display_df.columns: display_df = display_df.rename(columns={'DateTime_Display': 'DateTime'})
+
+if not display_df.empty:
+    if 'Date' in display_df.columns: display_df['Date'] = pd.to_datetime(display_df['Date']).dt.strftime('%Y-%m-%d')
+    if 'Week' in display_df.columns: display_df['Week'] = pd.to_datetime(display_df['Week']).dt.strftime('%Y-%m-%d')
+    
+    st.dataframe(
+        display_df, use_container_width=True, height=490,
+        column_config={
+            "DateTime": st.column_config.DatetimeColumn("DateTime", format="YYYY-MM-DD HH:mm", width="medium"),
+            "Event Type": st.column_config.TextColumn("Event Type", width="medium"),
+            "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
+            "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large"),
+            "Date": st.column_config.TextColumn("Date", width="small"),
+            "Week": st.column_config.TextColumn("Week", width="small"),
+            "Month": st.column_config.TextColumn("Month", width="small")
+        }
+    )
+    st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
+else:
+    render_empty_state("No Raw Data Rows Match Your Search Criteria")
+
+st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
 
