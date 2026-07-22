@@ -18,60 +18,54 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Apple Touch Icon & Refresh Logic
+# Inject Apple Touch Icon & Bulletproof Refresh Logic
 components.html(
     """
     <script>
     (function() {
         const iconUrl = "https://em-content.zobj.net/source/apple/391/baby-bottle_1f37c.png";
-        function applyAppleIcon(doc) {
-            if (!doc || !doc.head) return;
-            const rels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon', 'shortcut icon'];
-            rels.forEach(function(rel) {
-                let link = doc.querySelector("link[rel='" + rel + "']");
-                if (!link) {
-                    link = doc.createElement('link');
-                    link.rel = rel;
-                    doc.head.appendChild(link);
-                }
-                link.href = iconUrl;
-            });
+        
+        function getSafeDoc() {
+            try { if (window.top.document) return window.top.document; } catch(e) {}
+            try { if (window.parent.document) return window.parent.document; } catch(e) {}
+            return document;
         }
-        function setupRefreshLogic(doc, win) {
-            if (!win.triggerRefresh) {
-                win.triggerRefresh = function(element) {
+
+        function showToast(msg, bg, borderColor, textColor) {
+            let targetDoc = getSafeDoc();
+            let toast = targetDoc.createElement('div');
+            toast.innerHTML = msg;
+            toast.style.cssText = `position: fixed; top: 24px; right: 24px; background: ${bg}; color: ${textColor}; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600; z-index: 2147483647; border: 1px solid ${borderColor}; font-family: sans-serif; opacity: 0; transition: opacity 0.3s ease;`;
+            targetDoc.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '1'; }, 50);
+            setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+            setTimeout(() => { toast.remove(); }, 3500);
+        }
+
+        function setupLogic() {
+            let parentWin;
+            try { parentWin = window.parent || window; } catch(e) { parentWin = window; }
+            
+            if (!parentWin.triggerRefresh) {
+                parentWin.triggerRefresh = function(element) {
                     if (element) {
                         element.innerHTML = '⏳ Fetching...';
                         element.style.pointerEvents = 'none';
                         element.style.opacity = '0.7';
                     }
-                    win.sessionStorage.setItem('reloaded', 'true');
-                    
-                    // Intuitive "Refreshing..." Toast Notification
-                    let refreshToast = doc.createElement('div');
-                    refreshToast.innerHTML = '⏳ Refreshing data...';
-                    refreshToast.style.cssText = 'position: fixed; top: 1.5rem; right: 1.5rem; background: #fffbeb; color: #854d0e; padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); font-weight: 600; font-family: sans-serif; z-index: 999999; border: 1px solid #fde047; transition: opacity 0.3s ease;';
-                    doc.body.appendChild(refreshToast);
-                    
-                    setTimeout(() => { win.location.reload(true); }, 500);
+                    parentWin.sessionStorage.setItem('reloaded', 'true');
+                    showToast('⏳ Refreshing data...', '#fffbeb', '#fde047', '#854d0e');
+                    setTimeout(() => { parentWin.location.reload(true); }, 400);
                 };
             }
-            if (win.sessionStorage.getItem('reloaded')) {
-                win.sessionStorage.removeItem('reloaded');
-                
-                // Pop up Notification for "Data successfully updated"
-                let toast = doc.createElement('div');
-                toast.innerHTML = '✅ Data successfully updated!';
-                toast.style.cssText = 'position: fixed; top: 1.5rem; right: 1.5rem; background: #dcfce7; color: #166534; padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); font-weight: 600; font-family: sans-serif; z-index: 999999; border: 1px solid #86efac; opacity: 0; transition: opacity 0.3s ease;';
-                doc.body.appendChild(toast);
-                
-                setTimeout(() => { toast.style.opacity = '1'; }, 100);
-                setTimeout(() => { toast.style.opacity = '0'; }, 3000);
-                setTimeout(() => { toast.remove(); }, 3500);
+            if (parentWin.sessionStorage.getItem('reloaded')) {
+                parentWin.sessionStorage.removeItem('reloaded');
+                showToast('✅ Data successfully updated!', '#dcfce7', '#86efac', '#166534');
 
+                let targetDoc = getSafeDoc();
                 let attempts = 0;
                 const interval = setInterval(() => {
-                    const btns = doc.querySelectorAll('.refresh-btn');
+                    const btns = targetDoc.querySelectorAll('.refresh-btn');
                     if (btns.length > 0) {
                         btns.forEach(btn => {
                             btn.innerHTML = '✅ Done!'; 
@@ -92,9 +86,22 @@ components.html(
                 }, 100);
             }
         }
-        try { applyAppleIcon(document); } catch(e) {}
-        try { applyAppleIcon(window.parent.document); setupRefreshLogic(window.parent.document, window.parent); } catch(e) {}
-        try { applyAppleIcon(window.top.document); setupRefreshLogic(window.top.document, window.top); } catch(e) {}
+        
+        try { 
+            let targetDoc = getSafeDoc();
+            const rels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon', 'shortcut icon'];
+            rels.forEach(function(rel) {
+                let link = targetDoc.querySelector("link[rel='" + rel + "']");
+                if (!link) {
+                    link = targetDoc.createElement('link');
+                    link.rel = rel;
+                    targetDoc.head.appendChild(link);
+                }
+                link.href = iconUrl;
+            });
+        } catch(e) {}
+        
+        try { setupLogic(); } catch(e) {}
     })();
     </script>
     """,
@@ -209,7 +216,7 @@ st.markdown("""
         <div class="app-main-title">🍼 Riley's Dash</div>
         <div class="desktop-header-controls">
             <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
-            <a href="javascript:void(0);" onclick="window.triggerRefresh ? window.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
+            <a href="javascript:void(0);" onclick="window.parent.triggerRefresh ? window.parent.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
         </div>
     </div>
 </div>
@@ -217,7 +224,7 @@ st.markdown("""
     <div class="app-main-title" style="margin-bottom: 0.8rem;">🍼 Riley's Dash</div>
     <div class="mobile-header-controls">
         <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
-        <a href="javascript:void(0);" onclick="window.triggerRefresh ? window.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
+        <a href="javascript:void(0);" onclick="window.parent.triggerRefresh ? window.parent.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -226,8 +233,8 @@ st.markdown("""
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
 # ==========================================
 st.sidebar.markdown("""
-    <div style="margin-bottom: 12px;">
-        <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">📌 Quick Navigation</div>
+    <div>
+        <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;">📌 Quick Navigation</div>
         <a href="#today" class="toc-button">✨ Today</a>
         <a href="#insights" class="toc-button">📊 Insights</a>
         <a href="#database" class="toc-button">📋 Database</a>
@@ -236,12 +243,12 @@ st.sidebar.markdown("""
 
 DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
 
-st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.1rem; margin-bottom: 1rem; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='margin-top: 32px; font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
 sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
 tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
 if sheet_url_input: st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
 
-st.sidebar.markdown("<div style='margin-top: 2rem; font-weight: 700; font-size: 1.1rem; margin-bottom: 1rem; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='margin-top: 32px; font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
 baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
@@ -377,21 +384,20 @@ if 'ed' not in st.session_state:
 cur_sd = st.session_state.sd
 cur_ed = st.session_state.ed
 
-exp_title = f"⚙️ Filter & Grouping Settings — Data Aggregated from {cur_sd.strftime('%Y-%m-%d')} to {cur_ed.strftime('%Y-%m-%d')}"
-
-with st.expander(exp_title, expanded=False):
-    f_col1, f_col2, f_col3 = st.columns([1.5, 1, 1])
-    with f_col1:
-        granularity = st.radio("Chart Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0, horizontal=True)
-        range_hints = {"Daily": "Default: Last 21 Days", "Weekly": "Default: Last 8 Weeks", "Monthly": "Default: Last 6 Months", "All Time": "Default: Full Data Range"}
-        st.markdown(f"<span class='default-range-text'>ℹ️ {range_hints[granularity]}</span>", unsafe_allow_html=True)
+with st.expander("⚙️ Filter & Grouping Settings", expanded=False):
+    granularity = st.radio("Chart Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0, horizontal=True)
+    range_hints = {"Daily": "Default: Last 21 Days", "Weekly": "Default: Last 8 Weeks", "Monthly": "Default: Last 6 Months", "All Time": "Default: Full Data Range"}
+    st.markdown(f"<div style='color: #64748b; font-size: 0.8rem; font-style: italic; margin-top: -5px;'>ℹ️ {range_hints[granularity]}</div>", unsafe_allow_html=True)
+    
+    st.markdown(f"<div style='color: #64748b; font-size: 0.9rem; margin-top: 0.8rem; margin-bottom: 1.2rem; padding-bottom: 0.8rem; border-bottom: 1px solid rgba(128,128,128,0.15); font-weight: 500;'>Data Aggregated from <span style='color: #334155;'>{cur_sd.strftime('%Y-%m-%d')}</span> to <span style='color: #334155;'>{cur_ed.strftime('%Y-%m-%d')}</span></div>", unsafe_allow_html=True)
     
     def set_all_data():
         st.session_state.sd = min_data_date
         st.session_state.ed = max_data_date
 
-    with f_col2: st.date_input("Start Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="sd")
-    with f_col3: st.date_input("End Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="ed")
+    c1, c2 = st.columns(2)
+    with c1: st.date_input("Start Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="sd")
+    with c2: st.date_input("End Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="ed")
     
     st.button("🗓️ Select All Data Range", on_click=set_all_data, use_container_width=True)
 
@@ -432,7 +438,7 @@ def render_empty_state(title="No Data Logged", subtitle="Try picking a wider dat
 
 
 # --- A. TODAY'S HIGHLIGHTS ---
-st.markdown('<div id="today" style="margin-top: 3.5rem;"></div>', unsafe_allow_html=True)
+st.markdown('<div id="today" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
 today_date = max(current_local_time.date(), max_data_date)
 today_df = df[df['Date'] == today_date]
 
@@ -483,7 +489,7 @@ else:
 # ==========================================
 # 5. CHARTS & ANALYTICS
 # ==========================================
-st.markdown('<div id="insights" style="padding-top: 2rem;"></div>', unsafe_allow_html=True)
+st.markdown('<div id="insights" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
 st.subheader("📊 Insights")
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
@@ -582,7 +588,7 @@ with tab2:
         st.plotly_chart(fig_milk, use_container_width=True)
         
         st.caption(f"ℹ️ *Combines stacked Formula and Breast Milk volume (mL) on left axis with Feed Count(s) (orange) on right axis. The grey line plots the 7-period rolling average.*", unsafe_allow_html=True)
-        
+
         avg_vol = total_per_x['Value (Optional)'].mean()
         trend_word = "holding highly stable ⚖️"
         if len(total_per_x) > 3:
@@ -1007,5 +1013,4 @@ else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
 
 st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
-
 
