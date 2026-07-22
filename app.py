@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Apple Touch Icon & Responsive Header Classes via JS (Fixes iOS CSS limitations)
+# Inject Apple Touch Icon into document <head> via JS for iOS Safari Home Screen
 components.html(
     """
     <script>
@@ -37,33 +37,10 @@ components.html(
                 link.href = iconUrl;
             });
         }
-
-        // Dynamically applies classes to the header row so older iOS Safari versions render the 50/50 buttons perfectly
-        function applyHeaderLayout(doc) {
-            if (!doc) return;
-            const marker = doc.getElementById('header-marker');
-            if (marker) {
-                const row = marker.closest('[data-testid="stHorizontalBlock"]');
-                if (row && !row.classList.contains('custom-header-row')) {
-                    row.classList.add('custom-header-row');
-                    const cols = row.querySelectorAll('[data-testid="column"]');
-                    if (cols.length >= 3) {
-                        cols[0].classList.add('custom-header-col-1');
-                        cols[1].classList.add('custom-header-col-2');
-                        cols[2].classList.add('custom-header-col-3');
-                    }
-                }
-            }
-        }
         
-        function runUpdates() {
-            try { applyAppleIcon(document); applyHeaderLayout(document); } catch(e) {}
-            try { applyAppleIcon(window.parent.document); applyHeaderLayout(window.parent.document); } catch(e) {}
-            try { applyAppleIcon(window.top.document); applyHeaderLayout(window.top.document); } catch(e) {}
-        }
-        
-        runUpdates();
-        setInterval(runUpdates, 500); // Ensures classes stay applied if Streamlit rerenders
+        try { applyAppleIcon(document); } catch(e) {}
+        try { applyAppleIcon(window.parent.document); } catch(e) {}
+        try { applyAppleIcon(window.top.document); } catch(e) {}
     })();
     </script>
     """,
@@ -122,51 +99,81 @@ st.markdown("""
         padding-bottom: calc(8rem + env(safe-area-inset-bottom)) !important;
     }
 
-    /* ------------------------------------------------------------------------
-       Responsive Header Configuration (Desktop vs Mobile layout)
-       ------------------------------------------------------------------------ */
-    
-    /* Shrink Add and Refresh buttons in the header row */
-    .custom-header-row [data-testid="baseButton-secondary"] {
-        min-height: 2.0rem !important;
-        height: 2.0rem !important;
-        padding: 0 0.5rem !important;
-    }
-    .custom-header-row [data-testid="baseButton-secondary"] p {
-        font-size: 0.85rem !important;
-        margin: 0 !important;
+    /* Title Styling */
+    .app-main-title {
+        font-size: clamp(1.3rem, 4.5vw, 2.1rem);
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--card-text);
+        margin: 0;
     }
 
-    @media (max-width: 768px) {
-        .desktop-hr { display: none !important; }
+    /* ------------------------------------------------------------------------
+       Pure HTML/CSS Responsive Header Configuration (Bypasses Streamlit Columns)
+       ------------------------------------------------------------------------ */
+    
+    /* Global Custom Button Styles (Looks exactly like Streamlit buttons) */
+    .custom-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--card-bg) !important;
+        color: #1e293b !important; /* Force dark text, preventing link styles */
+        border: 1px solid var(--card-border);
+        box-shadow: var(--card-shadow);
+        border-radius: 8px;
+        height: 2.1rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        text-decoration: none !important;
+        transition: all 0.15s ease;
+        box-sizing: border-box;
+    }
+    .custom-btn:active {
+        background-color: #f1f5f9 !important;
+        transform: scale(0.98);
+    }
+
+    /* Desktop View Layout */
+    @media (min-width: 769px) {
+        .custom-header-mobile { display: none !important; }
+        .custom-header-desktop { display: block !important; }
         
-        /* Force buttons onto a split row on mobile using flex wrap */
-        .custom-header-row {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: wrap !important;
-            justify-content: space-between !important;
-            width: 100% !important;
-            gap: 0 !important; /* Strip inherited streamlit gaps to absolutely prevent wrapping */
+        .desktop-header-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
         }
-        /* Mobile: Title column gets 100% width and line break */
-        .custom-header-col-1 {
-            width: 100% !important;
-            min-width: 100% !important;
-            max-width: 100% !important;
-            flex: 0 0 100% !important;
+        .desktop-header-controls {
+            display: flex;
+            gap: 0.5rem;
         }
-        /* Mobile: Buttons strictly forced to 48% each to prevent 2-row wrapping */
-        .custom-header-col-2, .custom-header-col-3 {
-            width: 48% !important;
-            min-width: 48% !important;
-            max-width: 48% !important;
-            flex: 0 0 48% !important;
+        .desktop-header-controls .custom-btn {
+            padding: 0 0.8rem;
         }
     }
-    @media (min-width: 769px) {
-        .mobile-hr { display: none !important; }
-        .mobile-gap { display: none !important; }
+
+    /* Mobile View Layout - Forces absolute 50/50 split on the buttons */
+    @media (max-width: 768px) {
+        .custom-header-desktop { display: none !important; }
+        .custom-header-mobile { display: block !important; width: 100%; }
+        
+        .mobile-header-controls {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            gap: 0.5rem;
+        }
+        .mobile-header-controls .custom-btn {
+            flex: 1; /* Forces both buttons to split width exactly 50/50 */
+            text-align: center;
+        }
     }
     /* ------------------------------------------------------------------------ */
 
@@ -198,17 +205,6 @@ st.markdown("""
         background-color: #f1f5f9;
         border-color: #cbd5e1;
         text-decoration: none !important;
-    }
-
-    /* Title Styling */
-    .app-main-title {
-        font-size: clamp(1.3rem, 4.5vw, 2.1rem);
-        font-weight: 700;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        color: var(--card-text);
-        margin: 0;
     }
 
     .section-header-single-line {
@@ -356,29 +352,35 @@ st.markdown("""
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# RESPONSIVE HEADER SECTION
+# RESPONSIVE HEADER SECTION (PURE HTML/CSS)
 # ---------------------------------------------------------
-header_c1, header_c2, header_c3 = st.columns([0.65, 0.175, 0.175], vertical_alignment="center")
 
-with header_c1:
-    # #header-marker anchors the CSS targeting logic allowing JS to apply classes
-    st.markdown('<div id="header-marker"></div><div class="app-main-title">🍼 Riley Growth Log</div>', unsafe_allow_html=True)
-    # Mobile HR explicitly rendered beneath title but above buttons, with balanced gap below line
-    st.markdown('<hr class="mobile-hr" style="margin: 0.35rem 0 0.5rem 0; border: none; border-top: 1px solid rgba(128,128,128,0.25);">', unsafe_allow_html=True)
+# Desktop Header Structure
+st.markdown("""
+<div class="custom-header-desktop">
+    <div class="desktop-header-row">
+        <div class="app-main-title">🍼 Riley Growth Log</div>
+        <div class="desktop-header-controls">
+            <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
+            <a href="javascript:window.location.reload(true);" class="custom-btn">🔄 Refresh</a>
+        </div>
+    </div>
+    <hr style="margin: 4px 0 10px 0; border: none; border-top: 1px solid rgba(128,128,128,0.25);">
+</div>
+""", unsafe_allow_html=True)
 
-with header_c2:
-    st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
-
-with header_c3:
-    if st.button("🔄 Refresh", key="hdr_refresh_btn", use_container_width=True):
-        st.cache_data.clear()
-        st.rerun()
-
-# Desktop HR (hidden on mobile via CSS) rendered strictly beneath everything
-st.markdown('<hr class="desktop-hr" style="margin: 4px 0 10px 0; border: none; border-top: 1px solid rgba(128,128,128,0.25);">', unsafe_allow_html=True)
-
-# Spacing Gap ensuring the header section matches the vertical blocks spacing (.035rem)
-st.markdown('<div class="mobile-gap" style="height: 0.35rem;"></div>', unsafe_allow_html=True)
+# Mobile Header Structure (With perfectly mirrored 0.35rem spacing gaps requested)
+st.markdown("""
+<div class="custom-header-mobile">
+    <div class="app-main-title" style="margin-bottom: 0.35rem;">🍼 Riley Growth Log</div>
+    <hr style="margin: 0 0 0.35rem 0; border: none; border-top: 1px solid rgba(128,128,128,0.25);">
+    <div class="mobile-header-controls">
+        <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
+        <a href="javascript:window.location.reload(true);" class="custom-btn">🔄 Refresh</a>
+    </div>
+    <div style="height: 0.35rem;"></div>
+</div>
+""", unsafe_allow_html=True)
 
 # ==========================================
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
@@ -1321,5 +1323,4 @@ with tab7:
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Events Logged in this period")
-
 
