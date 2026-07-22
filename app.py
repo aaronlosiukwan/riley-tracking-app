@@ -64,15 +64,19 @@ st.markdown("""
         scroll-margin-top: 70px;
     }
 
-    /* Native iOS Tap-to-Top Scroll Fix: Move scrolling from Streamlit containers to the main browser window */
+    /* Native iOS Tap-to-Top Scroll Fix: Force the document body to be the scrolling element */
     html, body, #root {
+        height: auto !important;
+        min-height: 100vh !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
         -webkit-overflow-scrolling: touch !important;
     }
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
-        overflow: visible !important;
         height: auto !important;
+        min-height: 100vh !important;
+        overflow: visible !important;
+        position: relative !important;
     }
 
     /* Compact Vertical Spacing Across Blocks & Expanders */
@@ -187,14 +191,6 @@ st.markdown("""
         }
     }
     /* ------------------------------------------------------------------------ */
-
-    /* Style Multiselect Tag Chips to Light Grey */
-    span[data-baseweb="tag"] {
-        background-color: #e5e7eb !important;
-        color: #1f2937 !important;
-        border: 1px solid #d1d5db !important;
-        font-weight: 500 !important;
-    }
 
     /* Table of Contents Navigation Buttons */
     .toc-button {
@@ -511,7 +507,8 @@ def standardize_event_name(event_str):
         "Temp (°C)": "🌡️ Temp (°C)",
         "Meds (Cnt)": "💊 Meds (Cnt)",
         "Weight (kg)": "⚖️ Weight (kg)",
-        "Height (cm)": "🏔️ Height (cm)"
+        "Height (cm)": "🏔️ Height (cm)",
+        "Vaccine": "💉 Vaccine"
     }
     return mapping.get(s, s)
 
@@ -529,6 +526,7 @@ ALL_EVENT_CATEGORIES = [
     "💊 Meds (Cnt)",
     "⚖️ Weight (kg)",
     "🏔️ Height (cm)",
+    "💉 Vaccine",
     "Other"
 ]
 
@@ -544,6 +542,7 @@ COLOR_MAP = {
     "💊 Meds (Cnt)": "#f59e0b",         # Bright Amber
     "⚖️ Weight (kg)": "#14b8a6",        # Teal
     "🏔️ Height (cm)": "#0ea5e9",        # Light Blue
+    "💉 Vaccine": "#f43f5e",            # Rose/Red
     "Other": "#6b7280"
 }
 
@@ -962,7 +961,7 @@ with filter_c1:
     selected_events = st.multiselect(
         "🏷️ Filter Event Types:",
         options=ALL_EVENT_CATEGORIES,
-        default=["🍼 Formula (mL)", "🤱 Breast Milk (mL)"],
+        default=[],
         placeholder="Choose event types (Leave empty for All)"
     )
 
@@ -1252,7 +1251,8 @@ with tab6:
             "🌡️ Temp (°C)",
             "💊 Meds (Cnt)",
             "⚖️ Weight (kg)",
-            "🏔️ Height (cm)"
+            "🏔️ Height (cm)",
+            "💉 Vaccine"
         ],
         horizontal=True,
         label_visibility="collapsed"
@@ -1263,7 +1263,8 @@ with tab6:
         "🌡️ Temp (°C)": ("Temp", "Temperature (°C)", COLOR_MAP["🌡️ Temp (°C)"], "°C"),
         "💊 Meds (Cnt)": ("Meds", "Dose Count(s)", COLOR_MAP["💊 Meds (Cnt)"], "doses"),
         "⚖️ Weight (kg)": ("Weight", "Weight (kg)", COLOR_MAP["⚖️ Weight (kg)"], "kg"),
-        "🏔️ Height (cm)": ("Height", "Height (cm)", COLOR_MAP["🏔️ Height (cm)"], "cm")
+        "🏔️ Height (cm)": ("Height", "Height (cm)", COLOR_MAP["🏔️ Height (cm)"], "cm"),
+        "💉 Vaccine": ("Vaccine", "Dose Count(s)", COLOR_MAP["💉 Vaccine"], "doses")
     }
     
     keyword, y_title, act_color, unit = act_mapping[act_option]
@@ -1353,6 +1354,7 @@ with tab7:
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Events Logged in this period")
+
 
 
 
