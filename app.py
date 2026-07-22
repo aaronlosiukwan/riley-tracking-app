@@ -184,12 +184,6 @@ st.markdown("""
     .empty-data-card { background-color: var(--card-bg); border: 1.5px dashed var(--card-border); border-radius: 12px; padding: 16px; text-align: center; margin: 6px 0; color: var(--card-text); }
     .empty-data-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 3px; }
     .empty-data-sub { font-size: 0.8rem; opacity: 0.75; }
-    
-    /* Vaccine Table HTML Styling */
-    .vac-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; background: var(--card-bg); border-radius: 8px; overflow: hidden; box-shadow: var(--card-shadow); }
-    .vac-table th { background-color: #f1f5f9; padding: 10px; text-align: left; border-bottom: 1px solid var(--card-border); font-weight: 600; }
-    .vac-table td { padding: 10px; border-bottom: 1px solid var(--card-border); vertical-align: top; }
-    .vac-table tr:last-child td { border-bottom: none; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -243,9 +237,7 @@ if sheet_url_input:
 
 st.sidebar.markdown('<hr style="margin: 10px 0; opacity: 0.2;">', unsafe_allow_html=True)
 
-# Baby settings for precise MCHC Charts & Milestone calculations
 st.sidebar.header("👶 Baby Settings")
-# Updated defaults per request (Born 2026 Jun 29, Girl)
 baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
@@ -504,7 +496,7 @@ def render_empty_state(title="No Data Logged", subtitle="Try picking a wider dat
     st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 {title}</div><div class="empty-data-sub">{subtitle}</div></div>""", unsafe_allow_html=True)
 
 # ==========================================
-# 5. EXPANDED RAW DATA LOGS TABLE (MOVED UP)
+# 5. EXPANDED RAW DATA LOGS TABLE
 # ==========================================
 st.markdown('<div id="raw-logs"></div>', unsafe_allow_html=True)
 st.subheader("📋 Raw Data Logs")
@@ -559,7 +551,7 @@ st.markdown('<div id="analytics-charts"></div>', unsafe_allow_html=True)
 st.subheader("📊 Analytics & Insights")
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "⏰ Today", "🍼 Milk", "🚽 Diapers", "🧴 Pumping", "🛟 Tummy", "📈 Growth (HK MCHC)", "🩺 Health & Vaccine"
+    "⏰ Today", "🍼 Milk", "🚽 Diapers", "🧴 Pumping", "🛟 Tummy", "📈 Growth", "🩺 Health & Vaccine"
 ])
 
 # TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart
@@ -653,18 +645,17 @@ with tab5:
 # ==============================================================================
 with tab6:
     who_option = st.radio(
-        "Select HK MCHC Chart:",
-        options=["⚖️ Weight (kg)", "🏔️ Height (cm)", "🐷 Head Size (cm)"],
+        "Select Growth Chart:",
+        options=["⚖️ Weight", "🏔️ Height", "🐷 Head Size"],
         horizontal=True, label_visibility="collapsed"
     )
     
     # Generic WHO 50th Percentile data approx based on Gender selection
-    # Multipliers translate WHO Medians into approximate HK MCHC Standard Fan Percentiles (3rd, 15th, 50th, 85th, 97th)
     def get_who_data(gen, met):
-        if met == "⚖️ Weight (kg)":
+        if "Weight" in met:
             if gen == "Boy": return np.array([3.3, 4.5, 5.6, 6.4, 7.0, 7.5, 7.9, 8.3, 8.6, 8.9, 9.2, 9.4, 9.6, 9.9, 10.1, 10.3, 10.5, 10.7, 10.9, 11.1, 11.3, 11.5, 11.8, 12.0, 12.2])
             else: return np.array([3.2, 4.2, 5.1, 5.8, 6.4, 6.9, 7.3, 7.6, 7.9, 8.2, 8.5, 8.7, 8.9, 9.2, 9.4, 9.6, 9.8, 10.0, 10.2, 10.4, 10.6, 10.9, 11.1, 11.3, 11.5])
-        elif met == "🏔️ Height (cm)":
+        elif "Height" in met:
             if gen == "Boy": return np.array([49.9, 54.7, 58.4, 61.4, 63.9, 65.9, 67.6, 69.2, 70.6, 72.0, 73.3, 74.5, 75.7, 76.9, 78.0, 79.1, 80.2, 81.2, 82.3, 83.2, 84.2, 85.1, 86.0, 86.9, 87.8])
             else: return np.array([49.1, 53.7, 57.1, 59.8, 62.1, 64.0, 65.7, 67.3, 68.7, 70.1, 71.5, 72.8, 74.0, 75.2, 76.4, 77.5, 78.6, 79.7, 80.7, 81.7, 82.7, 83.7, 84.6, 85.5, 86.4])
         else: # Head
@@ -673,11 +664,13 @@ with tab6:
 
     def get_hk_mults(met):
         # MCHC standard relies on 3rd, 15th, 50th, 85th, 97th percentiles
-        if met == "⚖️ Weight (kg)": return (0.80, 0.89, 1.11, 1.20)
-        if met == "🏔️ Height (cm)": return (0.95, 0.975, 1.025, 1.05)
+        if "Weight" in met: return (0.80, 0.89, 1.11, 1.20)
+        if "Height" in met: return (0.95, 0.975, 1.025, 1.05)
         return (0.96, 0.98, 1.02, 1.04)
 
-    who_df = df[df['Event Type'] == who_option].copy()
+    # Reconstruct exact string used in database mapping
+    db_keyword = "⚖️ Weight (kg)" if "Weight" in who_option else ("🏔️ Height (cm)" if "Height" in who_option else "🐷 Head Size (cm)")
+    who_df = df[df['Event Type'] == db_keyword].copy()
     
     # Range Zoom Slider based on Riley's Age
     current_date = (datetime.utcnow() + timedelta(hours=tz_offset)).date()
@@ -686,7 +679,7 @@ with tab6:
     def_end = min(24, def_start + 6)
     
     r_c1, r_c2 = st.columns([1, 2], vertical_alignment="center")
-    with r_c1: st.markdown("##### 🔎 Select Age View:")
+    with r_c1: st.markdown("##### 🔎 Select Age View (Months):")
     with r_c2: range_min, range_max = st.slider("", 0, 24, (def_start, def_end), label_visibility="collapsed")
     
     if not who_df.empty:
@@ -720,22 +713,38 @@ with tab6:
         
         fig_who.add_trace(go.Scatter(x=m_x, y=p50, mode='lines', line=dict(color='rgba(2,132,199,0.5)', width=2, dash='dot'), name='MCHC 50th', hoverinfo='skip'))
         
-        c_code = COLOR_MAP.get(who_option, '#38bdf8')
-        unit_str = who_option.split('(')[1].replace(')','')
+        c_code = COLOR_MAP.get(db_keyword, '#38bdf8')
+        unit_str = db_keyword.split('(')[1].replace(')','')
         
+        # Format the exact arrays for hover injection
+        hover_text = []
+        for _, row in who_df.iterrows():
+            age, v = row['Age_Months'], row['Value (Optional)']
+            lp3, lp15, lp50, lp85, lp97 = [np.interp(age, m_x, arr) for arr in [p3, p15, p50, p85, p97]]
+            
+            if v < lp3: pct = "< 3rd"
+            elif v < lp15: pct = "3rd-15th"
+            elif v < lp50: pct = "15th-50th"
+            elif v < lp85: pct = "50th-85th"
+            elif v <= lp97: pct = "85th-97th"
+            else: pct = "> 97th"
+            
+            ht = f"<b>{row['Date']}</b> (Age: {age:.1f}mo)<br><br><b>Value: {v:.1f} {unit_str}</b><br>Percentile Bracket: {pct}<br>---<br>HK 97th: {lp97:.1f}<br>HK 85th: {lp85:.1f}<br>HK 50th: {lp50:.1f}<br>HK 15th: {lp15:.1f}<br>HK 3rd: {lp3:.1f}"
+            hover_text.append(ht)
+
         fig_who.add_trace(go.Scatter(
             x=who_df['Age_Months'], y=who_df['Value (Optional)'], mode='lines+markers',
             line=dict(color=c_code, width=3, shape='spline'),
             marker=dict(size=10, color=c_code, line=dict(width=2, color='#ffffff')),
             name=who_option.split(' ')[1],
-            customdata=np.stack((who_df['Date'], who_df['Est_Pct']), axis=-1),
-            hovertemplate=f"<b>Age:</b> %{{x:.1f}} mo<br><b>%{{y:.2f}} {unit_str}</b><br><b>Est. Percentile:</b> ~%{{customdata[1]:.0f}}th<br><i>%{{customdata[0]}}</i><extra></extra>"
+            text=hover_text,
+            hovertemplate="%{text}<extra></extra>"
         ))
         
         fig_who.update_layout(
             title=dict(text=f"📈 {who_option} — HK MCHC Growth Standard", y=0.97, x=0.5, xanchor="center", font=dict(size=16)),
             height=500, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=2, r=2, t=60, b=20),
-            xaxis=dict(title="Age (Months)", showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickformat=".0f", range=[range_min, range_max]),
+            xaxis=dict(title="Age (Months)", showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickformat=".0f", range=[range_min, range_max + 1.5]),
             yaxis=dict(title="", showgrid=True, gridcolor="rgba(128,128,128,0.15)"),
             showlegend=False, hovermode="x unified"
         )
@@ -747,9 +756,9 @@ with tab6:
 
 # TAB 7: Health Charts & HKCIP Vaccine Tracker
 with tab7:
-    act_option = st.radio("Select Category:", options=["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)", "💉 HKCIP Vaccine Tracker"], horizontal=True, label_visibility="collapsed")
+    act_option = st.radio("Select Category:", options=["💉 Vaccine", "🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"], horizontal=True, label_visibility="collapsed")
     
-    if act_option == "💉 HKCIP Vaccine Tracker":
+    if act_option == "💉 Vaccine":
         vac_df = df[df['Event Type'] == "💉 Vaccine (Cnt)"].copy()
         
         def get_date(keyword_regex, index):
@@ -757,50 +766,98 @@ with tab7:
             matches = vac_df[vac_df['Notes / Details (Optional)'].str.contains(keyword_regex, case=False, na=False)].sort_values('DateTime')
             return matches.iloc[index]['Date'] if index < len(matches) else None
 
-        # Build Rich HKCIP Schedule List
+        # Extensive HKCIP and Optional Vaccine Database
         hkcip_schedule = [
-            {"Age": "Newborn", "Days": 0, "Vaccine": "卡介苗<br><span style='font-size:0.85em; color:#64748b;'>BCG</span>", "Disease": "Tuberculosis", "Match": get_date("bcg", 0)},
-            {"Age": "Newborn", "Days": 0, "Vaccine": "乙型肝炎 (第一劑)<br><span style='font-size:0.85em; color:#64748b;'>Hepatitis B (1st)</span>", "Disease": "Hepatitis B", "Match": get_date("hep|hbv|hexa|6-in|6 in", 0)},
-            {"Age": "1 Month", "Days": 30, "Vaccine": "乙型肝炎 (第二劑)<br><span style='font-size:0.85em; color:#64748b;'>Hepatitis B (2nd)</span>", "Disease": "Hepatitis B", "Match": get_date("hep|hbv|hexa|6-in|6 in", 1)},
-            {"Age": "2 Months", "Days": 60, "Vaccine": "四/五/六合一混合疫苗 (第一劑)<br><span style='font-size:0.85em; color:#64748b;'>DTaP-IPV-Hib/HepB (1st)</span>", "Disease": "Diphtheria, Tetanus, Pertussis, Polio, Hib, HepB", "Match": get_date("dtap|hexa|6-in|6 in|5-in|pent|4-in|4 in", 0)},
-            {"Age": "2 Months", "Days": 60, "Vaccine": "肺炎球菌 (第一劑)<br><span style='font-size:0.85em; color:#64748b;'>Pneumococcal (1st)</span>", "Disease": "Pneumococcal", "Match": get_date("pcv|pneumo", 0)},
-            {"Age": "2 Months", "Days": 60, "Vaccine": "<i>(Optional)</i> 輪狀病毒 (第一劑)<br><span style='font-size:0.85em; color:#64748b;'>Rotavirus (1st)</span>", "Disease": "Rotavirus", "Match": get_date("rota", 0)},
-            {"Age": "2 Months", "Days": 60, "Vaccine": "<i>(Optional)</i> 腦膜炎雙球菌 (第一劑)<br><span style='font-size:0.85em; color:#64748b;'>Meningococcal B (1st)</span>", "Disease": "Meningococcal", "Match": get_date("menb|mening", 0)},
-            {"Age": "4 Months", "Days": 120, "Vaccine": "四/五/六合一混合疫苗 (第二劑)<br><span style='font-size:0.85em; color:#64748b;'>DTaP-IPV-Hib/HepB (2nd)</span>", "Disease": "Diphtheria, Tetanus, Pertussis, Polio, Hib, HepB", "Match": get_date("dtap|hexa|6-in|6 in|5-in|pent|4-in|4 in", 1)},
-            {"Age": "4 Months", "Days": 120, "Vaccine": "肺炎球菌 (第二劑)<br><span style='font-size:0.85em; color:#64748b;'>Pneumococcal (2nd)</span>", "Disease": "Pneumococcal", "Match": get_date("pcv|pneumo", 1)},
-            {"Age": "4 Months", "Days": 120, "Vaccine": "<i>(Optional)</i> 輪狀病毒 (第二劑)<br><span style='font-size:0.85em; color:#64748b;'>Rotavirus (2nd)</span>", "Disease": "Rotavirus", "Match": get_date("rota", 1)},
-            {"Age": "4 Months", "Days": 120, "Vaccine": "<i>(Optional)</i> 腦膜炎雙球菌 (第二劑)<br><span style='font-size:0.85em; color:#64748b;'>Meningococcal B (2nd)</span>", "Disease": "Meningococcal", "Match": get_date("menb|mening", 1)},
-            {"Age": "6 Months", "Days": 180, "Vaccine": "四/五/六合一混合疫苗 (第三劑)<br><span style='font-size:0.85em; color:#64748b;'>DTaP-IPV-Hib/HepB (3rd)</span>", "Disease": "Diphtheria, Tetanus, Pertussis, Polio, Hib, HepB", "Match": get_date("dtap|hexa|6-in|6 in|5-in|pent|4-in|4 in", 2)},
-            {"Age": "6 Months", "Days": 180, "Vaccine": "肺炎球菌 (第三劑)<br><span style='font-size:0.85em; color:#64748b;'>Pneumococcal (3rd)</span>", "Disease": "Pneumococcal", "Match": get_date("pcv|pneumo", 2)},
-            {"Age": "6 Months", "Days": 180, "Vaccine": "<i>(Optional)</i> 輪狀病毒 (第三劑)<br><span style='font-size:0.85em; color:#64748b;'>Rotavirus (3rd)</span>", "Disease": "Rotavirus", "Match": get_date("rota", 2)},
-            {"Age": "12 Months", "Days": 365, "Vaccine": "麻疹、流行性腮腺炎及德國麻疹 (第一劑)<br><span style='font-size:0.85em; color:#64748b;'>MMR (1st)</span>", "Disease": "Measles, Mumps, Rubella", "Match": get_date("mmr", 0)},
-            {"Age": "12 Months", "Days": 365, "Vaccine": "肺炎球菌 (加強劑)<br><span style='font-size:0.85em; color:#64748b;'>Pneumococcal (Booster)</span>", "Disease": "Pneumococcal", "Match": get_date("pcv|pneumo", 3)},
-            {"Age": "12 Months", "Days": 365, "Vaccine": "水痘 (第一劑)<br><span style='font-size:0.85em; color:#64748b;'>Varicella (1st)</span>", "Disease": "Chickenpox", "Match": get_date("varicella|cp|chickenpox", 0)},
-            {"Age": "18 Months", "Days": 547, "Vaccine": "四/五/六合一混合疫苗 (加強劑)<br><span style='font-size:0.85em; color:#64748b;'>DTaP-IPV-Hib/HepB (Booster)</span>", "Disease": "Diphtheria, Tetanus, Pertussis, Polio, Hib, HepB", "Match": get_date("dtap|hexa|6-in|6 in|5-in|pent|4-in|4 in", 3)},
-            {"Age": "18 Months", "Days": 547, "Vaccine": "麻疹、流行性腮腺炎、德國麻疹及水痘 (第二劑)<br><span style='font-size:0.85em; color:#64748b;'>MMRV (2nd)</span>", "Disease": "Measles, Mumps, Rubella, Chickenpox", "Match": get_date("mmrv|mmr", 1)},
+            {"Age": "0 mo (Newborn)", "Days": 0, "Group": "BCG", "Vaccine": "卡介苗 (BCG)", "Disease": "結核病 (Tuberculosis)", "Provider": "🏥 母嬰", "Desc": "預防結核病，初生嬰兒必打", "Optional": False, "Match": get_date("bcg|卡介苗", 0)},
+            {"Age": "0 mo (Newborn)", "Days": 0, "Group": "Hepatitis B", "Vaccine": "乙型肝炎 第一劑 (Hep B 1st)", "Disease": "乙肝 (Hepatitis B)", "Provider": "🏥 母嬰", "Desc": "預防乙型肝炎，出世即打", "Optional": False, "Match": get_date("hep|hbv|hexa|6-in|6 in|六合一|乙型肝炎|五合一", 0)},
+            {"Age": "1 mo", "Days": 30, "Group": "Hepatitis B", "Vaccine": "乙型肝炎 第二劑 (Hep B 2nd)", "Disease": "乙肝 (Hepatitis B)", "Provider": "🏥 母嬰", "Desc": "滿月時於母嬰健康院接種", "Optional": False, "Match": get_date("hep|hbv|hexa|6-in|6 in|六合一|乙型肝炎|五合一", 1)},
+            {"Age": "2 mo", "Days": 60, "Group": "DTaP / 6-in-1", "Vaccine": "六合一混合 第一劑 (6-in-1 1st)", "Disease": "白喉,破傷風,百日咳,小兒麻痺,乙肝,流感嗜血桿菌 (DTaP-IPV-HepB-Hib)", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "私家六合/五合一或母嬰四合一", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 0)},
+            {"Age": "2 mo", "Days": 60, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 第一劑 (PCV 1st)", "Disease": "肺炎球菌感染 (Pneumococcal)", "Provider": "🏥 母嬰", "Desc": "預防嚴重肺炎/腦膜炎", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 0)},
+            {"Age": "2 mo", "Days": 60, "Group": "Rotavirus", "Vaccine": "輪狀病毒 第一劑 (Rotavirus 1st)", "Disease": "輪狀病毒腸胃炎 (Rotavirus)", "Provider": "💰 私家", "Desc": "口服疫苗，預防嚴重腸胃炎", "Optional": True, "Match": get_date("rota|輪狀", 0)},
+            {"Age": "2 mo", "Days": 60, "Group": "Meningococcal B", "Vaccine": "腦膜炎雙球菌 第一劑 (Men B 1st)", "Disease": "腦膜炎雙球菌感染 (Meningococcal)", "Provider": "💰 私家", "Desc": "預防致命腦膜炎，B型最常見", "Optional": True, "Match": get_date("men|腦膜炎", 0)},
+            {"Age": "4 mo", "Days": 120, "Group": "DTaP / 6-in-1", "Vaccine": "六合一混合 第二劑 (6-in-1 2nd)", "Disease": "同上 (Same as 1st)", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "第二針混合疫苗", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 1)},
+            {"Age": "4 mo", "Days": 120, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 第二劑 (PCV 2nd)", "Disease": "肺炎球菌感染 (Pneumococcal)", "Provider": "🏥 母嬰", "Desc": "第二針", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 1)},
+            {"Age": "4 mo", "Days": 120, "Group": "Rotavirus", "Vaccine": "輪狀病毒 第二劑 (Rotavirus 2nd)", "Disease": "輪狀病毒腸胃炎 (Rotavirus)", "Provider": "💰 私家", "Desc": "第二劑口服", "Optional": True, "Match": get_date("rota|輪狀", 1)},
+            {"Age": "4 mo", "Days": 120, "Group": "Meningococcal B", "Vaccine": "腦膜炎雙球菌 第二劑 (Men B 2nd)", "Disease": "腦膜炎雙球菌感染 (Meningococcal)", "Provider": "💰 私家", "Desc": "第二針", "Optional": True, "Match": get_date("men|腦膜炎", 1)},
+            {"Age": "6 mo", "Days": 180, "Group": "DTaP / 6-in-1", "Vaccine": "六合一混合 第三劑 (6-in-1 3rd)", "Disease": "同上 (Same as 1st)", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "第三針混合疫苗", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 2)},
+            {"Age": "6 mo", "Days": 180, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 第三劑 (PCV 3rd)", "Disease": "肺炎球菌感染 (Pneumococcal)", "Provider": "🏥 母嬰", "Desc": "第三針 (部份情況可省略)", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 2)},
+            {"Age": "6 mo", "Days": 180, "Group": "Rotavirus", "Vaccine": "輪狀病毒 第三劑 (Rotavirus 3rd)", "Disease": "輪狀病毒腸胃炎 (Rotavirus)", "Provider": "💰 私家", "Desc": "視乎藥廠(部份只需兩劑)", "Optional": True, "Match": get_date("rota|輪狀", 2)},
+            {"Age": "6 mo", "Days": 180, "Group": "Influenza", "Vaccine": "季節性流感 (Influenza)", "Disease": "流感 (Flu)", "Provider": "💰 私家 / 🏥 診所", "Desc": "滿6個月可打，每年一針", "Optional": True, "Match": get_date("flu|流感", 0)},
+            {"Age": "12 mo", "Days": 365, "Group": "MMR / MMRV", "Vaccine": "麻疹,流行性腮腺炎,德國麻疹 (MMR 1st)", "Disease": "麻疹, 腮腺炎, 德國麻疹 (Measles, Mumps, Rubella)", "Provider": "🏥 母嬰", "Desc": "一歲滿即打", "Optional": False, "Match": get_date("mmr|麻疹", 0)},
+            {"Age": "12 mo", "Days": 365, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 加強劑 (PCV Booster)", "Disease": "肺炎球菌感染 (Pneumococcal)", "Provider": "🏥 母嬰", "Desc": "加強劑", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 3)},
+            {"Age": "12 mo", "Days": 365, "Group": "Varicella", "Vaccine": "水痘 第一劑 (Varicella 1st)", "Disease": "水痘 (Chickenpox)", "Provider": "🏥 母嬰", "Desc": "第一針水痘", "Optional": False, "Match": get_date("varicella|cp|chickenpox|水痘", 0)},
+            {"Age": "12 mo", "Days": 365, "Group": "Hepatitis A", "Vaccine": "甲型肝炎 第一劑 (Hep A 1st)", "Disease": "甲肝 (Hepatitis A)", "Provider": "💰 私家", "Desc": "預防受污染食物感染", "Optional": True, "Match": get_date("hepa|hep a|甲型", 0)},
+            {"Age": "18 mo", "Days": 547, "Group": "DTaP / 6-in-1", "Vaccine": "六合一混合 加強劑 (6-in-1 Booster)", "Disease": "同上 (Same as 1st)", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "加強保護力", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 3)},
+            {"Age": "18 mo", "Days": 547, "Group": "MMR / MMRV", "Vaccine": "MMRV 第二劑 (MMRV 2nd)", "Disease": "麻疹, 腮腺炎, 德國麻疹, 水痘 (Measles, Mumps, Rubella, Chickenpox)", "Provider": "🏥 母嬰", "Desc": "歲半加強劑 (含水痘)", "Optional": False, "Match": get_date("mmrv|mmr|麻疹", 1)},
+            {"Age": "18 mo", "Days": 547, "Group": "Hepatitis A", "Vaccine": "甲型肝炎 第二劑 (Hep A 2nd)", "Disease": "甲肝 (Hepatitis A)", "Provider": "💰 私家", "Desc": "隔半年打第二針", "Optional": True, "Match": get_date("hepa|hep a|甲型", 1)},
+            {"Age": "3 Years", "Days": 1095, "Group": "Influenza", "Vaccine": "流感疫苗 (Flu Vaccine)", "Disease": "流感 (Flu)", "Provider": "💰 私家 / 🏥 幼稚園", "Desc": "入學前防護", "Optional": True, "Match": get_date("flu|流感", 1)},
+            {"Age": "5-6 Years", "Days": 1825, "Group": "DTaP / 6-in-1", "Vaccine": "白喉,破傷風,百日咳,小兒麻痺 (Booster)", "Disease": "白喉,破傷風,百日咳,小兒麻痺 (DTaP-IPV)", "Provider": "🏥 學校", "Desc": "小一學童接種", "Optional": False, "Match": get_date("dtap|ipv|小一|小兒麻痺", 4)},
+            {"Age": "5-6 Years", "Days": 1825, "Group": "MMR / MMRV", "Vaccine": "MMRV 加強劑 (MMRV Booster)", "Disease": "麻疹,腮腺炎,德國麻疹,水痘 (MMRV)", "Provider": "🏥 學校", "Desc": "小一學童接種", "Optional": False, "Match": get_date("mmrv|mmr|麻疹", 2)},
+            {"Age": "11-12 Years", "Days": 4015, "Group": "DTaP / 6-in-1", "Vaccine": "白喉,破傷風,百日咳 (dTap Booster)", "Disease": "白喉,破傷風,百日咳 (dTap)", "Provider": "🏥 學校", "Desc": "小六學童接種", "Optional": False, "Match": get_date("dtap|小六|百日咳", 5)},
+            {"Age": "11-12 Years", "Days": 4015, "Group": "HPV", "Vaccine": "子宮頸癌疫苗 第一劑 (HPV 1st)", "Disease": "子宮頸癌 (HPV)", "Provider": "🏥 學校", "Desc": "小五/小六女童接種", "Optional": False, "Match": get_date("hpv|子宮", 0)},
+            {"Age": "12-15 Years", "Days": 4380, "Group": "HPV", "Vaccine": "子宮頸癌疫苗 第二劑 (HPV 2nd)", "Disease": "子宮頸癌 (HPV)", "Provider": "🏥 學校", "Desc": "第二針", "Optional": False, "Match": get_date("hpv|子宮", 1)},
+            {"Age": "36 Years", "Days": 13140, "Group": "Adult", "Vaccine": "成人疫苗加強劑 (Adult Boosters)", "Disease": "百日咳/流感等 (Pertussis, Flu)", "Provider": "💰 私家", "Desc": "成人定期加強", "Optional": True, "Match": get_date("adult|成人", 0)},
         ]
         
         current_date = (datetime.utcnow() + timedelta(hours=tz_offset)).date()
         age_days = (current_date - baby_dob).days
         
+        rows = []
+        for s in hkcip_schedule:
+            if s["Match"]: status = "✅ Done"
+            elif age_days >= s["Days"]: status = "⚠️ Overdue"
+            else: status = "⏳ Upcoming"
+            
+            rows.append({
+                "Status": status,
+                "Age": s["Age"],
+                "Group": s["Group"],
+                "Vaccine (中 / Eng)": s["Vaccine"],
+                "Disease Prevented": s["Disease"],
+                "Type": s["Provider"],
+                "Description (Chinese)": s["Desc"],
+                "Log Match": str(s["Match"]) if s["Match"] else "-",
+                "Optional": s["Optional"],
+                "Days": s["Days"]
+            })
+            
+        styled_df = pd.DataFrame(rows)
+        
         st.markdown("<h4 style='text-align: center; margin-bottom: 0.5rem;'>💉 HKCIP + Optional Vaccine Milestones</h4>", unsafe_allow_html=True)
         
-        # Build HTML Table String
-        table_html = "<table class='vac-table'><thead><tr><th>Status</th><th>Age</th><th>Vaccine Required</th><th>Disease Prevented</th><th>Log Match</th></tr></thead><tbody>"
-        for s in hkcip_schedule:
-            if s["Match"]: status, date_str, bg = "✅", str(s["Match"]), "#dcfce7"
-            elif age_days >= s["Days"]: status, date_str, bg = "⚠️", "Overdue", "#fee2e2"
-            else: status, date_str, bg = "⏳", "Upcoming", "transparent"
-            table_html += f"<tr style='background-color: {bg}'><td>{status}</td><td><b>{s['Age']}</b></td><td>{s['Vaccine']}</td><td style='color:#64748b; font-size:0.8em;'>{s['Disease']}</td><td>{date_str}</td></tr>"
-        table_html += "</tbody></table>"
+        v_col1, v_col2 = st.columns([1, 1])
+        with v_col1: grouping = st.radio("Group View:", ["By Age Milestone", "By Vaccine Type"], horizontal=True)
         
-        st.markdown(table_html, unsafe_allow_html=True)
-        st.caption("ℹ️ *Auto-matches your logged vaccines by scanning your 'Notes / Details' column for keywords (e.g. 6-in-1, PCV, Rota, BCG).*")
+        if grouping == "By Vaccine Type":
+            styled_df = styled_df.sort_values(by=["Group", "Days"]).reset_index(drop=True)
+        else:
+            styled_df = styled_df.sort_values(by="Days").reset_index(drop=True)
+
+        # Pre-compute exact row colors based on the sequential index so Pandas Styler doesn't crash 
+        colors = []
+        for _, row in styled_df.iterrows():
+            if row['Status'].startswith('✅'): colors.append(['background-color: #dcfce7; color: #166534'] * 7)
+            elif row['Optional']: colors.append(['background-color: #f1f5f9; color: #475569'] * 7)
+            else: colors.append([''] * 7)
+            
+        styled_df = styled_df.drop(columns=["Days", "Group", "Optional"])
         
-        st.markdown("##### 📋 Riley's Vaccination History")
+        styled_table = styled_df.style.apply(lambda x: colors[x.name], axis=1)
+        
+        st.dataframe(
+            styled_table,
+            use_container_width=True, hide_index=True, height=550,
+            column_config={
+                "Vaccine (中 / Eng)": st.column_config.TextColumn("Vaccine (中 / Eng)", width="medium"),
+                "Disease Prevented": st.column_config.TextColumn("Disease Prevented", width="medium"),
+                "Description (Chinese)": st.column_config.TextColumn("Description (Chinese)", width="medium")
+            }
+        )
+        
+        st.markdown("##### 📋 Riley's Vaccination History Log")
         if not vac_df.empty:
             if 'DateTime' in vac_df.columns:
-                vac_df = vac_df.sort_values('DateTime', ascending=True).reset_index(drop=True)
+                vac_df = vac_df.sort_values('DateTime', ascending=False).reset_index(drop=True)
                 vac_df['DateTime_Display'] = vac_df['DateTime']
                 vac_df['Age at Shot'] = ((pd.to_datetime(vac_df['Date']) - pd.to_datetime(baby_dob)).dt.days / 30.437).round(1).astype(str) + " mo"
             
@@ -810,7 +867,12 @@ with tab7:
                 
             st.dataframe(
                 display_vac, use_container_width=True, hide_index=True, height=350,
-                column_config={"Date Logged": st.column_config.DatetimeColumn("Date Logged", format="YYYY-MM-DD", width="medium"), "Notes / Details (Optional)": st.column_config.TextColumn("Vaccine Type / Notes", width="large")}
+                column_config={
+                    "Date Logged": st.column_config.DatetimeColumn("Date Logged", format="YYYY-MM-DD HH:mm", width="medium"), 
+                    "Age at Shot": st.column_config.TextColumn("Age at Shot", width="small"),
+                    "Event Type": st.column_config.TextColumn("Event", width="medium"),
+                    "Notes / Details (Optional)": st.column_config.TextColumn("Vaccine Type / Notes", width="large")
+                }
             )
         else: render_empty_state("No Vaccine Data Logged")
             
