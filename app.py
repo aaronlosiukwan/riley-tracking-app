@@ -373,12 +373,11 @@ st.markdown("""
 st.markdown("""
 <div class="custom-header-mobile">
     <div class="app-main-title" style="margin-bottom: 0.35rem;">🍼 Riley Growth Log</div>
-    <hr style="margin: 0 0 0.35rem 0; border: none; border-top: 1px solid rgba(128,128,128,0.25);">
     <div class="mobile-header-controls">
         <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
         <a href="javascript:window.location.reload(true);" class="custom-btn">🔄 Refresh</a>
     </div>
-    <div style="height: 0.35rem;"></div>
+    <hr style="margin: 0.5rem 0 0.35rem 0; border: none; border-top: 1px solid rgba(128,128,128,0.25);">
 </div>
 """, unsafe_allow_html=True)
 
@@ -1323,4 +1322,5 @@ with tab7:
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Events Logged in this period")
+
 
