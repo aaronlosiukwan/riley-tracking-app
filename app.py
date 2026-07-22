@@ -43,25 +43,28 @@ components.html(
                     element.innerHTML = '⏳ Fetching...';
                     win.sessionStorage.setItem('reloaded', 'true');
                     
-                    let toast = doc.createElement('div');
-                    toast.innerHTML = '⏳ Refreshing data...';
-                    toast.style.cssText = 'position: fixed; top: 1.5rem; right: 1.5rem; background: #fffbeb; color: #854d0e; padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); font-weight: 600; font-family: sans-serif; z-index: 999999; border: 1px solid #fde047;';
-                    doc.body.appendChild(toast);
+                    // Intuitive "Refreshing..." Toast Notification
+                    let refreshToast = doc.createElement('div');
+                    refreshToast.innerHTML = '⏳ Refreshing data...';
+                    refreshToast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #fffbeb; color: #854d0e; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600; z-index: 10000; border: 1px solid #fde047; font-family: sans-serif; transition: opacity 0.2s ease;';
+                    doc.body.appendChild(refreshToast);
                     
-                    setTimeout(() => { win.location.reload(true); }, 300);
+                    setTimeout(() => { win.location.reload(true); }, 200);
                 };
             }
             if (win.sessionStorage.getItem('reloaded')) {
                 win.sessionStorage.removeItem('reloaded');
                 
+                // Pop up Notification for "Data successfully updated"
                 let toast = doc.createElement('div');
                 toast.innerHTML = '✅ Data successfully updated!';
-                toast.style.cssText = 'position: fixed; top: 1.5rem; right: 1.5rem; background: #dcfce7; color: #166534; padding: 1rem 1.5rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); font-weight: 600; font-family: sans-serif; z-index: 999999; border: 1px solid #86efac; opacity: 0; transition: opacity 0.3s ease;';
+                toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #dcfce7; color: #166534; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600; z-index: 10000; opacity: 0; transition: opacity 0.4s ease; border: 1px solid #86efac; font-family: sans-serif;';
                 doc.body.appendChild(toast);
-                
                 setTimeout(() => { toast.style.opacity = '1'; }, 100);
-                setTimeout(() => { toast.style.opacity = '0'; }, 2500);
-                setTimeout(() => { toast.remove(); }, 3000);
+                setTimeout(() => { 
+                    toast.style.opacity = '0'; 
+                    setTimeout(() => toast.remove(), 500);
+                }, 3000);
 
                 let attempts = 0;
                 const interval = setInterval(() => {
@@ -164,8 +167,6 @@ st.markdown("""
     span[data-baseweb="tag"] { background-color: #e5e7eb !important; color: #1f2937 !important; border: 1px solid #d1d5db !important; font-weight: 500 !important; }
     .toc-button { display: block; width: 100%; padding: 8px 12px; margin: 4px 0; background-color: var(--card-bg); border: 1px solid var(--card-border); box-shadow: var(--card-shadow); color: var(--card-text) !important; text-decoration: none !important; border-radius: 8px; font-size: 0.9rem; font-weight: 500; transition: all 0.15s ease-in-out; }
     .toc-button:hover { background-color: #f1f5f9; border-color: #cbd5e1; text-decoration: none !important; }
-    
-    .sidebar-header { font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; margin-top: 0px; }
 
     .cards-container { display: grid !important; grid-template-columns: repeat(12, 1fr) !important; gap: 8px !important; align-items: stretch !important; margin-bottom: 2px !important; width: 100% !important; margin-top: 8px !important; }
     .card-span-3 { grid-column: span 3 !important; } .card-span-4 { grid-column: span 4 !important; } .card-span-6 { grid-column: span 6 !important; } .card-span-12 { grid-column: span 12 !important; } 
@@ -215,10 +216,9 @@ st.markdown("""
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
 # ==========================================
 st.sidebar.markdown("""
-    <div style="margin-bottom: 8px;">
-        <div class="sidebar-header">📌 Quick Navigation</div>
+    <div style="margin-bottom: 12px;">
+        <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">📌 Quick Navigation</div>
         <a href="#today" class="toc-button">✨ Today</a>
-        <a href="#period-highlights" class="toc-button">📅 Range Highlights</a>
         <a href="#insights" class="toc-button">📊 Insights</a>
         <a href="#database" class="toc-button">📋 Database</a>
     </div>
@@ -226,15 +226,14 @@ st.sidebar.markdown("""
 
 DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
 
-st.sidebar.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div class='sidebar-header'>⚙️ Configuration</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
 sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
 tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
-
 if sheet_url_input: st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
 
-st.sidebar.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div class='sidebar-header'>👶 Baby Settings</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
 baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
@@ -424,7 +423,7 @@ def render_empty_state(title="No Data Logged", subtitle="Try picking a wider dat
 
 
 # --- A. TODAY'S HIGHLIGHTS ---
-st.markdown('<div id="today"></div><div style="height: 2.0rem;"></div>', unsafe_allow_html=True)
+st.markdown('<div id="today" style="padding-top: 2.0rem;"></div>', unsafe_allow_html=True)
 today_date = max(current_local_time.date(), max_data_date)
 today_df = df[df['Date'] == today_date]
 
@@ -472,29 +471,197 @@ else:
     st.markdown(f'<div class="cards-container">{"".join(formatted_today_cards)}</div>', unsafe_allow_html=True)
 
 
-# --- B. RANGE HIGHLIGHTS ---
-st.markdown('<div id="period-highlights"></div><div style="height: 2.0rem;"></div>', unsafe_allow_html=True)
-st.subheader("📅 Range Highlights")
-
-if filtered_df.empty:
-    st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 No Data Logged in this Period</div><div class="empty-data-sub">Expand date range to view aggregate highlights.</div></div>""", unsafe_allow_html=True)
-else:
-    for i, card in enumerate(period_cards):
-        cls = f"highlight-card {p_base_span}"
-        if p_card_count % 2 != 0 and i == 0 and p_card_count > 1: cls += " mobile-full-width"
-        formatted_p_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
-    st.markdown(f'<div class="cards-container">{"".join(formatted_p_cards)}</div>', unsafe_allow_html=True)
-
-
 # ==========================================
 # 5. CHARTS & ANALYTICS
 # ==========================================
-st.markdown('<div id="insights"></div><div style="height: 2.0rem;"></div>', unsafe_allow_html=True)
+st.markdown('<div id="insights" style="padding-top: 2rem;"></div>', unsafe_allow_html=True)
 st.subheader("📊 Insights")
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "⏰ Today", "🍼 Milk", "🚽 Diapers", "🧴 Pumping", "🛟 Tummy", "📈 Growth", "🩺 Health", "💉 Vaccine"
 ])
+
+# TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart
+with tab1:
+    cutoff_24h = current_local_time - timedelta(hours=24)
+    today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
+    
+    if not today_24h_df.empty:
+        norm_today_df = prepare_normalized_timeline_df(today_24h_df)
+        
+        def get_short_name(name):
+            if "Formula" in name: return "🍼 Form."
+            if "Breast Milk" in name: return "🤱 BM"
+            if "Wet Diaper" in name: return "💧 Wet"
+            if "Poop" in name: return "🚽 Poop"
+            if "Pumping" in name: return "🧴 Pump"
+            if "Tummy" in name: return "🛟 Tummy"
+            if "Sleep" in name: return "🛌 Sleep"
+            if "Temp" in name: return "🌡️ Temp"
+            if "Meds" in name: return "💊 Meds"
+            if "Weight" in name: return "⚖️ Wt."
+            if "Height" in name: return "🏔️ Ht."
+            if "Head" in name: return "🐷 Head"
+            if "Vaccine" in name: return "💉 Vac."
+            return name
+            
+        norm_today_df['Short_Event'] = norm_today_df['Event Type'].apply(get_short_name)
+        
+        fig_today_timeline = px.scatter(
+            norm_today_df, x="DateTime", y="Short_Event", size="CategoryBubbleSize", color="Event Type",
+            color_discrete_map=COLOR_MAP, text="Value (Optional)", hover_data={"Value (Optional)": True, "CategoryBubbleSize": False, "DateTime": False, "Event Type": False}, size_max=14
+        )
+        
+        fig_today_timeline.for_each_trace(
+            lambda t: t.update(mode='markers+text', textposition='top center', textfont=dict(weight='bold'), texttemplate='%{text}' + get_unit_from_name(t.name)) if "(Cnt)" not in t.name else t.update(mode='markers', text=None)
+        )
+        
+        fig_today_timeline.update_traces(hovertemplate='%{customdata[0]}<extra></extra>')
+        fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=450, is_scatter=True, x_tickformat="%d-%H", x_dtick=10800000, y_tickangle=-45)
+        fig_today_timeline.update_layout(showlegend=False, yaxis=dict(title=dict(text=""), showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=10.5), automargin=True))
+        st.plotly_chart(fig_today_timeline, use_container_width=True)
+        
+        st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours. Markers size and label text correspond to the recorded volume/duration.*")
+
+        feed_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Formula|Breast Milk")])
+        diaper_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Diaper|Poop")])
+        analysis = f"Riley has had **{feed_cnt} feeds** and **{diaper_cnt} diaper changes** in the past 24 hours. "
+        if feed_cnt >= 7: analysis += "Her feeding frequency is robust, which is excellent for hydration and growth!"
+        elif feed_cnt > 0: analysis += "Her routine appears well-spaced and stable."
+        render_insight_card(analysis)
+    else: render_empty_state("No Events Logged in the Last 24 Hours")
+
+# TAB 2: Milk Intake
+with tab2:
+    milk_df = filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)].copy()
+    if not milk_df.empty:
+        milk_df['Category'] = milk_df['Event Type'].apply(lambda x: "🤱 Breast Milk (mL)" if "breast" in x.lower() else "🍼 Formula (mL)")
+        
+        grouped_vol = milk_df.groupby([group_col, 'Category'])['Value (Optional)'].sum().reset_index()
+        grouped_count = milk_df.groupby(group_col).size().reset_index(name='Total Feeds Count')
+        
+        total_per_x = milk_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
+        total_per_x = total_per_x.sort_values(group_col)
+        total_per_x['Trend'] = total_per_x['Value (Optional)'].rolling(window=min(7, len(total_per_x)), min_periods=1).mean()
+
+        grouped_vol[group_col] = grouped_vol[group_col].apply(format_x_label)
+        grouped_count[group_col] = grouped_count[group_col].apply(format_x_label)
+        total_per_x[group_col] = total_per_x[group_col].apply(format_x_label)
+        is_single = len(grouped_count[group_col].unique()) == 1
+        
+        fig_milk = make_subplots(specs=[[{"secondary_y": True}]])
+        df_f = grouped_vol[grouped_vol['Category'] == '🍼 Formula (mL)']
+        if not df_f.empty: 
+            fig_milk.add_trace(go.Bar(
+                name='🍼 Formula (mL)', x=df_f[group_col].astype(str), y=df_f['Value (Optional)'], 
+                marker_color="#38bdf8", width=0.25 if is_single else None, 
+                text=df_f['Value (Optional)'], textposition='inside', textfont=dict(weight='bold', color='white'),
+                hovertemplate='%{y} mL<extra></extra>'
+            ), secondary_y=False)
+            
+        df_bm = grouped_vol[grouped_vol['Category'] == '🤱 Breast Milk (mL)']
+        if not df_bm.empty: 
+            fig_milk.add_trace(go.Bar(name='🤱 Breast Milk (mL)', x=df_bm[group_col].astype(str), y=df_bm['Value (Optional)'], marker_color="#9ca3af", width=0.25 if is_single else None, hovertemplate='%{y} mL<extra></extra>'), secondary_y=False)
+            
+        fig_milk.add_trace(go.Scatter(name='🔢 Feed Count(s)', x=grouped_count[group_col].astype(str), y=grouped_count['Total Feeds Count'], mode='lines+markers+text', text=grouped_count['Total Feeds Count'], textposition="top center", textfont=dict(size=10.5, weight='bold'), line=dict(color='#f97316', width=3, shape='spline', smoothing=1.3), marker=dict(size=10, symbol='circle', color='#f97316', line=dict(width=2, color='#ffffff')), hovertemplate='%{y} feeds<extra></extra>'), secondary_y=True)
+        fig_milk.add_trace(go.Scatter(name='📈 Vol Trend', x=total_per_x[group_col].astype(str), y=total_per_x['Trend'], mode='lines', line=dict(color='#64748b', width=2, shape='spline'), hovertemplate='Avg Trend: %{y:.0f} mL<extra></extra>'), secondary_y=False)
+        
+        fig_milk = style_plotly_figure(fig_milk, title_text=f"🍼 Milk Intake Volume & Feed Count — {granularity}", height=490, single_point=is_single)
+        fig_milk.update_layout(barmode='stack')
+        fig_milk.update_yaxes(title_text="", secondary_y=False, showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=9.5), automargin=True)
+        fig_milk.update_yaxes(title_text="", secondary_y=True, showgrid=False, tickfont=dict(size=9.5), automargin=True)
+        st.plotly_chart(fig_milk, use_container_width=True)
+        
+        st.caption(f"ℹ️ *Combines stacked Formula and Breast Milk volume (mL) on left axis with Feed Count(s) (orange) on right axis. The grey line plots the 7-period rolling average.*", unsafe_allow_html=True)
+        
+        avg_vol = total_per_x['Value (Optional)'].mean()
+        trend_word = "holding highly stable ⚖️"
+        if len(total_per_x) > 3:
+             recent_avg = total_per_x['Value (Optional)'].iloc[-3:].mean()
+             if recent_avg > avg_vol * 1.05: trend_word = "trending upwards 📈, a great sign of healthy appetite growth"
+             elif recent_avg < avg_vol * 0.95: trend_word = "trending slightly downwards 📉 (keep an eye on hydration)"
+        render_insight_card(f"Riley's intake averages **{avg_vol:.0f} mL** per {granularity.lower().replace('ly','').replace('all time','period')}. Based on recent logs, her volume is **{trend_word}**.")
+    else: render_empty_state("No Feeding Data Logged in this period")
+
+# TAB 3: Diaper Output
+with tab3:
+    diaper_df = filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)].copy()
+    if not diaper_df.empty:
+        diaper_df['Category'] = diaper_df['Event Type'].apply(lambda x: "🚽 Poop (Cnt)" if "poop" in x.lower() else "💧 Wet Diaper (Cnt)")
+        grouped_diaper = diaper_df.groupby([group_col, 'Category']).size().reset_index(name='Count')
+        grouped_diaper[group_col] = grouped_diaper[group_col].apply(format_x_label)
+        is_single = len(grouped_diaper[group_col].unique()) == 1
+        fig_diaper = px.bar(grouped_diaper, x=group_col, y="Count", color="Category", barmode="group", color_discrete_map=COLOR_MAP)
+        if is_single: fig_diaper.update_traces(width=0.25)
+        fig_diaper.update_traces(hovertemplate='%{y}<extra></extra>')
+        fig_diaper = style_plotly_figure(fig_diaper, title_text=f"🚽 Diaper Changes Count — {granularity}", height=450, single_point=is_single)
+        st.plotly_chart(fig_diaper, use_container_width=True)
+        
+        st.caption(f"ℹ️ *Compares Wet Diapers and Poop counts grouped {granularity.lower()} from {start_date} to {end_date}.*")
+        
+        avg_diapers = len(diaper_df) / max(1, (end_date - start_date).days + 1)
+        wets = len(diaper_df[diaper_df['Category'] == '💧 Wet Diaper (Cnt)'])
+        poops = len(diaper_df[diaper_df['Category'] == '🚽 Poop (Cnt)'])
+        render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diapers, averaging **{avg_diapers:.1f}** changes per day. Consistent output is an excellent indicator that Riley is digesting properly!")
+    else: render_empty_state("No Diaper Data Logged in this period")
+
+# TAB 4: Dedicated Pumping Chart
+with tab4:
+    pump_df = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)].copy()
+    if not pump_df.empty:
+        grouped_pump = pump_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
+        grouped_pump[group_col] = grouped_pump[group_col].apply(format_x_label)
+        is_single = len(grouped_pump[group_col].unique()) == 1
+        fig_pump = px.bar(grouped_pump, x=group_col, y="Value (Optional)", color_discrete_sequence=[COLOR_MAP["🧴 Pumping (mL)"]])
+        if is_single: fig_pump.update_traces(width=0.25)
+        fig_pump.update_traces(hovertemplate='%{y} mL<extra></extra>')
+        fig_pump = style_plotly_figure(fig_pump, title_text=f"🧴 Pumping Volume (mL) — {granularity}", height=450, single_point=is_single)
+        st.plotly_chart(fig_pump, use_container_width=True)
+        
+        st.caption(f"ℹ️ *Displays recorded pumping volume (mL) grouped {granularity.lower()} from {start_date} to {end_date}.*")
+        
+        avg_pump = pump_df['Value (Optional)'].sum() / max(1, len(pump_df))
+        render_insight_card(f"Across **{len(pump_df)}** sessions, the average yield is **{avg_pump:.0f} mL** per session. Maintaining regular pumping intervals is key to sustaining supply.")
+    else: render_empty_state("No Pumping Data Logged in this period")
+
+# TAB 5: Dedicated Tummy Time Chart
+with tab5:
+    tummy_df = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)].copy()
+    if not tummy_df.empty:
+        grouped_tummy = tummy_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
+        grouped_tummy[group_col] = grouped_tummy[group_col].apply(format_x_label)
+        is_single = len(grouped_tummy[group_col].unique()) == 1
+        fig_tummy = px.bar(grouped_tummy, x=group_col, y="Value (Optional)", color_discrete_sequence=[COLOR_MAP["🛟 Tummy Time (Mins)"]])
+        if is_single: fig_tummy.update_traces(width=0.25)
+        fig_tummy.update_traces(hovertemplate='%{y} Mins<extra></extra>')
+        fig_tummy = style_plotly_figure(fig_tummy, title_text=f"🛟 Tummy Time — {granularity}", height=450, single_point=is_single)
+        st.plotly_chart(fig_tummy, use_container_width=True)
+        
+        st.caption(f"ℹ️ *Displays recorded tummy time duration (Mins) grouped {granularity.lower()} from {start_date} to {end_date}.*")
+        
+        total_tummy = tummy_df['Value (Optional)'].sum()
+        avg_tummy = total_tummy / max(1, len(tummy_df))
+        render_insight_card(f"Riley achieved **{total_tummy:.0f} total minutes** of tummy time (averaging **{avg_tummy:.0f}m** per session). Regular sessions are actively building her core and neck strength!")
+    else: render_empty_state("No Tummy Time Data Logged in this period")
+
+# ==============================================================================
+# TAB 6: GROWTH CHARTS
+# ==============================================================================
+with tab6:
+    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 0.85rem; text-align: center; margin-bottom: 10px;'><a href='https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf' target='_blank' style='color: #64748b; text-decoration: none; opacity: 0.8;'>📄 Official HK Growth Charts Reference (PDF)</a></p>", unsafe_allow_html=True)
+
+    who_option = st.radio("Select Growth Chart:", options=["⚖️ Weight", "🏔️ Height", "🐷 Head"], horizontal=True, label_visibility="collapsed")
+    
+    def get_who_data(gen, met):
+        if "Weight" in met:
+            if gen == "Boy": return np.array([3.3, 4.5, 5.6, 6.4, 7.0, 7.5, 7.9, 8.3, 8.6, 8.9, 9.2, 9.4, 9.6, 9.9, 10.1, 10.3, 10.5, 10.7, 10.9, 11.1, 11.3, 11.5, 11.8, 12.0, 12.2])
+            else: return np.array([3.2, 4.2, 5.1, 5.8, 6.4, 6.9, 7.3, 7.6, 7.9, 8.2, 8.5, 8.7, 8.9, 9.2, 9.4, 9.6, 9.8, 10.0, 10.2, 10.4, 10.6, 10.9, 11.1, 11.3, 11.5])
+        elif "Height" in met:
+            if gen == "Boy": return np.array([49.9, 54.7, 58.4, 61.4, 63.9, 65.9, 67.6, 69.2, 70.6, 72.0, 73.3, 74.5, 75.7, 76.9, 78.0, 79.1, 80.2, 81.2, 82.3, 83.2, 84.2, 85.1, 86.0, 86.9, 87.8])
+            else: return np.array([49.1, 53.7, 57.1, 59.8, 62.1, 64.0, 65.7, 67.3, 68.7, 70.1, 71.5, 72.8, 74.0, 75.2, 76.4, 77.5, 78.6, 79.7, 80.7, 81.7, 82.7, 83.7, 84.6, 85.5, 86.4])
+        else:
+            if gen == "Boy": return np.array([34.5, 37.3, 39.1, 40.5, 41.6, 42.6, 43.3, 44.0, 44.6, 45.1, 45.5, 46.0, 46.3, 46.6, 46.9, 47.2, 47.4, 47.6, 47.8, 48.0, 48.2, 48.4, 48.5, 48.7, 48.8])
             else: return np.array([33.9, 36.5, 38.3, 39.5, 40.6, 41.5, 42.2, 42.8, 43.4, 43.8, 44.2, 44.6, 44.9, 45.2, 45.4, 45.7, 45.9, 46.1, 46.3, 46.5, 46.7, 46.9, 47.0, 47.2, 47.3])
 
     def get_hk_mults(met):
@@ -773,19 +940,19 @@ with tab8:
             
         st.dataframe(
             display_vac, use_container_width=True, hide_index=True, height=350,
-        column_config={
-            "Date Injected": st.column_config.TextColumn("Date Injected", width="medium"), 
-            "Age at Shot": st.column_config.TextColumn("Age at Shot", width="small"),
-            "Event Type": st.column_config.TextColumn("Event", width="medium"),
-            "Notes / Details (Optional)": st.column_config.TextColumn("Vaccine Type / Notes", width="large")
-        }
-    )
-else: render_empty_state("No Vaccine Data Logged")
+            column_config={
+                "Date Injected": st.column_config.TextColumn("Date Injected", width="medium"), 
+                "Age at Shot": st.column_config.TextColumn("Age at Shot", width="small"),
+                "Event Type": st.column_config.TextColumn("Event", width="medium"),
+                "Notes / Details (Optional)": st.column_config.TextColumn("Vaccine Type / Notes", width="large")
+            }
+        )
+    else: render_empty_state("No Vaccine Data Logged")
 
 # ==========================================
 # 6. EXPANDED DATABASE TABLE (MOVED TO BOTTOM)
 # ==========================================
-st.markdown('<div id="database"></div><div style="height: 2.0rem;"></div>', unsafe_allow_html=True)
+st.markdown('<div id="database" style="padding-top: 2rem;"></div>', unsafe_allow_html=True)
 st.subheader("📋 Database")
 
 filter_c1, filter_c2 = st.columns([1, 1])
@@ -831,5 +998,4 @@ else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
 
 st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
-
 
