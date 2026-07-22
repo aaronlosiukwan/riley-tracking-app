@@ -64,6 +64,17 @@ st.markdown("""
         scroll-margin-top: 70px;
     }
 
+    /* Native iOS Tap-to-Top Scroll Fix: Move scrolling from Streamlit containers to the main browser window */
+    html, body, #root {
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+        overflow: visible !important;
+        height: auto !important;
+    }
+
     /* Compact Vertical Spacing Across Blocks & Expanders */
     div[data-testid="stVerticalBlock"] {
         gap: 0.35rem !important;
@@ -498,7 +509,9 @@ def standardize_event_name(event_str):
         "Tummy Time (Mins)": "🛟 Tummy Time (Mins)",
         "Sleep (hrs)": "🛌 Sleep (hrs)",
         "Temp (°C)": "🌡️ Temp (°C)",
-        "Meds (Cnt)": "💊 Meds (Cnt)"
+        "Meds (Cnt)": "💊 Meds (Cnt)",
+        "Weight (kg)": "⚖️ Weight (kg)",
+        "Height (cm)": "🏔️ Height (cm)"
     }
     return mapping.get(s, s)
 
@@ -514,6 +527,8 @@ ALL_EVENT_CATEGORIES = [
     "🛌 Sleep (hrs)",
     "🌡️ Temp (°C)",
     "💊 Meds (Cnt)",
+    "⚖️ Weight (kg)",
+    "🏔️ Height (cm)",
     "Other"
 ]
 
@@ -527,6 +542,8 @@ COLOR_MAP = {
     "🛌 Sleep (hrs)": "#6366f1",        # Indigo
     "🌡️ Temp (°C)": "#ef4444",         # Crimson
     "💊 Meds (Cnt)": "#f59e0b",         # Bright Amber
+    "⚖️ Weight (kg)": "#14b8a6",        # Teal
+    "🏔️ Height (cm)": "#0ea5e9",        # Light Blue
     "Other": "#6b7280"
 }
 
@@ -1226,30 +1243,34 @@ with tab5:
     else:
         render_empty_state("No Tummy Time Data Logged in this period")
 
-# TAB 6: Health Charts (Sleep, Temp, Meds strictly grouped by Date / GroupCol formatted m.DD)
+# TAB 6: Health Charts (Sleep, Temp, Meds, Weight, Height strictly grouped by Date / GroupCol formatted m.DD)
 with tab6:
     act_option = st.radio(
         "Select Health Activity:",
         options=[
             "🛌 Sleep (hrs)",
             "🌡️ Temp (°C)",
-            "💊 Meds (Cnt)"
+            "💊 Meds (Cnt)",
+            "⚖️ Weight (kg)",
+            "🏔️ Height (cm)"
         ],
         horizontal=True,
         label_visibility="collapsed"
     )
     
     act_mapping = {
-        "🛌 Sleep (hrs)": ("Sleep", "Duration (hrs)", COLOR_MAP["🛌 Sleep (hrs)"]),
-        "🌡️ Temp (°C)": ("Temp", "Temperature (°C)", COLOR_MAP["🌡️ Temp (°C)"]),
-        "💊 Meds (Cnt)": ("Meds", "Dose Count(s)", COLOR_MAP["💊 Meds (Cnt)"])
+        "🛌 Sleep (hrs)": ("Sleep", "Duration (hrs)", COLOR_MAP["🛌 Sleep (hrs)"], "hrs"),
+        "🌡️ Temp (°C)": ("Temp", "Temperature (°C)", COLOR_MAP["🌡️ Temp (°C)"], "°C"),
+        "💊 Meds (Cnt)": ("Meds", "Dose Count(s)", COLOR_MAP["💊 Meds (Cnt)"], "doses"),
+        "⚖️ Weight (kg)": ("Weight", "Weight (kg)", COLOR_MAP["⚖️ Weight (kg)"], "kg"),
+        "🏔️ Height (cm)": ("Height", "Height (cm)", COLOR_MAP["🏔️ Height (cm)"], "cm")
     }
     
-    keyword, y_title, act_color = act_mapping[act_option]
+    keyword, y_title, act_color, unit = act_mapping[act_option]
     act_df = filtered_df[filtered_df['Event Type'].str.contains(keyword, case=False, na=False)].copy()
     
     if not act_df.empty:
-        if keyword == "Temp":
+        if keyword in ["Temp", "Weight", "Height"]:
             grouped_act = act_df.groupby(group_col)['Value (Optional)'].mean().reset_index()
             grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
             is_single = len(grouped_act[group_col].unique()) == 1
@@ -1265,7 +1286,7 @@ with tab6:
             fig_act.update_traces(
                 line=dict(width=3, shape='spline', smoothing=1.3),
                 marker=dict(size=12 if is_single else 8, symbol='circle', line=dict(width=2, color='#ffffff')),
-                hovertemplate='%{y:.1f} °C<extra></extra>'
+                hovertemplate=f'%{{y:.1f}} {unit}<extra></extra>'
             )
         elif keyword == "Sleep":
             grouped_act = act_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
@@ -1281,7 +1302,7 @@ with tab6:
             )
             if is_single:
                 fig_act.update_traces(width=0.25)
-            fig_act.update_traces(hovertemplate='%{y} hrs<extra></extra>')
+            fig_act.update_traces(hovertemplate=f'%{{y}} {unit}<extra></extra>')
         else: # Meds count
             grouped_act = act_df.groupby(group_col).size().reset_index(name='Value (Optional)')
             grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
@@ -1296,13 +1317,13 @@ with tab6:
             )
             if is_single:
                 fig_act.update_traces(width=0.25)
-            fig_act.update_traces(hovertemplate='%{y} doses<extra></extra>')
+            fig_act.update_traces(hovertemplate=f'%{{y}} {unit}<extra></extra>')
             
-        fig_act = style_plotly_figure(fig_act, title_text=f"🩺 Health — {act_option} ({granularity})", height=450, single_point=is_single)
+        fig_act = style_plotly_figure(fig_act, title_text=f"🩺 Health — {act_option}", height=450, single_point=is_single)
         st.plotly_chart(fig_act, use_container_width=True)
         st.caption(f"ℹ️ *Displays recorded **{act_option}** data grouped **{granularity.lower()}** from **{start_date}** to **{end_date}**.*")
     else:
-        render_empty_state(f"No {act_option} Data Logged in this period")
+        render_empty_state(f"No {act_option.split(' ')[1]} Data Logged in this period")
 
 # TAB 7: Full Period Timeline Scatter
 with tab7:
@@ -1332,6 +1353,7 @@ with tab7:
         st.caption(f"ℹ️ *Individual event occurrence scatter plot from **{start_date}** to **{end_date}**.*")
     else:
         render_empty_state("No Events Logged in this period")
+
 
 
 
