@@ -106,16 +106,33 @@ st.markdown("""
 
     .app-main-title { font-size: calc(1.3rem + 0.6vw) !important; font-weight: 600 !important; line-height: 1.2 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--card-text); margin: 0; }
 
-    @media (max-width: 768px) {
-        div[data-testid="stHorizontalBlock"]:has(> div > div > .app-main-title) { display: flex !important; flex-wrap: wrap !important; gap: 0.5rem !important; margin-bottom: 0.8rem !important; }
-        div[data-testid="stHorizontalBlock"]:has(> div > div > .app-main-title) > [data-testid="column"]:nth-child(1) { width: 100% !important; min-width: 100% !important; flex: 1 1 100% !important; margin-bottom: 0.2rem !important; }
-        div[data-testid="stHorizontalBlock"]:has(> div > div > .app-main-title) > [data-testid="column"]:nth-child(2),
-        div[data-testid="stHorizontalBlock"]:has(> div > div > .app-main-title) > [data-testid="column"]:nth-child(3) { width: calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; flex: 0 0 calc(50% - 0.25rem) !important; }
-        .desktop-header-margin { display: none !important; }
+    /* Custom Header Buttons */
+    .custom-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        background-color: var(--card-bg) !important; color: #1e293b !important;
+        border: 1px solid var(--card-border); box-shadow: var(--card-shadow);
+        border-radius: 8px; height: 2.2rem; font-size: 0.85rem; font-weight: 500;
+        text-decoration: none !important; transition: all 0.15s ease; box-sizing: border-box;
     }
-    @media (min-width: 769px) { .desktop-header-margin { height: 1.5rem; width: 100%; display: block; } }
+    .custom-btn:active { background-color: #f1f5f9 !important; transform: scale(0.98); }
 
-    div[data-testid="stHorizontalBlock"]:has(> div > div > .app-main-title) [data-testid="baseButton-secondary"] { height: 2.2rem !important; min-height: 2.2rem !important; }
+    /* Flawless HTML Desktop/Mobile Header Layouts */
+    @media (min-width: 769px) {
+        .custom-header-mobile { display: none !important; }
+        .custom-header-desktop { display: block !important; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+        .desktop-header-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; }
+        .desktop-header-controls { display: flex; gap: 0.5rem; }
+        .desktop-header-controls .custom-btn { padding: 0 0.8rem; }
+    }
+
+    @media (max-width: 768px) {
+        .custom-header-desktop { display: none !important; }
+        /* Pushed down 1.5rem so it is never blocked by the Streamlit hamburger menu */
+        .custom-header-mobile { display: block !important; width: 100%; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+        .mobile-header-controls { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; gap: 0.5rem; }
+        .mobile-header-controls .custom-btn { flex: 1; text-align: center; }
+    }
+
     span[data-baseweb="tag"] { background-color: #e5e7eb !important; color: #1f2937 !important; border: 1px solid #d1d5db !important; font-weight: 500 !important; }
     .toc-button { display: block; width: 100%; padding: 8px 12px; margin: 3px 0; background-color: var(--card-bg); border: 1px solid var(--card-border); box-shadow: var(--card-shadow); color: var(--card-text) !important; text-decoration: none !important; border-radius: 8px; font-size: 0.85rem; font-weight: 500; transition: all 0.15s ease-in-out; }
     .toc-button:hover { background-color: #f1f5f9; border-color: #cbd5e1; text-decoration: none !important; }
@@ -142,23 +159,30 @@ st.markdown("""
 # Main Title Anchor
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
-h_col1, h_col2, h_col3 = st.columns([0.65, 0.175, 0.175], vertical_alignment="center")
-with h_col1: st.markdown('<div class="app-main-title">🍼 Riley\'s Growth Tracker</div>', unsafe_allow_html=True)
-with h_col2: st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
-with h_col3:
-    if st.button("🔄 Refresh", use_container_width=True):
-        st.session_state['reloaded'] = True
-        st.cache_data.clear()
-        st.rerun()
-
-if st.session_state.get('reloaded', False):
-    st.toast("✅ Done! Data updated.", icon="🔄")
-    st.session_state['reloaded'] = False
-
-st.markdown("<div class='desktop-header-margin'></div>", unsafe_allow_html=True)
+# ---------------------------------------------------------
+# RESPONSIVE HEADER SECTION (Restored Pure HTML Layout)
+# ---------------------------------------------------------
+st.markdown("""
+<div class="custom-header-desktop">
+    <div class="desktop-header-row">
+        <div class="app-main-title">🍼 Riley's Growth Tracker</div>
+        <div class="desktop-header-controls">
+            <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
+            <a href="javascript:void(0);" onclick="window.triggerRefresh ? window.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
+        </div>
+    </div>
+</div>
+<div class="custom-header-mobile">
+    <div class="app-main-title" style="margin-bottom: 0.6rem;">🍼 Riley's Growth Tracker</div>
+    <div class="mobile-header-controls">
+        <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
+        <a href="javascript:void(0);" onclick="window.triggerRefresh ? window.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ==========================================
-# 2. SIDEBAR & GSHEET SETTINGS
+# 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
 # ==========================================
 st.sidebar.markdown("""
     <div style="margin-bottom: 10px;">
@@ -228,8 +252,8 @@ def standardize_event_name(event_str):
         "Wet Diaper (Cnt)": "💧 Wet Diaper (Cnt)", "Poop (Cnt)": "🚽 Poop (Cnt)",
         "Pumping (mL)": "🧴 Pumping (mL)", "Tummy Time (Mins)": "🛟 Tummy Time (Mins)",
         "Sleep (hrs)": "🛌 Sleep (hrs)", "Temp (°C)": "🌡️ Temp (°C)", "Meds (Cnt)": "💊 Meds (Cnt)",
-        "Weight (kg)": "⚖️ Weight (kg)", "Height (cm)": "🏔️ Height (cm)", "Head Size (cm)": "🐷 Head Size (cm)",
-        "Head (cm)": "🐷 Head Size (cm)", "Vaccine": "💉 Vaccine (Cnt)", "Vaccine (Cnt)": "💉 Vaccine (Cnt)"
+        "Weight (kg)": "⚖️ Weight (kg)", "Height (cm)": "🏔️ Height (cm)", "Head Size (cm)": "🐷 Head (cm)",
+        "Head (cm)": "🐷 Head (cm)", "Vaccine": "💉 Vaccine (Cnt)", "Vaccine (Cnt)": "💉 Vaccine (Cnt)"
     }
     return mapping.get(s, s)
 
@@ -238,14 +262,14 @@ df['Event Type'] = df['Event Type'].apply(standardize_event_name)
 ALL_EVENT_CATEGORIES = [
     "🍼 Formula (mL)", "🤱 Breast Milk (mL)", "💧 Wet Diaper (Cnt)", "🚽 Poop (Cnt)",
     "🧴 Pumping (mL)", "🛟 Tummy Time (Mins)", "🛌 Sleep (hrs)", "🌡️ Temp (°C)",
-    "💊 Meds (Cnt)", "⚖️ Weight (kg)", "🏔️ Height (cm)", "🐷 Head Size (cm)", "💉 Vaccine (Cnt)", "Other"
+    "💊 Meds (Cnt)", "⚖️ Weight (kg)", "🏔️ Height (cm)", "🐷 Head (cm)", "💉 Vaccine (Cnt)", "Other"
 ]
 
 COLOR_MAP = {
     "🍼 Formula (mL)": "#38bdf8", "🤱 Breast Milk (mL)": "#9ca3af", "💧 Wet Diaper (Cnt)": "#0284c7",
     "🚽 Poop (Cnt)": "#d97706", "🧴 Pumping (mL)": "#a855f7", "🛟 Tummy Time (Mins)": "#10b981",
     "🛌 Sleep (hrs)": "#6366f1", "🌡️ Temp (°C)": "#ef4444", "💊 Meds (Cnt)": "#f59e0b",
-    "⚖️ Weight (kg)": "#14b8a6", "🏔️ Height (cm)": "#0ea5e9", "🐷 Head Size (cm)": "#ec4899",
+    "⚖️ Weight (kg)": "#14b8a6", "🏔️ Height (cm)": "#0ea5e9", "🐷 Head (cm)": "#ec4899",
     "💉 Vaccine (Cnt)": "#f43f5e", "Other": "#6b7280"
 }
 
@@ -294,6 +318,7 @@ def get_unit_from_name(name):
     return ""
 
 def render_insight_card(text):
+    # Enforces balanced 12px top gap and 16px bottom gap for perfect visual separation from the caption
     st.markdown(f"""
     <div style="background-color: #f8fafc; border-left: 4px solid #8b5cf6; padding: 12px 16px; border-radius: 8px; margin: 12px 0 16px 0; font-size: 0.88rem; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
         <strong style="color: #6d28d9;">✨ AI Insight:</strong> {text}
@@ -521,8 +546,15 @@ with tab1:
         fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=450, is_scatter=True, x_tickformat="%d-%H", x_dtick=10800000, y_tickangle=-45)
         fig_today_timeline.update_layout(showlegend=False)
         st.plotly_chart(fig_today_timeline, use_container_width=True)
-        render_insight_card(f"Riley has {len(today_24h_df)} events logged in the last 24 hours. Consistent logging reveals predictable patterns in her routine!")
+        
         st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours. Markers size and label text correspond to the recorded volume/duration.*")
+        
+        feed_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Formula|Breast Milk")])
+        diaper_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Diaper|Poop")])
+        analysis = f"Riley has had **{feed_cnt} feeds** and **{diaper_cnt} diaper changes** in the past 24 hours. "
+        if feed_cnt >= 7: analysis += "Her feeding frequency is robust, which is excellent for hydration and growth!"
+        elif feed_cnt > 0: analysis += "Her routine appears well-spaced and stable."
+        render_insight_card(analysis)
     else: render_empty_state("No Events Logged in the Last 24 Hours")
 
 # TAB 2: Milk Intake
@@ -537,25 +569,6 @@ with tab2:
         total_per_x = milk_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
         total_per_x = total_per_x.sort_values(group_col)
         total_per_x['Trend'] = total_per_x['Value (Optional)'].rolling(window=min(7, len(total_per_x)), min_periods=1).mean()
-        
-        def get_target_vol(date_val, gran):
-            try:
-                if gran == "Monthly": d = pd.to_datetime(str(date_val) + "-01").date()
-                else: d = pd.to_datetime(date_val).date()
-                age_days = (d - baby_dob).days
-                if age_days < 30: daily_tgt = 750
-                elif age_days < 60: daily_tgt = 850
-                elif age_days < 90: daily_tgt = 900
-                elif age_days < 180: daily_tgt = 950
-                elif age_days < 270: daily_tgt = 800
-                elif age_days < 365: daily_tgt = 600
-                else: daily_tgt = 500
-                if gran == "Weekly": return daily_tgt * 7
-                elif gran == "Monthly": return daily_tgt * 30.4
-                return daily_tgt
-            except: return 800
-                
-        total_per_x['Target'] = total_per_x[group_col].apply(lambda x: get_target_vol(x, granularity))
 
         grouped_vol[group_col] = grouped_vol[group_col].apply(format_x_label)
         grouped_count[group_col] = grouped_count[group_col].apply(format_x_label)
@@ -578,7 +591,6 @@ with tab2:
             
         fig_milk.add_trace(go.Scatter(name='🔢 Feed Count(s)', x=grouped_count[group_col].astype(str), y=grouped_count['Total Feeds Count'], mode='lines+markers+text', text=grouped_count['Total Feeds Count'], textposition="top center", textfont=dict(size=10.5, weight='bold'), line=dict(color='#f97316', width=3, shape='spline', smoothing=1.3), marker=dict(size=10, symbol='circle', color='#f97316', line=dict(width=2, color='#ffffff')), hovertemplate='%{y} feeds<extra></extra>'), secondary_y=True)
         fig_milk.add_trace(go.Scatter(name='📈 Vol Trend', x=total_per_x[group_col].astype(str), y=total_per_x['Trend'], mode='lines', line=dict(color='#64748b', width=2, shape='spline'), hovertemplate='Avg Trend: %{y:.0f} mL<extra></extra>'), secondary_y=False)
-        fig_milk.add_trace(go.Scatter(name='🎯 Target Vol', x=total_per_x[group_col].astype(str), y=total_per_x['Target'], mode='lines', line=dict(color='#10b981', width=2, dash='dot'), hovertemplate='Target: %{y:.0f} mL<extra></extra>'), secondary_y=False)
         
         fig_milk = style_plotly_figure(fig_milk, title_text=f"🍼 Milk Intake Volume & Feed Count — {granularity}", height=490, single_point=is_single)
         fig_milk.update_layout(barmode='stack')
@@ -586,14 +598,15 @@ with tab2:
         fig_milk.update_yaxes(title_text="", secondary_y=True, showgrid=False, tickfont=dict(size=9.5), automargin=True)
         st.plotly_chart(fig_milk, use_container_width=True)
         
+        st.caption(f"ℹ️ *Combines stacked Formula and Breast Milk volume (mL) on left axis with Feed Count(s) (orange) on right axis. The grey line plots the 7-period rolling average.*", unsafe_allow_html=True)
+        
         avg_vol = total_per_x['Value (Optional)'].mean()
-        trend_word = "stable"
-        if len(total_per_x) > 1:
-             last_vol = total_per_x['Value (Optional)'].iloc[-1]
-             if last_vol > avg_vol * 1.1: trend_word = "increasing"
-             elif last_vol < avg_vol * 0.9: trend_word = "decreasing"
-        render_insight_card(f" Riley's average milk intake is ~{avg_vol:.0f} mL per {granularity.lower().replace('ly','').replace('all time','period')}. The recent trend appears to be **{trend_word}**.")
-        st.caption(f"ℹ️ *Combines stacked Formula and Breast Milk volume (mL) on left axis with Feed Count(s) (orange) on right axis.*<br>🎯 **Target Volume Guidelines:** *0-1 Mo (~750mL), 1-2 Mo (~850mL), 2-3 Mo (~900mL), 3-6 Mo (~950mL), 6-9 Mo (~800mL), 9-12 Mo (~600mL), 1+ Yr (~500mL).* The green line plots your active target based on Riley's age, and the grey line plots the 7-period rolling average.", unsafe_allow_html=True)
+        trend_word = "holding highly stable ⚖️"
+        if len(total_per_x) > 3:
+             recent_avg = total_per_x['Value (Optional)'].iloc[-3:].mean()
+             if recent_avg > avg_vol * 1.05: trend_word = "trending upwards 📈, a great sign of healthy appetite growth"
+             elif recent_avg < avg_vol * 0.95: trend_word = "trending slightly downwards 📉 (keep an eye on hydration)"
+        render_insight_card(f"Riley's intake averages **{avg_vol:.0f} mL** per {granularity.lower().replace('ly','').replace('all time','period')}. Based on recent logs, her volume is **{trend_word}**.")
     else: render_empty_state("No Feeding Data Logged in this period")
 
 # TAB 3: Diaper Output
@@ -609,8 +622,13 @@ with tab3:
         fig_diaper.update_traces(hovertemplate='%{y}<extra></extra>')
         fig_diaper = style_plotly_figure(fig_diaper, title_text=f"🚽 Diaper Changes Count — {granularity}", height=450, single_point=is_single)
         st.plotly_chart(fig_diaper, use_container_width=True)
-        render_insight_card(f"You've tracked {len(diaper_df)} diaper changes in this period. Tracking dirty vs wet diapers ensures Riley is well-hydrated!")
+        
         st.caption(f"ℹ️ *Compares Wet Diapers and Poop counts grouped {granularity.lower()} from {start_date} to {end_date}.*")
+        
+        avg_diapers = len(diaper_df) / max(1, (end_date - start_date).days + 1)
+        wets = len(diaper_df[diaper_df['Category'] == '💧 Wet Diaper (Cnt)'])
+        poops = len(diaper_df[diaper_df['Category'] == '🚽 Poop (Cnt)'])
+        render_insight_card(f"You've tracked {wets} wet and {poops} soiled diapers, averaging **{avg_diapers:.1f} changes per day**. Consistent output is an excellent indicator that Riley is digesting properly!")
     else: render_empty_state("No Diaper Data Logged in this period")
 
 # TAB 4: Dedicated Pumping Chart
@@ -625,8 +643,11 @@ with tab4:
         fig_pump.update_traces(hovertemplate='%{y} mL<extra></extra>')
         fig_pump = style_plotly_figure(fig_pump, title_text=f"🧴 Pumping Volume (mL) — {granularity}", height=450, single_point=is_single)
         st.plotly_chart(fig_pump, use_container_width=True)
-        render_insight_card(f"A total of {pump_df['Value (Optional)'].sum():.0f} mL was pumped over {len(pump_df)} sessions in this period.")
+        
         st.caption(f"ℹ️ *Displays recorded pumping volume (mL) grouped {granularity.lower()} from {start_date} to {end_date}.*")
+        
+        avg_pump = pump_df['Value (Optional)'].sum() / max(1, len(pump_df))
+        render_insight_card(f"Across **{len(pump_df)} sessions**, the average yield is **{avg_pump:.0f} mL per session**. Maintaining regular pumping intervals is key to sustaining supply.")
     else: render_empty_state("No Pumping Data Logged in this period")
 
 # TAB 5: Dedicated Tummy Time Chart
@@ -641,12 +662,16 @@ with tab5:
         fig_tummy.update_traces(hovertemplate='%{y} Mins<extra></extra>')
         fig_tummy = style_plotly_figure(fig_tummy, title_text=f"🛟 Tummy Time — {granularity}", height=450, single_point=is_single)
         st.plotly_chart(fig_tummy, use_container_width=True)
-        render_insight_card(f"Riley completed {tummy_df['Value (Optional)'].sum():.0f} minutes of tummy time. Great for strengthening neck and shoulder muscles!")
+        
         st.caption(f"ℹ️ *Displays recorded tummy time duration (Mins) grouped {granularity.lower()} from {start_date} to {end_date}.*")
+        
+        total_tummy = tummy_df['Value (Optional)'].sum()
+        avg_tummy = total_tummy / max(1, len(tummy_df))
+        render_insight_card(f"Riley achieved **{total_tummy:.0f} total minutes** of tummy time (averaging {avg_tummy:.0f}m per session). Regular sessions are actively building her core and neck strength!")
     else: render_empty_state("No Tummy Time Data Logged in this period")
 
 # ==============================================================================
-# TAB 6: HK MCHC GROWTH CHARTS
+# TAB 6: GROWTH CHARTS
 # ==============================================================================
 with tab6:
     st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
@@ -668,7 +693,8 @@ with tab6:
         if "Height" in met: return (0.95, 0.975, 1.025, 1.05)
         return (0.96, 0.98, 1.02, 1.04)
 
-    db_keyword = "⚖️ Weight (kg)" if "Weight" in who_option else ("🏔️ Height (cm)" if "Height" in who_option else "🐷 Head Size (cm)")
+    # Use entire dataset for growth charting
+    db_keyword = "⚖️ Weight (kg)" if "Weight" in who_option else ("🏔️ Height (cm)" if "Height" in who_option else "🐷 Head (cm)")
     who_df = df[df['Event Type'] == db_keyword].copy()
     
     current_date = (datetime.utcnow() + timedelta(hours=tz_offset)).date()
@@ -755,16 +781,26 @@ with tab6:
         y_lower = min(min_p3_vis, u_min) * 0.99
 
         fig_who.update_layout(
-            title=dict(text=f"📈 {who_option}", y=0.97, x=0.5, xanchor="center", font=dict(size=16)),
+            title=dict(text=f"📈 {who_option.split(' ')[1]}", y=0.97, x=0.5, xanchor="center", font=dict(size=16)),
             height=500, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=2, r=2, t=60, b=20),
             xaxis=dict(title="Age (Months)", showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickformat=".0f", range=[range_min, x_max_buffer]),
             yaxis=dict(title="", showgrid=True, gridcolor="rgba(128,128,128,0.15)", range=[y_lower, y_upper]),
             showlegend=False, hovermode="x unified"
         )
         st.plotly_chart(fig_who, use_container_width=True)
-        render_insight_card(f"Riley's {who_option.split(' ')[1]} is plotted against the official MCHC percentiles. Parallel growth along her curve is the best indicator of healthy development.")
-        st.markdown("<p style='font-size: 0.85rem; text-align: center; margin-top: -10px;'><a href='https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf' target='_blank' style='color: #64748b; text-decoration: none; opacity: 0.8;'>📄 Official HK Growth Charts Reference (PDF)</a></p>", unsafe_allow_html=True)
-        st.caption(f"ℹ️ *Interactive Growth Chart for {baby_gender}s based on standard HK lines. The shaded bands map the 3rd, 15th, 50th, 85th, and 97th percentiles.*")
+        
+        st.caption(f"ℹ️ *Interactive Growth Chart for {baby_gender}s based on standard HK lines. The shaded bands map the 3rd, 15th, 50th, 85th, and 97th percentiles.*<br><a href='https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf' target='_blank' style='color: #64748b; text-decoration: none; font-size: 0.85rem;'>📄 Official HK Growth Charts Reference</a>", unsafe_allow_html=True)
+        
+        latest_data = who_df.iloc[-1]
+        latest_pct = latest_data['Est_Pct']
+        latest_val = latest_data['Value (Optional)']
+        
+        if latest_pct > 85: pct_text = "tracking in the higher percentiles 📈"
+        elif latest_pct < 15: pct_text = "tracking in the lower percentiles 📉"
+        else: pct_text = "tracking beautifully near the median ⚖️"
+            
+        render_insight_card(f"At **{latest_data['Age_Months']:.1f} months**, Riley's {who_option.split(' ')[1].lower()} is **{latest_val:.1f} {unit_str}** (~{latest_pct:.0f}th percentile). She is {pct_text} compared to HK standard guidelines.")
+        
     else:
         render_empty_state(f"No {who_option} Data Logged")
 
@@ -804,8 +840,14 @@ with tab7:
             
         fig_act = style_plotly_figure(fig_act, title_text=f"🩺 Health — {act_option} ({granularity})", height=450, single_point=is_single)
         st.plotly_chart(fig_act, use_container_width=True)
-        render_insight_card(f"Monitoring {act_option.split(' ')[1]} patterns helps you spot irregularities early. Riley has {len(act_df)} records in this view.")
+        
         st.caption(f"ℹ️ *Displays recorded {act_option} data grouped {granularity.lower()} from {start_date} to {end_date}.*")
+        
+        avg_act = act_df['Value (Optional)'].mean()
+        if keyword == "Meds":
+             render_insight_card(f"Riley has logged {len(act_df)} medication doses in this period. Tracking these logs carefully prevents missed or double doses.")
+        else:
+             render_insight_card(f"Across {len(act_df)} records, Riley averages **{avg_act:.1f} {unit}**. Stable patterns in {act_option.split(' ')[1].lower()} are strong indicators of general wellbeing.")
     else: render_empty_state(f"No {act_option.split(' ')[1]} Data Logged in this period")
 
 
@@ -871,7 +913,7 @@ with tab8:
             "Type": s["Provider"],
             "Description": s["Desc"],
             "Date Injected": str(s["Match"]) if s["Match"] else "-",
-            "Status": status, # Status moved to last column
+            "Status": status,
             "Optional": s["Optional"],
             "Days": s["Days"]
         })
@@ -886,7 +928,6 @@ with tab8:
     else:
         styled_df = styled_df.sort_values(by="Days").reset_index(drop=True)
 
-    # Apply Styler Logic mathematically 
     def apply_vaccine_colors(row):
         if '✅' in row['Status']: return ['background-color: #dcfce7; color: #166534'] * 7
         elif '🟡' in row['Status']: return ['background-color: #fef08a; color: #854d0e'] * 7
@@ -907,7 +948,6 @@ with tab8:
         }
     )
     
-    render_insight_card(f"Riley's vaccination milestones are tracked against both HKCIP and Optional standard schedules. Staying on schedule ensures maximum immunity!")
     st.caption("ℹ️ *Auto-matches your logged vaccines by scanning your 'Notes / Details' column for keywords (e.g. 6-in-1, PCV, Rota, BCG).*")
     
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
