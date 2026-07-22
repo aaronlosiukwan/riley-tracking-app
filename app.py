@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Apple Touch Icon, Refresh Logic, and JS Handlers
+# Inject Apple Touch Icon
 components.html(
     """
     <script>
@@ -36,42 +36,9 @@ components.html(
                 link.href = iconUrl;
             });
         }
-        
-        function setupRefreshLogic(doc, win) {
-            if (!win.triggerRefresh) {
-                win.triggerRefresh = function(element) {
-                    element.innerHTML = '⏳ Refreshing...';
-                    win.sessionStorage.setItem('reloaded', 'true');
-                    setTimeout(() => { win.location.reload(true); }, 200);
-                };
-            }
-            if (win.sessionStorage.getItem('reloaded')) {
-                win.sessionStorage.removeItem('reloaded');
-                let attempts = 0;
-                const interval = setInterval(() => {
-                    const btns = doc.querySelectorAll('.refresh-btn');
-                    if (btns.length > 0) {
-                        btns.forEach(btn => {
-                            btn.innerHTML = '✅ Done!';
-                            btn.style.backgroundColor = '#dcfce7'; 
-                            btn.style.borderColor = '#86efac';
-                            setTimeout(() => { 
-                                btn.innerHTML = '🔄 Refresh'; 
-                                btn.style.backgroundColor = '';
-                                btn.style.borderColor = '';
-                            }, 2000);
-                        });
-                        clearInterval(interval);
-                    }
-                    attempts++;
-                    if (attempts > 20) clearInterval(interval);
-                }, 100);
-            }
-        }
-        
         try { applyAppleIcon(document); } catch(e) {}
-        try { applyAppleIcon(window.parent.document); setupRefreshLogic(window.parent.document, window.parent); } catch(e) {}
-        try { applyAppleIcon(window.top.document); setupRefreshLogic(window.top.document, window.top); } catch(e) {}
+        try { applyAppleIcon(window.parent.document); } catch(e) {}
+        try { applyAppleIcon(window.top.document); } catch(e) {}
     })();
     </script>
     """,
@@ -89,7 +56,7 @@ st.markdown("""
     html { scroll-behavior: smooth; }
     [id] { scroll-margin-top: 70px; }
 
-    /* Standard Streamlit scrolling for stable UI */
+    /* Standard Streamlit scrolling for stable UI and native iOS compatibility */
     body, .stApp {
         color: var(--card-text) !important;
         background-color: #f8fafc !important;
@@ -99,19 +66,20 @@ st.markdown("""
         background-color: #f8fafc !important; 
     }
     
-    /* Generous, locked padding at bottom to prevent the page from jumping when switching tab charts */
+    /* Generous bottom padding so switching tabs doesn't bounce the page */
     [data-testid="stMainBlockContainer"] {
-        padding-top: calc(3.5rem + env(safe-area-inset-top)) !important;
+        padding-top: calc(2.5rem + env(safe-area-inset-top)) !important;
         padding-bottom: 25rem !important; 
     }
 
-    /* Compact Vertical Spacing */
-    div[data-testid="stVerticalBlock"] { gap: 0.35rem !important; }
-    div[data-testid="stExpander"] { margin-bottom: 0.15rem !important; border-radius: 10px !important; }
+    /* Highly Compressed Vertical Spacing Between Expanders */
+    div[data-testid="stVerticalBlock"] { gap: 0.15rem !important; }
+    div[data-testid="stExpander"] { margin-bottom: 0.05rem !important; border-radius: 10px !important; }
+    div[data-testid="stExpanderDetails"] { padding-bottom: 0.5rem !important; }
     
-    /* Ensure even top/bottom margins for cards wrapped inside an expander */
+    /* Removes the entire gap above the top row of cards */
     div[data-testid="stExpander"] .cards-container { 
-        margin-top: 10px !important; 
+        margin-top: -12px !important; 
         margin-bottom: 10px !important; 
     }
 
@@ -134,47 +102,32 @@ st.markdown("""
         margin: 0;
     }
 
-    /* Custom Header Buttons */
-    .custom-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background-color: var(--card-bg) !important;
-        color: #1e293b !important;
-        border: 1px solid var(--card-border);
-        box-shadow: var(--card-shadow);
-        border-radius: 8px;
-        height: 2.1rem;
-        font-size: 0.85rem;
-        font-weight: 500;
-        text-decoration: none !important;
-        transition: all 0.15s ease;
-        box-sizing: border-box;
-    }
-    .custom-btn:active { background-color: #f1f5f9 !important; transform: scale(0.98); }
-
-    @media (min-width: 769px) {
-        .custom-header-mobile { display: none !important; }
-        .custom-header-desktop { display: block !important; }
-        .desktop-header-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 0.5rem; }
-        .desktop-header-controls { display: flex; gap: 0.5rem; }
-        .desktop-header-controls .custom-btn { padding: 0 0.8rem; }
-        
-        /* Desktop Hover Effects for Cards */
-        .highlight-card { transition: background-color 0.15s ease, transform 0.15s ease; }
-        .highlight-card:hover { 
-            background-color: #f1f5f9 !important; 
-            transform: translateY(-2px); 
-            border-color: #cbd5e1 !important; 
-            cursor: default; 
-        }
-    }
-
+    /* Force 50/50 Mobile Native Streamlit Header Buttons */
     @media (max-width: 768px) {
-        .custom-header-desktop { display: none !important; }
-        .custom-header-mobile { display: block !important; width: 100%; }
-        .mobile-header-controls { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; gap: 0.5rem; }
-        .mobile-header-controls .custom-btn { flex: 1; text-align: center; }
+        div[data-testid="stHorizontalBlock"]:has(> div > div > .app-main-title) {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
+            margin-bottom: 0.8rem !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(> div > div > .app-main-title) > [data-testid="column"]:nth-child(1) {
+            width: 100% !important; min-width: 100% !important; flex: 1 1 100% !important; margin-bottom: 0.2rem !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(> div > div > .app-main-title) > [data-testid="column"]:nth-child(2),
+        div[data-testid="stHorizontalBlock"]:has(> div > div > .app-main-title) > [data-testid="column"]:nth-child(3) {
+            width: calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; flex: 0 0 calc(50% - 0.25rem) !important;
+        }
+        .desktop-header-margin { display: none !important; }
+    }
+    
+    @media (min-width: 769px) {
+        .desktop-header-margin { height: 1.5rem; width: 100%; display: block; }
+    }
+
+    /* Header Native Button Heights */
+    div[data-testid="stHorizontalBlock"]:has(> div > div > .app-main-title) [data-testid="baseButton-secondary"] {
+        height: 2.2rem !important;
+        min-height: 2.2rem !important;
     }
 
     span[data-baseweb="tag"] { background-color: #e5e7eb !important; color: #1f2937 !important; border: 1px solid #d1d5db !important; font-weight: 500 !important; }
@@ -189,7 +142,9 @@ st.markdown("""
     .card-span-12 { grid-column: span 12 !important; } 
     @media (max-width: 1024px) { .card-span-3, .card-span-4 { grid-column: span 6 !important; } .mobile-full-width { grid-column: span 12 !important; } }
 
-    .highlight-card { background-color: var(--card-bg); border-radius: 12px; padding: 10px 12px; min-height: 118px; height: 100% !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; box-shadow: var(--card-shadow); border: 1px solid var(--card-border); box-sizing: border-box; word-wrap: break-word; overflow-wrap: break-word; color: var(--card-text) !important; }
+    .highlight-card { background-color: var(--card-bg); border-radius: 12px; padding: 10px 12px; min-height: 118px; height: 100% !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; box-shadow: var(--card-shadow); border: 1px solid var(--card-border); box-sizing: border-box; word-wrap: break-word; overflow-wrap: break-word; color: var(--card-text) !important; transition: background-color 0.15s ease, transform 0.15s ease; }
+    @media (min-width: 769px) { .highlight-card:hover { background-color: #f1f5f9 !important; transform: translateY(-2px); border-color: #cbd5e1 !important; cursor: default; } }
+    
     .card-milk { border-left: 5px solid #38bdf8; } .card-feed { border-left: 5px solid #c084fc; } .card-diaper { border-left: 5px solid #0284c7; } .card-pump { border-left: 5px solid #a855f7; } .card-tummy { border-left: 5px solid #10b981; } .card-sleep { border-left: 5px solid #818cf8; } .card-meds { border-left: 5px solid #fbbf24; } .card-temp { border-left: 5px solid #f87171; } .card-events { border-left: 5px solid #94a3b8; }
     .highlight-title { font-weight: 600; font-size: 0.88rem; margin-bottom: 3px; line-height: 1.2; } .highlight-body { font-size: 0.84rem; opacity: 0.92; line-height: 1.25; } .highlight-sub { font-size: 0.74rem; opacity: 0.75; margin-top: 3px; line-height: 1.25; }
 
@@ -206,26 +161,28 @@ st.markdown("""
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# RESPONSIVE HEADER SECTION
+# RESPONSIVE HEADER SECTION (Fully Native Streamlit Columns)
 # ---------------------------------------------------------
-st.markdown("""
-<div class="custom-header-desktop" style="margin-bottom: 0.8rem;">
-    <div class="desktop-header-row">
-        <div class="app-main-title">🍼 Riley's Growth Tracker</div>
-        <div class="desktop-header-controls">
-            <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
-            <a href="javascript:void(0);" onclick="window.triggerRefresh ? window.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
-        </div>
-    </div>
-</div>
-<div class="custom-header-mobile" style="margin-bottom: 0.8rem;">
-    <div class="app-main-title" style="margin-bottom: 0.6rem;">🍼 Riley's Growth Tracker</div>
-    <div class="mobile-header-controls">
-        <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
-        <a href="javascript:void(0);" onclick="window.triggerRefresh ? window.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+h_col1, h_col2, h_col3 = st.columns([0.65, 0.175, 0.175], vertical_alignment="center")
+
+with h_col1:
+    st.markdown('<div class="app-main-title">🍼 Riley\'s Growth Tracker</div>', unsafe_allow_html=True)
+
+with h_col2:
+    st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
+
+with h_col3:
+    if st.button("🔄 Refresh", use_container_width=True):
+        st.session_state['reloaded'] = True
+        st.cache_data.clear()
+        st.rerun()
+
+# Pop feedback toast when script finishes loading after a refresh
+if st.session_state.get('reloaded', False):
+    st.toast("✅ Done! Data updated.", icon="🔄")
+    st.session_state['reloaded'] = False
+
+st.markdown("<div class='desktop-header-margin'></div>", unsafe_allow_html=True)
 
 # ==========================================
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
@@ -235,8 +192,8 @@ st.sidebar.markdown("""
         <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 6px;">📌 Navigation</div>
         <a href="#today-highlights" class="toc-button">✨ Today's Highlights</a>
         <a href="#period-highlights" class="toc-button">✨ Period Highlights</a>
-        <a href="#raw-logs" class="toc-button">📋 Raw Data Logs</a>
-        <a href="#analytics-charts" class="toc-button">📊 Analytics & Charts</a>
+        <a href="#database" class="toc-button">📋 Database</a>
+        <a href="#insights" class="toc-button">📊 Insights</a>
     </div>
     <hr style="margin: 10px 0; opacity: 0.2;">
 """, unsafe_allow_html=True)
@@ -367,6 +324,15 @@ def prepare_normalized_timeline_df(input_df):
     res_df['CategoryBubbleSize'] = res_df['CategoryBubbleSize'].fillna(10.0)
     return res_df
 
+def get_unit_from_name(name):
+    if "mL" in name: return " mL"
+    if "Mins" in name: return " Mins"
+    if "hrs" in name: return " hrs"
+    if "°C" in name: return " °C"
+    if "kg" in name: return " kg"
+    if "cm" in name: return " cm"
+    return ""
+
 # ==========================================
 # 3. EXPANDABLE FILTERS & GROUPING
 # ==========================================
@@ -378,10 +344,10 @@ with st.expander("⚙️ Filter & Grouping Settings", expanded=False):
     
     with f_col1:
         granularity = st.radio("Chart Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0, horizontal=True)
-        range_hints = {"Daily": "Default: Last 28 Days", "Weekly": "Default: Last 8 Weeks", "Monthly": "Default: Last 6 Months", "All Time": "Default: Full Data Range"}
+        range_hints = {"Daily": "Default: Last 21 Days", "Weekly": "Default: Last 8 Weeks", "Monthly": "Default: Last 6 Months", "All Time": "Default: Full Data Range"}
         st.markdown(f"<span class='default-range-text'>ℹ️ {range_hints[granularity]}</span>", unsafe_allow_html=True)
     
-    if granularity == "Daily": default_start = max(min_data_date, max_data_date - timedelta(days=27))
+    if granularity == "Daily": default_start = max(min_data_date, max_data_date - timedelta(days=20)) # 21 Days total
     elif granularity == "Weekly": default_start = max(min_data_date, max_data_date - timedelta(weeks=8))
     elif granularity == "Monthly": default_start = max(min_data_date, max_data_date - timedelta(days=180))
     else: default_start = min_data_date
@@ -431,79 +397,90 @@ today_date = max(current_local_time.date(), max_data_date)
 today_df = df[df['Date'] == today_date]
 
 with st.expander(f"✨ Today [{today_date.strftime('%m.%d')}]", expanded=True):
-    t_formula = today_df[today_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
-    t_bm = today_df[today_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
-    t_milk = t_formula + t_bm
-    t_feed_cnt = len(today_df[today_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
-    t_avg_feed = (t_milk / t_feed_cnt) if t_feed_cnt > 0 else 0
-    t_wet = len(today_df[today_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
-    t_poop = len(today_df[today_df['Event Type'].str.contains("Poop", case=False, na=False)])
-    t_pumping = today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
-    t_tummy = today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
-    t_sleep = today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
-    t_meds = len(today_df[today_df['Event Type'].str.contains("Meds", case=False, na=False)])
-    t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
-    t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
+    if today_df.empty:
+        st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 No Data Logged Today</div><div class="empty-data-sub">Waiting for new entries.</div></div>""", unsafe_allow_html=True)
+    else:
+        t_formula = today_df[today_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
+        t_bm = today_df[today_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
+        t_milk = t_formula + t_bm
+        t_feed_cnt = len(today_df[today_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
+        t_avg_feed = (t_milk / t_feed_cnt) if t_feed_cnt > 0 else 0
+        t_wet = len(today_df[today_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
+        t_poop = len(today_df[today_df['Event Type'].str.contains("Poop", case=False, na=False)])
+        t_pumping = today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
+        t_tummy = today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
+        t_sleep = today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
+        t_meds = len(today_df[today_df['Event Type'].str.contains("Meds", case=False, na=False)])
+        t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
+        t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
 
-    today_cards = []
-    today_cards.append(f"""<div class="highlight-card card-feed"><div><div class="highlight-title">⏰ Last Feeding</div><div class="highlight-body"><b>{last_feed_delta}</b></div></div><div class="highlight-sub">{last_feed_sub}</div></div>""")
-    if t_milk > 0 or t_feed_cnt > 0: today_cards.append(f"""<div class="highlight-card card-milk"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body">Total <b>{int(t_milk):,} mL</b> across <b>{t_feed_cnt}</b> feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Form: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div></div>""")
-    if t_wet + t_poop > 0: today_cards.append(f"""<div class="highlight-card card-diaper"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body">Total <b>{t_wet + t_poop}</b> change(s) logged.</div></div><div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div></div>""")
-    p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
-    if t_pumping > 0 or p_cnt_today > 0: today_cards.append(f"""<div class="highlight-card card-pump"><div><div class="highlight-title">🧴 Pumping</div><div class="highlight-body">Pumped <b>{int(t_pumping):,} mL</b> total today.</div></div><div class="highlight-sub">{p_cnt_today} pumping session(s)</div></div>""")
-    tummy_cnt_today = len(today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
-    if t_tummy > 0 or tummy_cnt_today > 0: today_cards.append(f"""<div class="highlight-card card-tummy"><div><div class="highlight-title">🛟 Tummy Time</div><div class="highlight-body">Logged <b>{int(t_tummy)} min(s)</b> today.</div></div><div class="highlight-sub">{tummy_cnt_today} session(s) logged</div></div>""")
-    sleep_cnt_today = len(today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)])
-    if t_sleep > 0 or sleep_cnt_today > 0: today_cards.append(f"""<div class="highlight-card card-sleep"><div><div class="highlight-title">🛌 Rest & Sleep</div><div class="highlight-body">Logged <b>{int(t_sleep)} hr(s)</b> rest.</div></div><div class="highlight-sub">{sleep_cnt_today} sleep period(s)</div></div>""")
-    if t_meds > 0: today_cards.append(f"""<div class="highlight-card card-meds"><div><div class="highlight-title">💊 Medication</div><div class="highlight-body">Logged <b>{t_meds}</b> dose(s).</div></div><div class="highlight-sub">Dose(s) tracked today</div></div>""")
-    if t_latest_temp is not None: today_cards.append(f"""<div class="highlight-card card-temp"><div><div class="highlight-title">🌡️ Body Temp</div><div class="highlight-body"><b>{t_latest_temp:.1f} °C</b></div></div><div class="highlight-sub">{len(t_temp_df)} reading(s) logged</div></div>""")
-    if len(today_df) > 0: today_cards.append(f"""<div class="highlight-card card-events"><div><div class="highlight-title">📊 Total Events</div><div class="highlight-body"><b>{len(today_df):,}</b> entry(s) logged.</div></div><div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div></div>""")
+        today_cards = []
+        today_cards.append(f"""<div class="highlight-card card-feed"><div><div class="highlight-title">⏰ Last Feeding</div><div class="highlight-body"><b>{last_feed_delta}</b></div></div><div class="highlight-sub">{last_feed_sub}</div></div>""")
+        if t_milk > 0 or t_feed_cnt > 0: today_cards.append(f"""<div class="highlight-card card-milk"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body">Total <b>{int(t_milk):,} mL</b> across <b>{t_feed_cnt}</b> feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Form: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div></div>""")
+        if t_wet + t_poop > 0: today_cards.append(f"""<div class="highlight-card card-diaper"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body">Total <b>{t_wet + t_poop}</b> change(s) logged.</div></div><div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div></div>""")
+        p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
+        if t_pumping > 0 or p_cnt_today > 0: today_cards.append(f"""<div class="highlight-card card-pump"><div><div class="highlight-title">🧴 Pumping</div><div class="highlight-body">Pumped <b>{int(t_pumping):,} mL</b> total today.</div></div><div class="highlight-sub">{p_cnt_today} pumping session(s)</div></div>""")
+        tummy_cnt_today = len(today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
+        if t_tummy > 0 or tummy_cnt_today > 0: today_cards.append(f"""<div class="highlight-card card-tummy"><div><div class="highlight-title">🛟 Tummy Time</div><div class="highlight-body">Logged <b>{int(t_tummy)} min(s)</b> today.</div></div><div class="highlight-sub">{tummy_cnt_today} session(s) logged</div></div>""")
+        sleep_cnt_today = len(today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)])
+        if t_sleep > 0 or sleep_cnt_today > 0: today_cards.append(f"""<div class="highlight-card card-sleep"><div><div class="highlight-title">🛌 Rest & Sleep</div><div class="highlight-body">Logged <b>{int(t_sleep)} hr(s)</b> rest.</div></div><div class="highlight-sub">{sleep_cnt_today} sleep period(s)</div></div>""")
+        if t_meds > 0: today_cards.append(f"""<div class="highlight-card card-meds"><div><div class="highlight-title">💊 Medication</div><div class="highlight-body">Logged <b>{t_meds}</b> dose(s).</div></div><div class="highlight-sub">Dose(s) tracked today</div></div>""")
+        if t_latest_temp is not None: today_cards.append(f"""<div class="highlight-card card-temp"><div><div class="highlight-title">🌡️ Body Temp</div><div class="highlight-body"><b>{t_latest_temp:.1f} °C</b></div></div><div class="highlight-sub">{len(t_temp_df)} reading(s) logged</div></div>""")
+        if len(today_df) > 0: today_cards.append(f"""<div class="highlight-card card-events"><div><div class="highlight-title">📊 Total Events</div><div class="highlight-body"><b>{len(today_df):,}</b> entry(s) logged.</div></div><div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div></div>""")
 
-    card_count = len(today_cards)
-    base_span = "card-span-3" 
-    if card_count == 3: base_span = "card-span-4"
-    elif card_count == 2: base_span = "card-span-6"
-    elif card_count == 1: base_span = "card-span-12"
+        card_count = len(today_cards)
+        base_span = "card-span-3" if card_count >= 4 else ("card-span-4" if card_count == 3 else ("card-span-6" if card_count == 2 else "card-span-12"))
 
-    formatted_today_cards = []
-    for i, card in enumerate(today_cards):
-        cls = f"highlight-card {base_span}"
-        if card_count % 2 != 0 and i == 0 and card_count > 1: cls += " mobile-full-width"
-        formatted_today_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
+        formatted_today_cards = []
+        for i, card in enumerate(today_cards):
+            cls = f"highlight-card {base_span}"
+            if card_count % 2 != 0 and i == 0 and card_count > 1: cls += " mobile-full-width"
+            formatted_today_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
 
-    st.markdown(f'<div class="cards-container">{"".join(formatted_today_cards)}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="cards-container">{"".join(formatted_today_cards)}</div>', unsafe_allow_html=True)
 
 # --- B. PERIOD HIGHLIGHTS ---
 st.markdown('<div id="period-highlights"></div>', unsafe_allow_html=True)
 with st.expander(f"✨ Range Highlights [{start_date.strftime('%m.%d')} – {end_date.strftime('%m.%d')}]", expanded=False):
-    p_formula = filtered_df[filtered_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
-    p_bm = filtered_df[filtered_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
-    p_milk = p_formula + p_bm
-    p_feed_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
-    p_avg_feed = (p_milk / p_feed_cnt) if p_feed_cnt > 0 else 0
-    p_wet = len(filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
-    p_poop = len(filtered_df[filtered_df['Event Type'].str.contains("Poop", case=False, na=False)])
-    p_pumping = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
-    p_tummy = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
-    p_sleep = filtered_df[filtered_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
-    p_meds = len(filtered_df[filtered_df['Event Type'].str.contains("Meds", case=False, na=False)])
-    p_temp_df = filtered_df[filtered_df['Event Type'].str.contains("Temp", case=False, na=False)]
-    p_latest_temp = p_temp_df.iloc[0]['Value (Optional)'] if not p_temp_df.empty else None
-    p_temp_str = f"<b>{p_latest_temp:.1f} °C</b>" if p_latest_temp else "No readings"
-    p_pump_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)])
-    p_tummy_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
+    if filtered_df.empty:
+        st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 No Data Logged in this Period</div><div class="empty-data-sub">Expand date range to view aggregate highlights.</div></div>""", unsafe_allow_html=True)
+    else:
+        p_formula = filtered_df[filtered_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
+        p_bm = filtered_df[filtered_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
+        p_milk = p_formula + p_bm
+        p_feed_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
+        p_avg_feed = (p_milk / p_feed_cnt) if p_feed_cnt > 0 else 0
+        p_wet = len(filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
+        p_poop = len(filtered_df[filtered_df['Event Type'].str.contains("Poop", case=False, na=False)])
+        p_pumping = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
+        p_tummy = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
+        p_sleep = filtered_df[filtered_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
+        p_meds = len(filtered_df[filtered_df['Event Type'].str.contains("Meds", case=False, na=False)])
+        p_temp_df = filtered_df[filtered_df['Event Type'].str.contains("Temp", case=False, na=False)]
+        p_latest_temp = p_temp_df.iloc[0]['Value (Optional)'] if not p_temp_df.empty else None
+        p_pump_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)])
+        p_tummy_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
 
-    period_cards = [
-        f"""<div class="highlight-card card-span-3 card-milk"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Form: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div></div>""",
-        f"""<div class="highlight-card card-span-3 card-diaper"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body">Total <b>{p_wet + p_poop}</b> diaper change(s).</div></div><div class="highlight-sub">💧 Wet: {p_wet} | 🚽 Poop: {p_poop}</div></div>""",
-        f"""<div class="highlight-card card-span-3 card-pump"><div><div class="highlight-title">🧴 Pumping</div><div class="highlight-body">Pumped <b>{int(p_pumping):,} mL</b> total in range.</div></div><div class="highlight-sub">{p_pump_cnt} pumping session(s)</div></div>""",
-        f"""<div class="highlight-card card-span-3 card-tummy"><div><div class="highlight-title">🛟 Tummy Time</div><div class="highlight-body">Logged <b>{int(p_tummy)} min(s)</b> total in range.</div></div><div class="highlight-sub">{p_tummy_cnt} session(s) recorded</div></div>""",
-        f"""<div class="highlight-card card-span-3 card-sleep"><div><div class="highlight-title">🛌 Sleep & Rest</div><div class="highlight-body">Logged <b>{int(p_sleep)} hr(s)</b> of rest.</div></div><div class="highlight-sub">{len(filtered_df[filtered_df['Event Type'].str.contains('Sleep', case=False, na=False)])} sleep period(s)</div></div>""",
-        f"""<div class="highlight-card card-span-3 card-meds"><div><div class="highlight-title">💊 Medication</div><div class="highlight-body">Logged <b>{p_meds}</b> dose(s).</div></div><div class="highlight-sub">Dose(s) tracked in log</div></div>""",
-        f"""<div class="highlight-card card-span-3 card-temp"><div><div class="highlight-title">🌡️ Body Temperature</div><div class="highlight-body">{p_temp_str}</div></div><div class="highlight-sub">{len(p_temp_df)} reading(s) in period</div></div>""",
-        f"""<div class="highlight-card card-span-3 card-events"><div><div class="highlight-title">📊 Total Events</div><div class="highlight-body"><b>{len(filtered_df):,}</b> entry(s) logged.</div></div><div class="highlight-sub">From {start_date} to {end_date}</div></div>"""
-    ]
-    st.markdown(f'<div class="cards-container">{"".join(period_cards)}</div>', unsafe_allow_html=True)
+        period_cards = []
+        if p_milk > 0 or p_feed_cnt > 0: period_cards.append(f"""<div class="highlight-card card-milk"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Form: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div></div>""")
+        if p_wet + p_poop > 0: period_cards.append(f"""<div class="highlight-card card-diaper"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body">Total <b>{p_wet + p_poop}</b> diaper change(s).</div></div><div class="highlight-sub">💧 Wet: {p_wet} | 🚽 Poop: {p_poop}</div></div>""")
+        if p_pumping > 0 or p_pump_cnt > 0: period_cards.append(f"""<div class="highlight-card card-pump"><div><div class="highlight-title">🧴 Pumping</div><div class="highlight-body">Pumped <b>{int(p_pumping):,} mL</b> total in range.</div></div><div class="highlight-sub">{p_pump_cnt} pumping session(s)</div></div>""")
+        if p_tummy > 0 or p_tummy_cnt > 0: period_cards.append(f"""<div class="highlight-card card-tummy"><div><div class="highlight-title">🛟 Tummy Time</div><div class="highlight-body">Logged <b>{int(p_tummy)} min(s)</b> total in range.</div></div><div class="highlight-sub">{p_tummy_cnt} session(s) recorded</div></div>""")
+        if p_sleep > 0: period_cards.append(f"""<div class="highlight-card card-sleep"><div><div class="highlight-title">🛌 Sleep & Rest</div><div class="highlight-body">Logged <b>{int(p_sleep)} hr(s)</b> of rest.</div></div><div class="highlight-sub">{len(filtered_df[filtered_df['Event Type'].str.contains('Sleep', case=False, na=False)])} sleep period(s)</div></div>""")
+        if p_meds > 0: period_cards.append(f"""<div class="highlight-card card-meds"><div><div class="highlight-title">💊 Medication</div><div class="highlight-body">Logged <b>{p_meds}</b> dose(s).</div></div><div class="highlight-sub">Dose(s) tracked in log</div></div>""")
+        if len(p_temp_df) > 0: period_cards.append(f"""<div class="highlight-card card-temp"><div><div class="highlight-title">🌡️ Body Temperature</div><div class="highlight-body"><b>{p_latest_temp:.1f} °C</b></div></div><div class="highlight-sub">{len(p_temp_df)} reading(s) in period</div></div>""")
+        if len(filtered_df) > 0: period_cards.append(f"""<div class="highlight-card card-events"><div><div class="highlight-title">📊 Total Events</div><div class="highlight-body"><b>{len(filtered_df):,}</b> entry(s) logged.</div></div><div class="highlight-sub">From {start_date} to {end_date}</div></div>""")
+
+        p_card_count = len(period_cards)
+        p_base_span = "card-span-3" if p_card_count >= 4 else ("card-span-4" if p_card_count == 3 else ("card-span-6" if p_card_count == 2 else "card-span-12"))
+
+        formatted_p_cards = []
+        for i, card in enumerate(period_cards):
+            cls = f"highlight-card {p_base_span}"
+            if p_card_count % 2 != 0 and i == 0 and p_card_count > 1: cls += " mobile-full-width"
+            formatted_p_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
+
+        st.markdown(f'<div class="cards-container">{"".join(formatted_p_cards)}</div>', unsafe_allow_html=True)
 
 st.markdown('<hr style="margin: 4px 0; opacity: 0.2;">', unsafe_allow_html=True)
 
@@ -511,17 +488,17 @@ def render_empty_state(title="No Data Logged", subtitle="Try picking a wider dat
     st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 {title}</div><div class="empty-data-sub">{subtitle}</div></div>""", unsafe_allow_html=True)
 
 # ==========================================
-# 5. EXPANDED RAW DATA LOGS TABLE
+# 5. EXPANDED DATABASE TABLE
 # ==========================================
-st.markdown('<div id="raw-logs"></div>', unsafe_allow_html=True)
-st.subheader("📋 Raw Data Logs")
+st.markdown('<div id="database"></div>', unsafe_allow_html=True)
+st.subheader("📋 Database")
 
 filter_c1, filter_c2 = st.columns([1, 1])
 
 with filter_c1:
     selected_events = st.multiselect("🏷️ Filter Event Types:", options=ALL_EVENT_CATEGORIES, default=[], placeholder="Choose event types (Leave empty for All)")
 with filter_c2:
-    search_query = st.text_input("🔍 Search All Columns:", "", placeholder="Type date (e.g. 07-21), Formula, notes...")
+    search_query = st.text_input("🔍 Search Anything:", "", placeholder="Type date (e.g. 07-21), Formula, notes...")
 
 table_df = filtered_df.copy()
 if selected_events: table_df = table_df[table_df['Event Type'].isin(selected_events)]
@@ -549,7 +526,10 @@ if not display_df.empty:
             "DateTime": st.column_config.DatetimeColumn("DateTime", format="YYYY-MM-DD HH:mm", width="medium"),
             "Event Type": st.column_config.TextColumn("Event Type", width="medium"),
             "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
-            "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
+            "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large"),
+            "Date": st.column_config.TextColumn("Date", width="small"),
+            "Week": st.column_config.TextColumn("Week", width="small"),
+            "Month": st.column_config.TextColumn("Month", width="small")
         }
     )
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
@@ -561,8 +541,8 @@ st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
 # ==========================================
 # 6. CHARTS & ANALYTICS
 # ==========================================
-st.markdown('<div id="analytics-charts"></div>', unsafe_allow_html=True)
-st.subheader("📊 Analytics & Insights")
+st.markdown('<div id="insights"></div>', unsafe_allow_html=True)
+st.subheader("📊 Insights")
 
 tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "⏰ Today", "🍼 Milk", "🚽 Diapers", "🧴 Pumping", "🛟 Tummy", "📈 Growth", "🩺 Health", "💉 Vaccine"
@@ -579,9 +559,10 @@ with tab1:
             norm_today_df, x="DateTime", y="Event Type", size="CategoryBubbleSize", color="Event Type",
             color_discrete_map=COLOR_MAP, text="Value (Optional)", hover_data={"Value (Optional)": True, "CategoryBubbleSize": False, "DateTime": False, "Event Type": False}, size_max=14
         )
-        # Selective text rendering: Only show bold labels for Formula data points
+        
+        # Display explicit mathematical data labels for all non-count data series
         fig_today_timeline.for_each_trace(
-            lambda t: t.update(mode='markers+text', textposition='top center', textfont=dict(weight='bold', color='#0284c7'), texttemplate='%{text} mL') if "Formula" in t.name else t.update(mode='markers', text=None)
+            lambda t: t.update(mode='markers+text', textposition='top center', textfont=dict(weight='bold'), texttemplate='%{text}' + get_unit_from_name(t.name)) if "(Cnt)" not in t.name else t.update(mode='markers', text=None)
         )
         
         fig_today_timeline.update_traces(hovertemplate='%{customdata[0]}<extra></extra>')
@@ -667,9 +648,10 @@ with tab5:
     else: render_empty_state("No Tummy Time Data Logged in this period")
 
 # ==============================================================================
-# TAB 6: HK MCHC GROWTH CHARTS (Weight, Height, Head)
+# TAB 6: HK MCHC GROWTH CHARTS
 # ==============================================================================
 with tab6:
+    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
     who_option = st.radio(
         "Select Growth Chart:",
         options=["⚖️ Weight", "🏔️ Height", "🐷 Head"],
@@ -709,13 +691,11 @@ with tab6:
         who_df['Age_Months'] = (pd.to_datetime(who_df['Date']) - pd.to_datetime(baby_dob)).dt.days / 30.437
         who_df = who_df[who_df['Age_Months'] >= 0] 
         
-        # Base 0-24 index
         m_x = np.arange(25)
         p50 = get_who_data(baby_gender, who_option)
         m3, m15, m85, m97 = get_hk_mults(who_option)
         p3, p15, p85, p97 = p50*m3, p50*m15, p50*m85, p50*m97
         
-        # High resolution interpolation for smooth hovering across any point
         fine_x = np.linspace(0, 24, 241)
         fine_p97 = np.interp(fine_x, m_x, p97)
         fine_p85 = np.interp(fine_x, m_x, p85)
@@ -734,33 +714,28 @@ with tab6:
         who_df['Est_Pct'] = who_df.apply(estimate_pct, axis=1)
 
         fig_who = go.Figure()
-        
         unit_str = db_keyword.split('(')[1].replace(')','')
         
-        # MCHC Style High Resolution Bands (Allows continuous unified hover)
-        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p97, line=dict(width=0), name='97th Pct', hovertemplate='97th: %{y:.2f} ' + unit_str))
-        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p85, fill='tonexty', fillcolor='rgba(14,165,233,0.1)', line=dict(width=0), name='85th Pct', hovertemplate='85th: %{y:.2f} ' + unit_str))
-        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p50, fill='tonexty', fillcolor='rgba(14,165,233,0.25)', line=dict(width=0), name='50th Pct', hovertemplate='50th: %{y:.2f} ' + unit_str))
-        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p15, fill='tonexty', fillcolor='rgba(14,165,233,0.25)', line=dict(width=0), name='15th Pct', hovertemplate='15th: %{y:.2f} ' + unit_str))
-        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p3, fill='tonexty', fillcolor='rgba(14,165,233,0.1)', line=dict(width=0), name='3rd Pct', hovertemplate='3rd: %{y:.2f} ' + unit_str))
+        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p97, line=dict(width=0), name='97th Pct', hoverinfo='x+y+name', hovertemplate='97th: %{y:.2f} ' + unit_str + '<extra></extra>'))
+        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p85, fill='tonexty', fillcolor='rgba(14,165,233,0.1)', line=dict(width=0), name='85th Pct', hoverinfo='x+y+name', hovertemplate='85th: %{y:.2f} ' + unit_str + '<extra></extra>'))
+        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p50, fill='tonexty', fillcolor='rgba(14,165,233,0.25)', line=dict(width=0), name='50th Pct', hoverinfo='x+y+name', hovertemplate='50th: %{y:.2f} ' + unit_str + '<extra></extra>'))
+        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p15, fill='tonexty', fillcolor='rgba(14,165,233,0.25)', line=dict(width=0), name='15th Pct', hoverinfo='x+y+name', hovertemplate='15th: %{y:.2f} ' + unit_str + '<extra></extra>'))
+        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p3, fill='tonexty', fillcolor='rgba(14,165,233,0.1)', line=dict(width=0), name='3rd Pct', hoverinfo='x+y+name', hovertemplate='3rd: %{y:.2f} ' + unit_str + '<extra></extra>'))
         
         fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p50, mode='lines', line=dict(color='rgba(2,132,199,0.5)', width=2, dash='dot'), showlegend=False, hoverinfo='skip'))
         
         c_code = COLOR_MAP.get(db_keyword, '#38bdf8')
         
-        # User Data Points
         hover_text = []
         for _, row in who_df.iterrows():
             age, v = row['Age_Months'], row['Value (Optional)']
             lp3, lp15, lp50, lp85, lp97 = [np.interp(age, m_x, arr) for arr in [p3, p15, p50, p85, p97]]
-            
             if v < lp3: pct = "< 3rd"
             elif v < lp15: pct = "3rd-15th"
             elif v < lp50: pct = "15th-50th"
             elif v < lp85: pct = "50th-85th"
             elif v <= lp97: pct = "85th-97th"
             else: pct = "> 97th"
-            
             ht = f"<b>{row['Date']}</b><br><b>Value: {v:.1f} {unit_str}</b><br>Estimated Bracket: ~{pct}<extra></extra>"
             hover_text.append(ht)
 
@@ -773,7 +748,6 @@ with tab6:
             hovertemplate="%{text}"
         ))
         
-        # Dynamic Y-Axis Zoom logic based strictly on the selected X window (+1.5m buffer)
         x_max_buffer = range_max + 1.5
         visible_idx = (fine_x >= range_min) & (fine_x <= x_max_buffer)
         max_p97_vis = np.max(fine_p97[visible_idx])
@@ -783,8 +757,8 @@ with tab6:
         u_max = user_vis['Value (Optional)'].max() if not user_vis.empty else max_p97_vis
         u_min = user_vis['Value (Optional)'].min() if not user_vis.empty else min_p3_vis
         
-        y_upper = max(max_p97_vis, u_max) * 1.02
-        y_lower = min(min_p3_vis, u_min) * 0.98
+        y_upper = max(max_p97_vis, u_max) * 1.01
+        y_lower = min(min_p3_vis, u_min) * 0.99
 
         fig_who.update_layout(
             title=dict(text=f"📈 {who_option} — HK MCHC Standard", y=0.97, x=0.5, xanchor="center", font=dict(size=16)),
@@ -794,7 +768,7 @@ with tab6:
             showlegend=False, hovermode="x unified"
         )
         st.plotly_chart(fig_who, use_container_width=True)
-        st.markdown("<p style='font-size: 0.8rem; color: #64748b;'>[🔗 Official HK MCHC Growth Charts Reference (PDF)](https://www.fhs.gov.hk/english/reports/files/growth_chart.pdf)</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 0.85rem; text-align: center;'><a href='https://www.fhs.gov.hk/english/health_info/child/14727.html' target='_blank' style='color: #0ea5e9; text-decoration: none; font-weight: 500;'>🔗 Official HK MCHC Growth Charts Reference (Webpage)</a></p>", unsafe_allow_html=True)
     else:
         render_empty_state(f"No {who_option} Data Logged")
 
@@ -824,7 +798,7 @@ with tab7:
             fig_act = px.bar(grouped_act, x=group_col, y="Value (Optional)", color_discrete_sequence=[act_color], labels={"Value (Optional)": y_title, group_col: granularity})
             if is_single: fig_act.update_traces(width=0.25)
             fig_act.update_traces(hovertemplate=f'%{{y}} {unit}<extra></extra>')
-        else: # Meds count
+        else: 
             grouped_act = act_df.groupby(group_col).size().reset_index(name='Value (Optional)')
             grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
             is_single = len(grouped_act[group_col].unique()) == 1
@@ -839,7 +813,6 @@ with tab7:
 
 # TAB 8: Vaccine Milestones & Logs
 with tab8:
-    st.markdown("<h4 style='text-align: center; margin-bottom: 0.5rem;'>💉 Vaccine Milestones</h4>", unsafe_allow_html=True)
     vac_df = df[df['Event Type'] == "💉 Vaccine (Cnt)"].copy()
     
     def get_date(keyword_regex, index):
@@ -847,37 +820,37 @@ with tab8:
         matches = vac_df[vac_df['Notes / Details (Optional)'].str.contains(keyword_regex, case=False, na=False)].sort_values('DateTime')
         return matches.iloc[index]['Date'] if index < len(matches) else None
 
-    # Extensive HKCIP and Optional Vaccine Database
+    # Comprehensive Unified Milestone List (Private Combo & HKCIP Compatible)
     hkcip_schedule = [
-        {"Age": "0 mo (Newborn)", "Days": 0, "Group": "BCG", "Vaccine": "卡介苗<br><span style='font-size:0.85em; color:#64748b;'>BCG</span>", "Disease": "結核病<br><span style='font-size:0.85em; color:#64748b;'>Tuberculosis</span>", "Provider": "🏥 母嬰", "Desc": "預防結核病，初生嬰兒必打", "Optional": False, "Match": get_date("bcg|卡介苗", 0)},
-        {"Age": "0 mo (Newborn)", "Days": 0, "Group": "Hepatitis B", "Vaccine": "乙型肝炎 第一劑<br><span style='font-size:0.85em; color:#64748b;'>Hep B 1st</span>", "Disease": "乙肝<br><span style='font-size:0.85em; color:#64748b;'>Hepatitis B</span>", "Provider": "🏥 母嬰", "Desc": "預防乙型肝炎，出世即打", "Optional": False, "Match": get_date("hep|hbv|hexa|6-in|6 in|六合一|乙型肝炎|五合一", 0)},
-        {"Age": "1 mo", "Days": 30, "Group": "Hepatitis B", "Vaccine": "乙型肝炎 第二劑<br><span style='font-size:0.85em; color:#64748b;'>Hep B 2nd</span>", "Disease": "乙肝<br><span style='font-size:0.85em; color:#64748b;'>Hepatitis B</span>", "Provider": "🏥 母嬰", "Desc": "滿月時於母嬰健康院接種", "Optional": False, "Match": get_date("hep|hbv|hexa|6-in|6 in|六合一|乙型肝炎|五合一", 1)},
-        {"Age": "2 mo", "Days": 60, "Group": "DTaP / 6-in-1", "Vaccine": "六合一混合 第一劑<br><span style='font-size:0.85em; color:#64748b;'>6-in-1 1st</span>", "Disease": "白喉,破傷風,百日咳,小兒麻痺,乙肝,流感嗜血桿菌<br><span style='font-size:0.85em; color:#64748b;'>DTaP-IPV-HepB-Hib</span>", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "私家六合/五合一或母嬰四合一", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 0)},
-        {"Age": "2 mo", "Days": 60, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 第一劑<br><span style='font-size:0.85em; color:#64748b;'>PCV 1st</span>", "Disease": "肺炎球菌感染<br><span style='font-size:0.85em; color:#64748b;'>Pneumococcal</span>", "Provider": "🏥 母嬰", "Desc": "預防嚴重肺炎/腦膜炎", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 0)},
-        {"Age": "2 mo", "Days": 60, "Group": "Rotavirus", "Vaccine": "輪狀病毒 第一劑<br><span style='font-size:0.85em; color:#64748b;'>Rotavirus 1st</span>", "Disease": "輪狀病毒腸胃炎<br><span style='font-size:0.85em; color:#64748b;'>Rotavirus</span>", "Provider": "💰 私家", "Desc": "口服疫苗，預防嚴重腸胃炎", "Optional": True, "Match": get_date("rota|輪狀", 0)},
-        {"Age": "2 mo", "Days": 60, "Group": "Meningococcal B", "Vaccine": "腦膜炎雙球菌 第一劑<br><span style='font-size:0.85em; color:#64748b;'>Men B 1st</span>", "Disease": "腦膜炎雙球菌感染<br><span style='font-size:0.85em; color:#64748b;'>Meningococcal</span>", "Provider": "💰 私家", "Desc": "預防致命腦膜炎，B型最常見", "Optional": True, "Match": get_date("men|腦膜炎", 0)},
-        {"Age": "4 mo", "Days": 120, "Group": "DTaP / 6-in-1", "Vaccine": "六合一混合 第二劑<br><span style='font-size:0.85em; color:#64748b;'>6-in-1 2nd</span>", "Disease": "同上<br><span style='font-size:0.85em; color:#64748b;'>Same as 1st</span>", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "第二針混合疫苗", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 1)},
-        {"Age": "4 mo", "Days": 120, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 第二劑<br><span style='font-size:0.85em; color:#64748b;'>PCV 2nd</span>", "Disease": "肺炎球菌感染<br><span style='font-size:0.85em; color:#64748b;'>Pneumococcal</span>", "Provider": "🏥 母嬰", "Desc": "第二針", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 1)},
-        {"Age": "4 mo", "Days": 120, "Group": "Rotavirus", "Vaccine": "輪狀病毒 第二劑<br><span style='font-size:0.85em; color:#64748b;'>Rotavirus 2nd</span>", "Disease": "輪狀病毒腸胃炎<br><span style='font-size:0.85em; color:#64748b;'>Rotavirus</span>", "Provider": "💰 私家", "Desc": "第二劑口服", "Optional": True, "Match": get_date("rota|輪狀", 1)},
-        {"Age": "4 mo", "Days": 120, "Group": "Meningococcal B", "Vaccine": "腦膜炎雙球菌 第二劑<br><span style='font-size:0.85em; color:#64748b;'>Men B 2nd</span>", "Disease": "腦膜炎雙球菌感染<br><span style='font-size:0.85em; color:#64748b;'>Meningococcal</span>", "Provider": "💰 私家", "Desc": "第二針", "Optional": True, "Match": get_date("men|腦膜炎", 1)},
-        {"Age": "6 mo", "Days": 180, "Group": "DTaP / 6-in-1", "Vaccine": "六合一混合 第三劑<br><span style='font-size:0.85em; color:#64748b;'>6-in-1 3rd</span>", "Disease": "同上<br><span style='font-size:0.85em; color:#64748b;'>Same as 1st</span>", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "第三針混合疫苗", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 2)},
-        {"Age": "6 mo", "Days": 180, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 第三劑<br><span style='font-size:0.85em; color:#64748b;'>PCV 3rd</span>", "Disease": "肺炎球菌感染<br><span style='font-size:0.85em; color:#64748b;'>Pneumococcal</span>", "Provider": "🏥 母嬰", "Desc": "第三針 (部份情況可省略)", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 2)},
-        {"Age": "6 mo", "Days": 180, "Group": "Rotavirus", "Vaccine": "輪狀病毒 第三劑<br><span style='font-size:0.85em; color:#64748b;'>Rotavirus 3rd</span>", "Disease": "輪狀病毒腸胃炎<br><span style='font-size:0.85em; color:#64748b;'>Rotavirus</span>", "Provider": "💰 私家", "Desc": "視乎藥廠(部份只需兩劑)", "Optional": True, "Match": get_date("rota|輪狀", 2)},
-        {"Age": "6 mo", "Days": 180, "Group": "Influenza", "Vaccine": "季節性流感<br><span style='font-size:0.85em; color:#64748b;'>Influenza</span>", "Disease": "流感<br><span style='font-size:0.85em; color:#64748b;'>Flu</span>", "Provider": "💰 私家 / 🏥 診所", "Desc": "滿6個月可打，每年一針", "Optional": True, "Match": get_date("flu|流感", 0)},
-        {"Age": "12 mo", "Days": 365, "Group": "MMR / MMRV", "Vaccine": "麻疹,流行性腮腺炎,德國麻疹<br><span style='font-size:0.85em; color:#64748b;'>MMR 1st</span>", "Disease": "麻疹, 腮腺炎, 德國麻疹<br><span style='font-size:0.85em; color:#64748b;'>Measles, Mumps, Rubella</span>", "Provider": "🏥 母嬰", "Desc": "一歲滿即打", "Optional": False, "Match": get_date("mmr|麻疹", 0)},
-        {"Age": "12 mo", "Days": 365, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 加強劑<br><span style='font-size:0.85em; color:#64748b;'>PCV Booster</span>", "Disease": "肺炎球菌感染<br><span style='font-size:0.85em; color:#64748b;'>Pneumococcal</span>", "Provider": "🏥 母嬰", "Desc": "加強劑", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 3)},
-        {"Age": "12 mo", "Days": 365, "Group": "Varicella", "Vaccine": "水痘 第一劑<br><span style='font-size:0.85em; color:#64748b;'>Varicella 1st</span>", "Disease": "水痘<br><span style='font-size:0.85em; color:#64748b;'>Chickenpox</span>", "Provider": "🏥 母嬰", "Desc": "第一針水痘", "Optional": False, "Match": get_date("varicella|cp|chickenpox|水痘", 0)},
-        {"Age": "12 mo", "Days": 365, "Group": "Hepatitis A", "Vaccine": "甲型肝炎 第一劑<br><span style='font-size:0.85em; color:#64748b;'>Hep A 1st</span>", "Disease": "甲肝<br><span style='font-size:0.85em; color:#64748b;'>Hepatitis A</span>", "Provider": "💰 私家", "Desc": "預防受污染食物感染", "Optional": True, "Match": get_date("hepa|hep a|甲型", 0)},
-        {"Age": "18 mo", "Days": 547, "Group": "DTaP / 6-in-1", "Vaccine": "六合一混合 加強劑<br><span style='font-size:0.85em; color:#64748b;'>6-in-1 Booster</span>", "Disease": "同上<br><span style='font-size:0.85em; color:#64748b;'>Same as 1st</span>", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "加強保護力", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 3)},
-        {"Age": "18 mo", "Days": 547, "Group": "MMR / MMRV", "Vaccine": "MMRV 第二劑<br><span style='font-size:0.85em; color:#64748b;'>MMRV 2nd</span>", "Disease": "麻疹, 腮腺炎, 德國麻疹, 水痘<br><span style='font-size:0.85em; color:#64748b;'>Measles, Mumps, Rubella, Chickenpox</span>", "Provider": "🏥 母嬰", "Desc": "歲半加強劑 (含水痘)", "Optional": False, "Match": get_date("mmrv|mmr|麻疹", 1)},
-        {"Age": "18 mo", "Days": 547, "Group": "Hepatitis A", "Vaccine": "甲型肝炎 第二劑<br><span style='font-size:0.85em; color:#64748b;'>Hep A 2nd</span>", "Disease": "甲肝<br><span style='font-size:0.85em; color:#64748b;'>Hepatitis A</span>", "Provider": "💰 私家", "Desc": "隔半年打第二針", "Optional": True, "Match": get_date("hepa|hep a|甲型", 1)},
-        {"Age": "3 Years", "Days": 1095, "Group": "Influenza", "Vaccine": "流感疫苗<br><span style='font-size:0.85em; color:#64748b;'>Flu Vaccine</span>", "Disease": "流感<br><span style='font-size:0.85em; color:#64748b;'>Flu</span>", "Provider": "💰 私家 / 🏥 幼稚園", "Desc": "入學前防護", "Optional": True, "Match": get_date("flu|流感", 1)},
-        {"Age": "5-6 Years", "Days": 1825, "Group": "DTaP / 6-in-1", "Vaccine": "白喉,破傷風,百日咳,小兒麻痺<br><span style='font-size:0.85em; color:#64748b;'>Booster</span>", "Disease": "白喉,破傷風,百日咳,小兒麻痺<br><span style='font-size:0.85em; color:#64748b;'>DTaP-IPV</span>", "Provider": "🏥 學校", "Desc": "小一學童接種", "Optional": False, "Match": get_date("dtap|ipv|小一|小兒麻痺", 4)},
-        {"Age": "5-6 Years", "Days": 1825, "Group": "MMR / MMRV", "Vaccine": "MMRV 加強劑<br><span style='font-size:0.85em; color:#64748b;'>MMRV Booster</span>", "Disease": "麻疹,腮腺炎,德國麻疹,水痘<br><span style='font-size:0.85em; color:#64748b;'>MMRV</span>", "Provider": "🏥 學校", "Desc": "小一學童接種", "Optional": False, "Match": get_date("mmrv|mmr|麻疹", 2)},
-        {"Age": "11-12 Years", "Days": 4015, "Group": "DTaP / 6-in-1", "Vaccine": "白喉,破傷風,百日咳<br><span style='font-size:0.85em; color:#64748b;'>dTap Booster</span>", "Disease": "白喉,破傷風,百日咳<br><span style='font-size:0.85em; color:#64748b;'>dTap</span>", "Provider": "🏥 學校", "Desc": "小六學童接種", "Optional": False, "Match": get_date("dtap|小六|百日咳", 5)},
-        {"Age": "11-12 Years", "Days": 4015, "Group": "HPV", "Vaccine": "子宮頸癌疫苗 第一劑<br><span style='font-size:0.85em; color:#64748b;'>HPV 1st</span>", "Disease": "子宮頸癌<br><span style='font-size:0.85em; color:#64748b;'>HPV</span>", "Provider": "🏥 學校", "Desc": "小五/小六女童接種", "Optional": False, "Match": get_date("hpv|子宮", 0)},
-        {"Age": "12-15 Years", "Days": 4380, "Group": "HPV", "Vaccine": "子宮頸癌疫苗 第二劑<br><span style='font-size:0.85em; color:#64748b;'>HPV 2nd</span>", "Disease": "子宮頸癌<br><span style='font-size:0.85em; color:#64748b;'>HPV</span>", "Provider": "🏥 學校", "Desc": "第二針", "Optional": False, "Match": get_date("hpv|子宮", 1)},
-        {"Age": "36 Years", "Days": 13140, "Group": "Adult", "Vaccine": "成人疫苗加強劑<br><span style='font-size:0.85em; color:#64748b;'>Adult Boosters</span>", "Disease": "百日咳/流感等<br><span style='font-size:0.85em; color:#64748b;'>Pertussis, Flu</span>", "Provider": "💰 私家", "Desc": "成人定期加強", "Optional": True, "Match": get_date("adult|成人", 0)},
+        {"Age": "0 mo", "Days": 0, "Group": "BCG", "Vaccine": "卡介苗 (BCG)", "Disease": "結核病 (Tuberculosis)", "Provider": "🏥 母嬰", "Desc": "預防結核病，初生嬰兒必打", "Optional": False, "Match": get_date("bcg|卡介苗", 0)},
+        {"Age": "0 mo", "Days": 0, "Group": "Hepatitis B", "Vaccine": "乙型肝炎 第一劑 (Hep B 1st)", "Disease": "乙型肝炎 (Hepatitis B)", "Provider": "🏥 母嬰", "Desc": "預防乙型肝炎，出世即打", "Optional": False, "Match": get_date("hep|hbv|hexa|6-in|6 in|六合一|乙型肝炎|五合一", 0)},
+        {"Age": "1 mo", "Days": 30, "Group": "Hepatitis B", "Vaccine": "乙型肝炎 第二劑 (Hep B 2nd)", "Disease": "乙型肝炎 (Hepatitis B)", "Provider": "🏥 母嬰", "Desc": "滿月時於母嬰健康院接種", "Optional": False, "Match": get_date("hep|hbv|hexa|6-in|6 in|六合一|乙型肝炎|五合一", 1)},
+        {"Age": "2 mo", "Days": 60, "Group": "6-in-1 Combo", "Vaccine": "六合一混合 第一劑 (6-in-1 1st)", "Disease": "白喉, 破傷風, 百日咳, 小兒麻痺, 乙肝, 流感嗜血桿菌 (DTaP-IPV-HepB-Hib)", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "私家六合/五合一或母嬰四合一", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 0)},
+        {"Age": "2 mo", "Days": 60, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 第一劑 (PCV 1st)", "Disease": "肺炎球菌感染 (Pneumococcal)", "Provider": "🏥 母嬰", "Desc": "預防嚴重肺炎/腦膜炎", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 0)},
+        {"Age": "2 mo", "Days": 60, "Group": "Rotavirus", "Vaccine": "輪狀病毒 第一劑 (Rotavirus 1st)", "Disease": "輪狀病毒腸胃炎 (Rotavirus)", "Provider": "💰 私家", "Desc": "口服疫苗，預防嚴重腸胃炎", "Optional": True, "Match": get_date("rota|輪狀", 0)},
+        {"Age": "2 mo", "Days": 60, "Group": "Meningococcal B", "Vaccine": "腦膜炎雙球菌 第一劑 (Men B 1st)", "Disease": "腦膜炎雙球菌感染 (Meningococcal)", "Provider": "💰 私家", "Desc": "預防致命腦膜炎，B型最常見", "Optional": True, "Match": get_date("menb|mening|腦膜炎", 0)},
+        {"Age": "4 mo", "Days": 120, "Group": "6-in-1 Combo", "Vaccine": "六合一混合 第二劑 (6-in-1 2nd)", "Disease": "白喉, 破傷風, 百日咳, 小兒麻痺, 乙肝, 流感嗜血桿菌 (DTaP-IPV-HepB-Hib)", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "第二針混合疫苗", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 1)},
+        {"Age": "4 mo", "Days": 120, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 第二劑 (PCV 2nd)", "Disease": "肺炎球菌感染 (Pneumococcal)", "Provider": "🏥 母嬰", "Desc": "第二針", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 1)},
+        {"Age": "4 mo", "Days": 120, "Group": "Rotavirus", "Vaccine": "輪狀病毒 第二劑 (Rotavirus 2nd)", "Disease": "輪狀病毒腸胃炎 (Rotavirus)", "Provider": "💰 私家", "Desc": "第二劑口服", "Optional": True, "Match": get_date("rota|輪狀", 1)},
+        {"Age": "4 mo", "Days": 120, "Group": "Meningococcal B", "Vaccine": "腦膜炎雙球菌 第二劑 (Men B 2nd)", "Disease": "腦膜炎雙球菌感染 (Meningococcal)", "Provider": "💰 私家", "Desc": "第二針", "Optional": True, "Match": get_date("menb|mening|腦膜炎", 1)},
+        {"Age": "6 mo", "Days": 180, "Group": "6-in-1 Combo", "Vaccine": "六合一混合 第三劑 (6-in-1 3rd)", "Disease": "白喉, 破傷風, 百日咳, 小兒麻痺, 乙肝, 流感嗜血桿菌 (DTaP-IPV-HepB-Hib)", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "第三針混合疫苗", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 2)},
+        {"Age": "6 mo", "Days": 180, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 第三劑 (PCV 3rd)", "Disease": "肺炎球菌感染 (Pneumococcal)", "Provider": "🏥 母嬰", "Desc": "第三針 (部份情況可省略)", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 2)},
+        {"Age": "6 mo", "Days": 180, "Group": "Rotavirus", "Vaccine": "輪狀病毒 第三劑 (Rotavirus 3rd)", "Disease": "輪狀病毒腸胃炎 (Rotavirus)", "Provider": "💰 私家", "Desc": "視乎藥廠(部份只需兩劑)", "Optional": True, "Match": get_date("rota|輪狀", 2)},
+        {"Age": "6 mo", "Days": 180, "Group": "Influenza", "Vaccine": "季節性流感 (Influenza)", "Disease": "流行性感冒 (Flu)", "Provider": "💰 私家 / 🏥 診所", "Desc": "滿6個月可打，每年一針", "Optional": True, "Match": get_date("flu|流感", 0)},
+        {"Age": "12 mo", "Days": 365, "Group": "MMR / MMRV", "Vaccine": "麻疹, 流行性腮腺炎, 德國麻疹 第一劑 (MMR 1st)", "Disease": "麻疹, 流行性腮腺炎, 德國麻疹 (Measles, Mumps, Rubella)", "Provider": "🏥 母嬰", "Desc": "一歲滿即打", "Optional": False, "Match": get_date("mmr|麻疹", 0)},
+        {"Age": "12 mo", "Days": 365, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 加強劑 (PCV Booster)", "Disease": "肺炎球菌感染 (Pneumococcal)", "Provider": "🏥 母嬰", "Desc": "加強劑", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 3)},
+        {"Age": "12 mo", "Days": 365, "Group": "Varicella", "Vaccine": "水痘 第一劑 (Varicella 1st)", "Disease": "水痘 (Chickenpox)", "Provider": "🏥 母嬰", "Desc": "第一針水痘", "Optional": False, "Match": get_date("varicella|cp|chickenpox|水痘", 0)},
+        {"Age": "12 mo", "Days": 365, "Group": "Hepatitis A", "Vaccine": "甲型肝炎 第一劑 (Hep A 1st)", "Disease": "甲型肝炎 (Hepatitis A)", "Provider": "💰 私家", "Desc": "預防受污染食物感染", "Optional": True, "Match": get_date("hepa|hep a|甲型", 0)},
+        {"Age": "18 mo", "Days": 547, "Group": "6-in-1 Combo", "Vaccine": "六合一混合 加強劑 (6-in-1 Booster)", "Disease": "白喉, 破傷風, 百日咳, 小兒麻痺, 乙肝, 流感嗜血桿菌 (DTaP-IPV-HepB-Hib)", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "加強保護力", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 3)},
+        {"Age": "18 mo", "Days": 547, "Group": "MMR / MMRV", "Vaccine": "MMRV 第二劑 (MMRV 2nd)", "Disease": "麻疹, 流行性腮腺炎, 德國麻疹, 水痘 (Measles, Mumps, Rubella, Chickenpox)", "Provider": "🏥 母嬰", "Desc": "歲半加強劑 (含水痘)", "Optional": False, "Match": get_date("mmrv|mmr|麻疹", 1)},
+        {"Age": "18 mo", "Days": 547, "Group": "Hepatitis A", "Vaccine": "甲型肝炎 第二劑 (Hep A 2nd)", "Disease": "甲型肝炎 (Hepatitis A)", "Provider": "💰 私家", "Desc": "隔半年打第二針", "Optional": True, "Match": get_date("hepa|hep a|甲型", 1)},
+        {"Age": "3 Years", "Days": 1095, "Group": "Influenza", "Vaccine": "流感疫苗 (Flu Vaccine)", "Disease": "流行性感冒 (Flu)", "Provider": "💰 私家 / 🏥 幼稚園", "Desc": "入學前防護", "Optional": True, "Match": get_date("flu|流感", 1)},
+        {"Age": "5-6 Years", "Days": 1825, "Group": "DTaP / 6-in-1", "Vaccine": "白喉,破傷風,百日咳,小兒麻痺 加強劑 (Booster)", "Disease": "白喉, 破傷風, 百日咳, 小兒麻痺 (DTaP-IPV)", "Provider": "🏥 學校", "Desc": "小一學童接種", "Optional": False, "Match": get_date("dtap|ipv|小一|小兒麻痺", 4)},
+        {"Age": "5-6 Years", "Days": 1825, "Group": "MMR / MMRV", "Vaccine": "MMRV 加強劑 (MMRV Booster)", "Disease": "麻疹, 流行性腮腺炎, 德國麻疹, 水痘 (MMRV)", "Provider": "🏥 學校", "Desc": "小一學童接種", "Optional": False, "Match": get_date("mmrv|mmr|麻疹", 2)},
+        {"Age": "11-12 Years", "Days": 4015, "Group": "DTaP / 6-in-1", "Vaccine": "白喉,破傷風,百日咳 加強劑 (dTap Booster)", "Disease": "白喉, 破傷風, 百日咳 (dTap)", "Provider": "🏥 學校", "Desc": "小六學童接種", "Optional": False, "Match": get_date("dtap|小六|百日咳", 5)},
+        {"Age": "11-12 Years", "Days": 4015, "Group": "HPV", "Vaccine": "子宮頸癌疫苗 第一劑 (HPV 1st)", "Disease": "子宮頸癌 (HPV)", "Provider": "🏥 學校", "Desc": "小五/小六女童接種", "Optional": False, "Match": get_date("hpv|子宮", 0)},
+        {"Age": "12-15 Years", "Days": 4380, "Group": "HPV", "Vaccine": "子宮頸癌疫苗 第二劑 (HPV 2nd)", "Disease": "子宮頸癌 (HPV)", "Provider": "🏥 學校", "Desc": "第二針", "Optional": False, "Match": get_date("hpv|子宮", 1)},
+        {"Age": "36 Years", "Days": 13140, "Group": "Adult", "Vaccine": "成人疫苗加強劑 (Adult Boosters)", "Disease": "百日咳/流感等 (Pertussis, Flu)", "Provider": "💰 私家", "Desc": "成人定期加強", "Optional": True, "Match": get_date("adult|成人", 0)},
     ]
     
     current_date = (datetime.utcnow() + timedelta(hours=tz_offset)).date()
@@ -886,20 +859,21 @@ with tab8:
     rows = []
     for s in hkcip_schedule:
         if s["Match"]: status = "✅ Done"
+        elif 0 < (s["Days"] - age_days) <= 30: status = "🟡 Due Soon"
         elif age_days >= s["Days"]: status = "⚠️ Overdue"
         else: status = "⏳ Upcoming"
         
         v_name_formatted = f"(Optional) {s['Vaccine']}" if s["Optional"] else s["Vaccine"]
         
         rows.append({
-            "Status": status,
             "Age": s["Age"],
             "Group": s["Group"],
-            "Vaccine / 疫苗": v_name_formatted,
             "Disease Prevented": s["Disease"],
+            "Vaccine / 疫苗": v_name_formatted,
             "Type": s["Provider"],
             "Description": s["Desc"],
             "Date Injected": str(s["Match"]) if s["Match"] else "-",
+            "Status": status, # Moved to last
             "Optional": s["Optional"],
             "Days": s["Days"]
         })
@@ -914,12 +888,14 @@ with tab8:
     else:
         styled_df = styled_df.sort_values(by="Days").reset_index(drop=True)
 
-    # Pre-compute exact row colors
+    # Pre-compute exact row colors (Green = Done, Yellow = Due Soon, Red = Overdue, Gray = Optional Not Done)
     colors = []
     for _, row in styled_df.iterrows():
-        if row['Status'].startswith('✅'): colors.append(['background-color: #dcfce7; color: #166534'] * 7)
-        elif row['Optional']: colors.append(['background-color: #f1f5f9; color: #475569'] * 7) # Grayer background for Optional
-        else: colors.append([''] * 7)
+        if '✅' in row['Status']: colors.append(['background-color: #dcfce7; color: #166534'] * len(row))
+        elif '🟡' in row['Status']: colors.append(['background-color: #fef08a; color: #854d0e'] * len(row))
+        elif '⚠️' in row['Status']: colors.append(['background-color: #fee2e2; color: #991b1b'] * len(row))
+        elif row['Optional']: colors.append(['background-color: #e2e8f0; color: #475569'] * len(row))
+        else: colors.append([''] * len(row))
         
     styled_df = styled_df.drop(columns=["Days", "Group", "Optional"])
     styled_table = styled_df.style.apply(lambda x: colors[x.name], axis=1)
@@ -929,17 +905,17 @@ with tab8:
         use_container_width=True, hide_index=True, height=550,
         column_config={
             "Vaccine / 疫苗": st.column_config.TextColumn("Vaccine / 疫苗", width="medium"),
-            "Disease Prevented": st.column_config.TextColumn("Disease Prevented", width="medium"),
+            "Disease Prevented": st.column_config.TextColumn("Disease Prevented", width="large"),
             "Description": st.column_config.TextColumn("Description", width="medium")
         }
     )
     
-    st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     st.markdown("##### 📋 Riley's Vaccination History Log")
     if not vac_df.empty:
         if 'DateTime' in vac_df.columns:
             vac_df = vac_df.sort_values('DateTime', ascending=False).reset_index(drop=True)
-            vac_df['DateTime_Display'] = vac_df['DateTime']
+            vac_df['DateTime_Display'] = pd.to_datetime(vac_df['DateTime']).dt.strftime('%Y-%m-%d')
             vac_df['Age at Shot'] = ((pd.to_datetime(vac_df['Date']) - pd.to_datetime(baby_dob)).dt.days / 30.437).round(1).astype(str) + " mo"
         
         desired_cols = ['DateTime_Display', 'Age at Shot', 'Event Type', 'Notes / Details (Optional)']
@@ -949,7 +925,7 @@ with tab8:
         st.dataframe(
             display_vac, use_container_width=True, hide_index=True, height=350,
             column_config={
-                "Date Injected": st.column_config.DatetimeColumn("Date Injected", format="YYYY-MM-DD HH:mm", width="medium"), 
+                "Date Injected": st.column_config.TextColumn("Date Injected", width="medium"), 
                 "Age at Shot": st.column_config.TextColumn("Age at Shot", width="small"),
                 "Event Type": st.column_config.TextColumn("Event", width="medium"),
                 "Notes / Details (Optional)": st.column_config.TextColumn("Vaccine Type / Notes", width="large")
