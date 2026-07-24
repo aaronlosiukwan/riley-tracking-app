@@ -169,15 +169,15 @@ st.markdown("""
         .custom-header-mobile { display: none !important; }
         .custom-header-desktop { display: block !important; margin-top: 1.5rem; margin-bottom: 1.0rem; }
         .desktop-header-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; }
-        .desktop-header-controls { display: flex; gap: 0.5rem; justify-content: flex-end; }
-        .desktop-header-controls .custom-btn { width: 100px !important; flex: 0 0 100px !important; padding: 0; }
+        .desktop-header-controls { display: flex; gap: 0.5rem; justify-content: flex-end; flex: 1; }
+        .desktop-header-controls .custom-btn { flex: 0 0 30% !important; max-width: 130px !important; width: 30% !important; padding: 0; }
     }
 
     @media (max-width: 768px) {
         .custom-header-desktop { display: none !important; }
         .custom-header-mobile { display: block !important; width: 100%; margin-top: 1.5rem; margin-bottom: 2.0rem !important; }
-        .mobile-header-controls { display: flex; flex-direction: row; justify-content: flex-start; align-items: center; width: 100%; gap: 0.8rem; }
-        .mobile-header-controls .custom-btn { flex: 0 0 28% !important; max-width: 120px !important; width: 28% !important; text-align: center; } 
+        .mobile-header-controls { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; gap: 0.5rem; }
+        .mobile-header-controls .custom-btn { flex: 1 1 0 !important; max-width: none !important; width: auto !important; text-align: center; } 
         
         /* Forces 4-column filter expander into a tight 2x2 grid on mobile */
         div[data-testid="stExpanderDetails"] div[data-testid="stHorizontalBlock"] {
@@ -1027,4 +1027,5 @@ else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
 
 st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
+
 
