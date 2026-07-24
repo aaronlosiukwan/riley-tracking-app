@@ -117,13 +117,18 @@ st.markdown("""
     /* Mobile 50/50 Split Sizing (Title 100%, Buttons 50/50 Below it) */
     @media (max-width: 768px) {
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
+            
             flex-wrap: wrap !important; gap: 0.5rem !important;
             flex-direction: row !important; /* Force row layout to stop stacking */
             margin-bottom: 2.5rem !important;
+            align-items: flex-start !important; /* Prevent flex from ignoring vertical margins */
+        }
+        .app-main-title {
+            margin-bottom: 1.5rem !important; /* Force direct margin on the title itself */
+            padding-bottom: 0.25rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
             flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
-            margin-bottom: 1.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
             flex: 0 0 calc(50% - 0.25rem) !important; width: calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; margin-right: 0.5rem !important;
@@ -345,7 +350,7 @@ def render_insight_card(text):
 
 
 # ==========================================
-# 4. TODAY'S HIGHLIGHTS (Moved Up!)
+# 4. TODAY'S HIGHLIGHTS (Moved Up)
 # ==========================================
 utc_now = datetime.utcnow()
 current_local_time = utc_now + timedelta(hours=tz_offset)
@@ -421,48 +426,6 @@ else:
     st.markdown(f'<div class="cards-container">{"".join(formatted_today_cards)}</div>', unsafe_allow_html=True)
 
 
-div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseButton-secondary"]:active,
-    div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseLinkButton-secondary"]:active {
-        background-color: #f1f5f9 !important; transform: scale(0.98);
-    }
-
-    /* Mobile 50/50 Split Sizing (Title 100%, Buttons 50/50 Below it) */
-    @media (max-width: 768px) {
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
-            
-            flex-wrap: wrap !important; gap: 0.5rem !important;
-            flex-direction: row !important; /* Force row layout to stop stacking */
-            margin-bottom: 2.5rem !important;
-            align-items: flex-start !important; /* Prevent flex from ignoring vertical margins */
-        }
-        .app-main-title {
-            margin-bottom: 1.5rem !important; /* Force direct margin on the title itself */
-            padding-bottom: 0.25rem !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
-            flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
-            flex: 0 0 calc(50% - 0.25rem) !important; width: calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; margin-right: 0.5rem !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(3) {
-            flex: 0 0 calc(50% - 0.25rem) !important; width: calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; margin: 0 !important;
-        }
-    }
-
-    /* Mobile Compact 2x2 Grid for Filters */
-    @media (max-width: 768px) {
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
-            flex-wrap: wrap !important; gap: 0.5rem !important;
-            flex-direction: row !important; /* Force row layout to stop stacking */
-            margin-bottom: 2.5rem !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
-            flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
-            margin-bottom: 1.5rem !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
-# ... existing code ...
 # ==========================================
 # 5. COMPACT QUICK FILTERS (MOVED BELOW TODAY)
 # ==========================================
@@ -479,7 +442,18 @@ st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; m
 
 # Compact 4-Column Layout (Wrapped neatly into 2x2 grid on mobile via CSS)
 f_col1, f_col2, f_col3, f_col4 = st.columns([1.2, 1, 1, 0.8], vertical_alignment="bottom")
-# ... existing code ...
+
+with f_col1:
+    granularity = st.selectbox("Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0)
+
+def set_all_data():
+    st.session_state.sd = min_data_date
+    st.session_state.ed = max_data_date
+
+with f_col2: st.date_input("Start Date", min_value=min_data_date, max_value=max_data_date, key="sd")
+with f_col3: st.date_input("End Date", min_value=min_data_date, max_value=max_data_date, key="ed")
+with f_col4: st.button("🗓️ All Data", on_click=set_all_data, use_container_width=True)
+
 start_date = st.session_state.sd
 end_date = st.session_state.ed
 group_col_map = {"Daily": "Date", "Weekly": "Week", "Monthly": "Month", "All Time": "Month"}
@@ -489,10 +463,6 @@ filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
 st.markdown("<div style='margin-top: 1.5rem; margin-bottom: 2.5rem; border-bottom: 1px solid rgba(128,128,128,0.15);'></div>", unsafe_allow_html=True)
 
 
-# ==========================================
-# 6. CHARTS & ANALYTICS
-# ==========================================
-# ... existing code ...
 # ==========================================
 # 6. CHARTS & ANALYTICS
 # ==========================================
@@ -595,7 +565,7 @@ with tab2:
         st.plotly_chart(fig_milk, use_container_width=True)
         
         st.caption(f"ℹ️ *Combines stacked Formula and Breast Milk volume (mL) on left axis with Feed Count(s) (orange) on right axis. The grey line plots the 7-period rolling average.*", unsafe_allow_html=True)
-
+        
         avg_vol = total_per_x['Value (Optional)'].mean()
         trend_word = "holding highly stable ⚖️"
         if len(total_per_x) > 3:
@@ -972,7 +942,7 @@ with tab8:
     else: render_empty_state("No Vaccine Data Logged")
 
 # ==========================================
-# 6. EXPANDED DATABASE TABLE (MOVED TO BOTTOM)
+# 7. EXPANDED DATABASE TABLE (MOVED TO BOTTOM)
 # ==========================================
 st.markdown('<div id="database" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
 st.subheader("📋 Database")
