@@ -82,33 +82,34 @@ st.markdown("""
         background-color: #f1f5f9 !important; transform: scale(0.98);
     }
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) p {
-        font-weight: 600 !important; font-size: 0.95rem !important; color: #1e293b !important;
+    /* Custom Header Buttons - Locked 44px Height & Equal Width Rules */
+    .custom-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        background-color: var(--card-bg) !important; color: #1e293b !important;
+        border: 1px solid var(--card-border); box-shadow: var(--card-shadow);
+        border-radius: 8px; height: 44px !important; min-height: 44px !important; 
+        font-size: 0.95rem !important; font-weight: 600;
+        text-decoration: none !important; transition: all 0.15s ease; box-sizing: border-box;
     }
+    .custom-btn:active { background-color: #f1f5f9 !important; transform: scale(0.98); }
 
-    /* Desktop Exact Sizing */
+    /* Flawless HTML Desktop/Mobile Header Layouts */
     @media (min-width: 769px) {
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div:nth-child(1) {
-            width: calc(100% - 280px) !important; flex: 1 1 calc(100% - 280px) !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div:nth-child(2),
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div:nth-child(3) {
-            width: 130px !important; flex: 0 0 130px !important; min-width: 130px !important;
-        }
-    }
-    
-    /* Mobile 50/50 Split Sizing */
-    @media (max-width: 768px) {
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) { flex-wrap: wrap; gap: 0.5rem; }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div:nth-child(1) {
-            width: 100% !important; flex: 1 1 100% !important; min-width: 100% !important; margin-bottom: 0.5rem;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div:nth-child(2),
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div:nth-child(3) {
-            width: calc(50% - 0.25rem) !important; flex: 1 1 calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important;
-        }
+        .custom-header-mobile { display: none !important; }
+        .custom-header-desktop { display: block !important; margin-top: 1.5rem; margin-bottom: 1.0rem; }
+        .desktop-header-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; }
+        .desktop-header-controls { display: flex; gap: 0.5rem; }
+        .desktop-header-controls .custom-btn { width: 130px; padding: 0; }
     }
 
-    /* Standard Elements */
+    @media (max-width: 768px) {
+        .custom-header-desktop { display: none !important; }
+        /* Pushed down and robust bottom margin to prevent overlap */
+        .custom-header-mobile { display: block !important; width: 100%; margin-top: 1.5rem; margin-bottom: 2.0rem !important; }
+        .mobile-header-controls { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; gap: 0.5rem; }
+        .mobile-header-controls .custom-btn { flex: 1; text-align: center; }
+    }
+
     span[data-baseweb="tag"] { background-color: #e5e7eb !important; color: #1f2937 !important; border: 1px solid #d1d5db !important; font-weight: 500 !important; }
     .toc-button { display: block; width: 100%; padding: 8px 12px; margin: 4px 0; background-color: var(--card-bg); border: 1px solid var(--card-border); box-shadow: var(--card-shadow); color: var(--card-text) !important; text-decoration: none !important; border-radius: 8px; font-size: 0.9rem; font-weight: 500; transition: all 0.15s ease-in-out; }
     .toc-button:hover { background-color: #f1f5f9; border-color: #cbd5e1; text-decoration: none !important; }
@@ -947,4 +948,5 @@ else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
 
 st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
+
 
