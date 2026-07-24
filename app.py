@@ -92,7 +92,7 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
         align-items: center !important;
         margin-top: 1rem !important;
-        margin-bottom: 1.5rem !important;
+        margin-bottom: 2.0rem !important;
     }
 
     /* Force Native Streamlit Buttons to adopt Custom UI styling perfectly */
@@ -119,10 +119,11 @@ st.markdown("""
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
             flex-wrap: wrap !important; gap: 0.5rem !important;
             flex-direction: row !important; /* Force row layout to stop stacking */
+            margin-bottom: 2.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
             flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
-            margin-bottom: 0.5rem !important;
+            margin-bottom: 1.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
             flex: 0 0 calc(50% - 0.25rem) !important; width: calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; margin-right: 0.5rem !important;
@@ -431,7 +432,7 @@ if 'sd' not in st.session_state:
 if 'ed' not in st.session_state: 
     st.session_state.ed = max_data_date
 
-st.markdown('<div id="filters" style="padding-top: 2rem;"></div>', unsafe_allow_html=True)
+st.markdown('<div id="filters" style="margin-top: 4rem; padding-top: 1rem;"></div>', unsafe_allow_html=True)
 st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;'>⚙️ Date Range & Grouping Filters</div>", unsafe_allow_html=True)
 
 # Compact 4-Column Layout (Wrapped neatly into 2x2 grid on mobile via CSS)
@@ -454,7 +455,7 @@ group_col_map = {"Daily": "Date", "Weekly": "Week", "Monthly": "Month", "All Tim
 group_col = group_col_map[granularity]
 filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
 
-st.markdown(f"<div style='color: #64748b; font-size: 0.85rem; margin-top: 0.5rem; margin-bottom: 2rem; padding-bottom: 0.8rem; border-bottom: 1px solid rgba(128,128,128,0.15); font-weight: 500;'>Data aggregated from <span style='color: #334155;'>{start_date.strftime('%Y-%m-%d')}</span> to <span style='color: #334155;'>{end_date.strftime('%Y-%m-%d')}</span></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 1.5rem; margin-bottom: 2.5rem; border-bottom: 1px solid rgba(128,128,128,0.15);'></div>", unsafe_allow_html=True)
 
 
 # ==========================================
@@ -984,4 +985,3 @@ else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
 
 st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
-
