@@ -34,34 +34,6 @@ Designed for sleep-deprived parents, it pulls data directly from Google Sheets i
 
 🚀 Installation & Setup
 
-1. Clone the repository:
-
-[bash]
-git clone [https://github.com/yourusername/rileys-dash.git](https://github.com/yourusername/rileys-dash.git)
-cd rileys-dash
-
-
-2. Install dependencies:
-Make sure you have Python 3.9+ installed.
-
-[bash]
-pip install -r requirements.txt
-
-
-3. Set up your Database (Google Sheets):
-
-	• Create a Google Sheet with the following columns: DateTime, Event Type, Value (Optional), Notes / Details (Optional).
-
-	• Ensure the Share Settings are set to "Anyone with the link can view".
-
-	• You can update the DEFAULT_SHEET_URL in app.py with your sheet link.
-
-4. Run the App:
-
-[bash]
-streamlit run app.py
-
-
 📱 Mobile Integration (iOS Shortcuts)
 
 The dashboard includes an "➕ Add" button hardcoded to trigger an iOS Shortcut (shortcuts://run-shortcut?name=Riley%20Tracker).
