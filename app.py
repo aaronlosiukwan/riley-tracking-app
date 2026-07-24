@@ -18,28 +18,90 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Apple Touch Icon (Stripped of complex Refresh JS)
+# Inject Apple Touch Icon & Bulletproof Refresh Logic
 components.html(
     """
     <script>
     (function() {
         const iconUrl = "https://em-content.zobj.net/source/apple/391/baby-bottle_1f37c.png";
-        function applyAppleIcon(doc) {
-            if (!doc || !doc.head) return;
+        
+        function getSafeDoc() {
+            try { if (window.top.document) return window.top.document; } catch(e) {}
+            try { if (window.parent.document) return window.parent.document; } catch(e) {}
+            return document;
+        }
+
+        function showToast(msg, bg, borderColor, textColor) {
+            let targetDoc = getSafeDoc();
+            let toast = targetDoc.createElement('div');
+            toast.innerHTML = msg;
+            toast.style.cssText = `position: fixed; top: 24px; right: 24px; background: ${bg}; color: ${textColor}; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600; z-index: 2147483647; border: 1px solid ${borderColor}; font-family: sans-serif; opacity: 0; transition: opacity 0.3s ease;`;
+            targetDoc.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '1'; }, 50);
+            setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+            setTimeout(() => { toast.remove(); }, 3500);
+        }
+
+        function setupLogic() {
+            let parentWin;
+            try { parentWin = window.parent || window; } catch(e) { parentWin = window; }
+            
+            if (!parentWin.triggerRefresh) {
+                parentWin.triggerRefresh = function(element) {
+                    if (element) {
+                        element.innerHTML = '⏳ Fetching...';
+                        element.style.pointerEvents = 'none';
+                        element.style.opacity = '0.7';
+                    }
+                    parentWin.sessionStorage.setItem('reloaded', 'true');
+                    showToast('⏳ Refreshing data...', '#fffbeb', '#fde047', '#854d0e');
+                    setTimeout(() => { parentWin.location.reload(true); }, 400);
+                };
+            }
+            if (parentWin.sessionStorage.getItem('reloaded')) {
+                parentWin.sessionStorage.removeItem('reloaded');
+                showToast('✅ Data successfully updated!', '#dcfce7', '#86efac', '#166534');
+
+                let targetDoc = getSafeDoc();
+                let attempts = 0;
+                const interval = setInterval(() => {
+                    const btns = targetDoc.querySelectorAll('.refresh-btn');
+                    if (btns.length > 0) {
+                        btns.forEach(btn => {
+                            btn.innerHTML = '✅ Done!'; 
+                            btn.style.backgroundColor = '#dcfce7';
+                            btn.style.borderColor = '#86efac';
+                            setTimeout(() => {
+                                btn.innerHTML = '🔄 Refresh';
+                                btn.style.backgroundColor = '';
+                                btn.style.borderColor = '';
+                                btn.style.pointerEvents = 'auto';
+                                btn.style.opacity = '1';
+                            }, 2500);
+                        });
+                        clearInterval(interval);
+                    }
+                    attempts++;
+                    if (attempts > 50) clearInterval(interval);
+                }, 100);
+            }
+        }
+        
+        try { 
+            let targetDoc = getSafeDoc();
             const rels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon', 'shortcut icon'];
             rels.forEach(function(rel) {
-                let link = doc.querySelector("link[rel='" + rel + "']");
+                let link = targetDoc.querySelector("link[rel='" + rel + "']");
                 if (!link) {
-                    link = doc.createElement('link');
+                    link = targetDoc.createElement('link');
                     link.rel = rel;
-                    doc.head.appendChild(link);
+                    targetDoc.head.appendChild(link);
                 }
                 link.href = iconUrl;
             });
-        }
-        try { applyAppleIcon(document); } catch(e) {}
-        try { applyAppleIcon(window.parent.document); } catch(e) {}
-        try { applyAppleIcon(window.top.document); } catch(e) {}
+        } catch(e) {}
+        
+        try { setupLogic(); } catch(e) {}
     })();
     </script>
     """,
@@ -47,7 +109,7 @@ components.html(
     width=0
 )
 
-# Responsive & Adaptive CSS overriding Streamlit internals
+# Responsive & Adaptive CSS
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -80,7 +142,7 @@ st.markdown("""
         --card-bg: #ffffff; --card-border: #e2e8f0; --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); --card-text: #1e293b;
     }
 
-    /* Title Styling - Enforced definitively larger than subheaders */
+    /* Title Styling - Enforced definitively larger than subheaders but wraps cleanly on tiny mobile screens */
     .app-main-title {
         font-size: clamp(2.2rem, 6vw + 0.8rem, 3.2rem) !important;
         font-weight: 700 !important;
@@ -94,14 +156,14 @@ st.markdown("""
     /* --- NATIVE STREAMLIT HEADER RESTRUCTURING (Overrides default stacking) --- */
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
         align-items: center !important;
-        margin-top: 1.5rem !important;
+        margin-top: 2.5rem !important; /* Added requested spacing before HEADER title */
         margin-bottom: 2.0rem !important;
     }
     
-    /* Force Native Buttons to Look Like Custom UI */
+    /* Custom Header Buttons - Slimmer Height & Reduced Desktop Width */
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseButton-secondary"],
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseLinkButton-secondary"] {
-        height: 44px !important; min-height: 44px !important;
+        height: 40px !important; min-height: 40px !important;
         padding: 0px !important; border-radius: 8px !important;
         border: 1px solid var(--card-border) !important;
         background-color: var(--card-bg) !important;
@@ -113,19 +175,19 @@ st.markdown("""
         background-color: #f1f5f9 !important; transform: scale(0.98);
     }
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) p {
-        font-weight: 600 !important; font-size: 0.95rem !important; color: #1e293b !important; margin: 0 !important;
+        font-weight: 600 !important; font-size: 0.85rem !important; color: #1e293b !important; margin: 0 !important;
     }
 
-    /* Desktop Exact Sizing */
+    /* Desktop Exact Sizing - Shrunk buttons to 100px */
     @media (min-width: 769px) {
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
-            width: calc(100% - 280px) !important; flex: 1 1 calc(100% - 280px) !important; min-width: calc(100% - 280px) !important;
+            width: calc(100% - 220px) !important; flex: 1 1 calc(100% - 220px) !important; min-width: calc(100% - 220px) !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
-            width: 130px !important; flex: 0 0 130px !important; min-width: 130px !important; margin-right: 0.5rem !important;
+            width: 100px !important; flex: 0 0 100px !important; min-width: 100px !important; margin-right: 0.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(3) {
-            width: 130px !important; flex: 0 0 130px !important; min-width: 130px !important;
+            width: 100px !important; flex: 0 0 100px !important; min-width: 100px !important;
         }
     }
     
@@ -184,15 +246,11 @@ with h_col2:
     st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
 
 with h_col3:
+    # Adding unique class injection to explicitly attach JS logic
+    st.markdown('<div class="refresh-btn-anchor"></div>', unsafe_allow_html=True)
     if st.button("🔄 Refresh", use_container_width=True):
         st.cache_data.clear()
-        st.session_state.show_refresh_toast = True
         st.rerun()
-
-# Execute Toast on reload
-if st.session_state.get('show_refresh_toast', False):
-    st.toast("Data successfully updated!", icon="✅")
-    st.session_state.show_refresh_toast = False
 
 # ==========================================
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
@@ -201,6 +259,7 @@ st.sidebar.markdown("""
     <div style="margin-bottom: 12px;">
         <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">📌 Quick Navigation</div>
         <a href="#today" class="toc-button">✨ Today</a>
+        <a href="#period-highlights" class="toc-button">📅 Range Highlights</a>
         <a href="#insights" class="toc-button">📊 Insights</a>
         <a href="#database" class="toc-button">📋 Database</a>
     </div>
@@ -338,7 +397,7 @@ def render_insight_card(text):
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. EXPANDABLE FILTERS & GROUPING
+# 3. COMPACT QUICK FILTERS & GROUPING
 # ==========================================
 min_str = min_data_date.strftime('%m.%d')
 max_str = max_data_date.strftime('%m.%d')
@@ -348,27 +407,24 @@ if 'sd' not in st.session_state:
 if 'ed' not in st.session_state: 
     st.session_state.ed = max_data_date
 
-cur_sd = st.session_state.sd
-cur_ed = st.session_state.ed
+def set_all_data():
+    st.session_state.sd = min_data_date
+    st.session_state.ed = max_data_date
 
-exp_title = f"⚙️ Filter & Grouping Settings — Data Aggregated from {cur_sd.strftime('%Y-%m-%d')} to {cur_ed.strftime('%Y-%m-%d')}"
+# Sleek, highly compact filtering section anchored right below the main title
+st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True) 
+st.markdown("<div style='font-size: 1.0rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;'>⚙️ Date Range & Grouping Filters</div>", unsafe_allow_html=True)
 
-with st.expander(exp_title, expanded=False):
-    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
-    f_col1, f_col2, f_col3 = st.columns([1.5, 1, 1])
-    with f_col1:
-        granularity = st.radio("Chart Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0, horizontal=True)
-        range_hints = {"Daily": "Default: Last 21 Days", "Weekly": "Default: Last 8 Weeks", "Monthly": "Default: Last 6 Months", "All Time": "Default: Full Data Range"}
-        st.markdown(f"<span class='default-range-text'>ℹ️ {range_hints[granularity]}</span>", unsafe_allow_html=True)
-    
-    def set_all_data():
-        st.session_state.sd = min_data_date
-        st.session_state.ed = max_data_date
+f_c1, f_c2, f_c3, f_c4 = st.columns([1.5, 1, 1, 1], vertical_alignment="bottom")
 
-    with f_col2: st.date_input("Start Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="sd")
-    with f_col3: st.date_input("End Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="ed")
-    
-    st.button("🗓️ Select All Data Range", on_click=set_all_data, use_container_width=True)
+with f_c1:
+    granularity = st.selectbox("Chart Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0)
+with f_c2: 
+    st.date_input("Start Date", min_value=min_data_date, max_value=max_data_date, key="sd")
+with f_c3: 
+    st.date_input("End Date", min_value=min_data_date, max_value=max_data_date, key="ed")
+with f_c4:
+    st.button("🗓️ All Data", on_click=set_all_data, use_container_width=True)
 
 start_date = st.session_state.sd
 end_date = st.session_state.ed
@@ -453,6 +509,51 @@ else:
         if card_count % 2 != 0 and i == 0 and card_count > 1: cls += " mobile-full-width"
         formatted_today_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
     st.markdown(f'<div class="cards-container">{"".join(formatted_today_cards)}</div>', unsafe_allow_html=True)
+
+
+# --- B. RANGE HIGHLIGHTS ---
+st.markdown('<div id="period-highlights" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
+st.subheader("📅 Range Highlights")
+st.caption(f" - from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+
+if filtered_df.empty:
+    st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 No Data Logged in this Period</div><div class="empty-data-sub">Expand date range to view aggregate highlights.</div></div>""", unsafe_allow_html=True)
+else:
+    p_formula = filtered_df[filtered_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
+    p_bm = filtered_df[filtered_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
+    p_milk = p_formula + p_bm
+    p_feed_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
+    p_avg_feed = (p_milk / p_feed_cnt) if p_feed_cnt > 0 else 0
+    p_wet = len(filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
+    p_poop = len(filtered_df[filtered_df['Event Type'].str.contains("Poop", case=False, na=False)])
+    p_pumping = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
+    p_tummy = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
+    p_sleep = filtered_df[filtered_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
+    p_meds = len(filtered_df[filtered_df['Event Type'].str.contains("Meds", case=False, na=False)])
+    p_temp_df = filtered_df[filtered_df['Event Type'].str.contains("Temp", case=False, na=False)]
+    p_latest_temp = p_temp_df.iloc[0]['Value (Optional)'] if not p_temp_df.empty else None
+    p_pump_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)])
+    p_tummy_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
+
+    period_cards = []
+    if p_milk > 0 or p_feed_cnt > 0: period_cards.append(f"""<div class="highlight-card card-milk"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Form: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div></div>""")
+    if p_wet + p_poop > 0: period_cards.append(f"""<div class="highlight-card card-diaper"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body">Total <b>{p_wet + p_poop}</b> change(s).</div></div><div class="highlight-sub">💧 Wet: {p_wet} | 🚽 Poop: {p_poop}</div></div>""")
+    if p_pumping > 0 or p_pump_cnt > 0: period_cards.append(f"""<div class="highlight-card card-pump"><div><div class="highlight-title">🧴 Pumping</div><div class="highlight-body">Pumped <b>{int(p_pumping):,} mL</b> in range.</div></div><div class="highlight-sub">{p_pump_cnt} pumping session(s)</div></div>""")
+    if p_tummy > 0 or p_tummy_cnt > 0: period_cards.append(f"""<div class="highlight-card card-tummy"><div><div class="highlight-title">🛟 Tummy Time</div><div class="highlight-body">Logged <b>{int(p_tummy)} min(s)</b> in range.</div></div><div class="highlight-sub">{p_tummy_cnt} session(s) recorded</div></div>""")
+    if p_sleep > 0: period_cards.append(f"""<div class="highlight-card card-sleep"><div><div class="highlight-title">🛌 Sleep & Rest</div><div class="highlight-body">Logged <b>{int(p_sleep)} hr(s)</b> of rest.</div></div><div class="highlight-sub">{len(filtered_df[filtered_df['Event Type'].str.contains('Sleep', case=False, na=False)])} sleep period(s)</div></div>""")
+    if p_meds > 0: period_cards.append(f"""<div class="highlight-card card-meds"><div><div class="highlight-title">💊 Medication</div><div class="highlight-body">Logged <b>{p_meds}</b> dose(s).</div></div><div class="highlight-sub">Dose(s) tracked in log</div></div>""")
+    if len(p_temp_df) > 0: period_cards.append(f"""<div class="highlight-card card-temp"><div><div class="highlight-title">🌡️ Body Temperature</div><div class="highlight-body"><b>{p_latest_temp:.1f} °C</b></div></div><div class="highlight-sub">{len(p_temp_df)} reading(s) in period</div></div>""")
+    if len(filtered_df) > 0: period_cards.append(f"""<div class="highlight-card card-events"><div><div class="highlight-title">📊 Total Events</div><div class="highlight-body"><b>{len(filtered_df):,}</b> entry(s) logged.</div></div><div class="highlight-sub">From {start_date} to {end_date}</div></div>""")
+
+    p_card_count = len(period_cards)
+    p_base_span = "card-span-3" if p_card_count >= 4 else ("card-span-4" if p_card_count == 3 else ("card-span-6" if p_card_count == 2 else "card-span-12"))
+
+    formatted_p_cards = []
+    for i, card in enumerate(period_cards):
+        cls = f"highlight-card {p_base_span}"
+        if p_card_count % 2 != 0 and i == 0 and p_card_count > 1: cls += " mobile-full-width"
+        formatted_p_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
+    st.markdown(f'<div class="cards-container">{"".join(formatted_p_cards)}</div>', unsafe_allow_html=True)
 
 
 # ==========================================
