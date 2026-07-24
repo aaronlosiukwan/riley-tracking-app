@@ -90,36 +90,6 @@ This app uses a publicly viewable CSV export link from a Google Sheet as its pri
 Supported Event Types:
 Formula (mL), Breast Milk (mL), Wet Diaper (Cnt), Poop (Cnt), Pumping (mL), Tummy Time (Mins), Sleep (hrs), Temp (°C), Meds (Cnt), Weight (kg), Height (cm), Head Size (cm), Vaccine (Cnt)
 
-🚀 Installation & Local Setup
-
-1. Clone the repository:
-
-[bash]
-git clone [https://github.com/yourusername/rileys-dash.git](https://github.com/yourusername/rileys-dash.git)
-cd rileys-dash
-
-
-2. Install dependencies:
-Requires Python 3.9+.
-
-[bash]
-pip install -r requirements.txt
-
-
-3. Configure your Database (Google Sheets):
-
-	• Create your Google Sheet using the column structure defined above.
-
-	• Click Share -> Change access to "Anyone with the link can view".
-
-	• Copy the link. You can paste this directly into the app's sidebar configuration menu, or hardcode it into app.py under DEFAULT_SHEET_URL.
-
-4. Run the App:
-
-[bash]
-streamlit run app.py
-
-
 📱 iOS Shortcut Integration
 
 The dashboard features a persistent header row with an "➕ Add" button. This button is hardcoded with a deep link to an iOS Shortcut:
