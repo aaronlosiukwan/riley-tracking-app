@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 import plotly.express as px
@@ -18,98 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Apple Touch Icon & Bulletproof Refresh Logic
-components.html(
-    """
-    <script>
-    (function() {
-        const iconUrl = "https://em-content.zobj.net/source/apple/391/baby-bottle_1f37c.png";
-        
-        function getSafeDoc() {
-            try { if (window.top.document) return window.top.document; } catch(e) {}
-            try { if (window.parent.document) return window.parent.document; } catch(e) {}
-            return document;
-        }
-
-        function showToast(msg, bg, borderColor, textColor) {
-            let targetDoc = getSafeDoc();
-            let toast = targetDoc.createElement('div');
-            toast.innerHTML = msg;
-            toast.style.cssText = `position: fixed; top: 24px; right: 24px; background: ${bg}; color: ${textColor}; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 600; z-index: 2147483647; border: 1px solid ${borderColor}; font-family: sans-serif; opacity: 0; transition: opacity 0.3s ease;`;
-            targetDoc.body.appendChild(toast);
-            setTimeout(() => { toast.style.opacity = '1'; }, 50);
-            setTimeout(() => { toast.style.opacity = '0'; }, 3000);
-            setTimeout(() => { toast.remove(); }, 3500);
-        }
-
-        function setupLogic() {
-            let parentWin;
-            try { parentWin = window.parent || window; } catch(e) { parentWin = window; }
-            
-            if (!parentWin.triggerRefresh) {
-                parentWin.triggerRefresh = function(element) {
-                    if (element) {
-                        element.innerHTML = '⏳ Fetching...';
-                        element.style.pointerEvents = 'none';
-                        element.style.opacity = '0.7';
-                    }
-                    parentWin.sessionStorage.setItem('reloaded', 'true');
-                    showToast('⏳ Refreshing data...', '#fffbeb', '#fde047', '#854d0e');
-                    setTimeout(() => { parentWin.location.reload(true); }, 400);
-                };
-            }
-            if (parentWin.sessionStorage.getItem('reloaded')) {
-                parentWin.sessionStorage.removeItem('reloaded');
-                showToast('✅ Data successfully updated!', '#dcfce7', '#86efac', '#166534');
-
-                let targetDoc = getSafeDoc();
-                let attempts = 0;
-                const interval = setInterval(() => {
-                    const btns = targetDoc.querySelectorAll('.refresh-btn');
-                    if (btns.length > 0) {
-                        btns.forEach(btn => {
-                            btn.innerHTML = '✅ Done!'; 
-                            btn.style.backgroundColor = '#dcfce7';
-                            btn.style.borderColor = '#86efac';
-                            setTimeout(() => {
-                                btn.innerHTML = '🔄 Refresh';
-                                btn.style.backgroundColor = '';
-                                btn.style.borderColor = '';
-                                btn.style.pointerEvents = 'auto';
-                                btn.style.opacity = '1';
-                            }, 2500);
-                        });
-                        clearInterval(interval);
-                    }
-                    attempts++;
-                    if (attempts > 50) clearInterval(interval);
-                }, 100);
-            }
-        }
-        
-        try { 
-            let targetDoc = getSafeDoc();
-            const rels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon', 'shortcut icon'];
-            rels.forEach(function(rel) {
-                let link = targetDoc.querySelector("link[rel='" + rel + "']");
-                if (!link) {
-                    link = targetDoc.createElement('link');
-                    link.rel = rel;
-                    targetDoc.head.appendChild(link);
-                }
-                link.href = iconUrl;
-            });
-        } catch(e) {}
-        
-        try { setupLogic(); } catch(e) {}
-    })();
-    </script>
-    """,
-    height=0,
-    width=0
-)
-
-# Responsive & Adaptive CSS
+# Responsive & Adaptive CSS overriding Streamlit internals
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -142,7 +50,7 @@ st.markdown("""
         --card-bg: #ffffff; --card-border: #e2e8f0; --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); --card-text: #1e293b;
     }
 
-    /* Title Styling - Enforced definitively larger than subheaders but wraps cleanly on tiny mobile screens */
+    /* Title Styling - Enforced definitively larger than subheaders */
     .app-main-title {
         font-size: clamp(2.2rem, 6vw + 0.8rem, 3.2rem) !important;
         font-weight: 700 !important;
@@ -153,37 +61,59 @@ st.markdown("""
         margin: 0;
     }
 
-    /* Custom Header Buttons - Locked 44px Height & Strict Widths */
-    .custom-btn {
-        display: inline-flex; align-items: center; justify-content: center;
-        background-color: var(--card-bg) !important; color: #1e293b !important;
-        border: 1px solid var(--card-border); box-shadow: var(--card-shadow);
-        border-radius: 8px; height: 44px !important; min-height: 44px !important; 
-        font-size: 0.95rem !important; font-weight: 600;
-        text-decoration: none !important; transition: all 0.15s ease; box-sizing: border-box;
+    /* --- NATIVE STREAMLIT HEADER RESTRUCTURING (Overrides default stacking) --- */
+    div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
+        align-items: center;
+        margin-top: 1.0rem;
+        margin-bottom: 2.0rem !important;
     }
-    .custom-btn:active { background-color: #f1f5f9 !important; transform: scale(0.98); }
+    
+    /* Force Native Buttons to Look Like Custom UI */
+    div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseButton-secondary"],
+    div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseLinkButton-secondary"] {
+        height: 44px !important; min-height: 44px !important;
+        padding: 0px !important; border-radius: 8px !important;
+        border: 1px solid var(--card-border) !important;
+        background-color: var(--card-bg) !important;
+        box-shadow: var(--card-shadow) !important; transition: all 0.15s ease;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseButton-secondary"]:active,
+    div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseLinkButton-secondary"]:active {
+        background-color: #f1f5f9 !important; transform: scale(0.98);
+    }
+    div[data-testid="stHorizontalBlock"]:has(.app-main-title) p {
+        font-weight: 600 !important; font-size: 0.95rem !important; color: #1e293b !important;
+    }
 
-    /* Flawless HTML Desktop/Mobile Header Layouts */
+    /* Desktop Exact Sizing */
     @media (min-width: 769px) {
-        .custom-header-mobile { display: none !important; }
-        .custom-header-desktop { display: block !important; margin-top: 1.5rem; margin-bottom: 1.0rem; }
-        .desktop-header-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; }
-        .desktop-header-controls { display: flex; gap: 0.5rem; justify-content: flex-end; }
-        .desktop-header-controls .custom-btn { width: 130px !important; flex: 0 0 130px !important; padding: 0; }
+        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div:nth-child(1) {
+            width: calc(100% - 280px) !important; flex: 1 1 calc(100% - 280px) !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div:nth-child(2),
+        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div:nth-child(3) {
+            width: 130px !important; flex: 0 0 130px !important; min-width: 130px !important;
+        }
     }
-
+    
+    /* Mobile 50/50 Split Sizing */
     @media (max-width: 768px) {
-        .custom-header-desktop { display: none !important; }
-        /* Pushed down and robust bottom margin to prevent overlap */
-        .custom-header-mobile { display: block !important; width: 100%; margin-top: 1.5rem; margin-bottom: 2.0rem !important; }
-        .mobile-header-controls { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; gap: 0.5rem; }
-        .mobile-header-controls .custom-btn { flex: 1 1 0px !important; width: 100% !important; text-align: center; } 
+        div[data-testid="stHorizontalBlock"]:has(.app-main-title) { flex-wrap: wrap; gap: 0.5rem; }
+        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div:nth-child(1) {
+            width: 100% !important; flex: 1 1 100% !important; min-width: 100% !important; margin-bottom: 0.5rem;
+        }
+        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div:nth-child(2),
+        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div:nth-child(3) {
+            width: calc(50% - 0.25rem) !important; flex: 1 1 calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important;
+        }
     }
 
+    /* Standard Elements */
     span[data-baseweb="tag"] { background-color: #e5e7eb !important; color: #1f2937 !important; border: 1px solid #d1d5db !important; font-weight: 500 !important; }
     .toc-button { display: block; width: 100%; padding: 8px 12px; margin: 4px 0; background-color: var(--card-bg); border: 1px solid var(--card-border); box-shadow: var(--card-shadow); color: var(--card-text) !important; text-decoration: none !important; border-radius: 8px; font-size: 0.9rem; font-weight: 500; transition: all 0.15s ease-in-out; }
     .toc-button:hover { background-color: #f1f5f9; border-color: #cbd5e1; text-decoration: none !important; }
+    
+    .sidebar-header { font-weight: 700; font-size: 1.05rem; margin-bottom: 0px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; margin-top: 32px; }
 
     .cards-container { display: grid !important; grid-template-columns: repeat(12, 1fr) !important; gap: 8px !important; align-items: stretch !important; margin-bottom: 2px !important; width: 100% !important; margin-top: 8px !important; }
     .card-span-3 { grid-column: span 3 !important; } .card-span-4 { grid-column: span 4 !important; } .card-span-6 { grid-column: span 6 !important; } .card-span-12 { grid-column: span 12 !important; } 
@@ -208,33 +138,33 @@ st.markdown("""
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# RESPONSIVE HEADER SECTION
+# RESPONSIVE HEADER SECTION (NATIVE STREAMLIT)
 # ---------------------------------------------------------
-st.markdown("""
-<div class="custom-header-desktop">
-    <div class="desktop-header-row">
-        <div class="app-main-title">🍼 Riley's Dash</div>
-        <div class="desktop-header-controls">
-            <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
-            <a href="javascript:void(0);" onclick="window.parent.triggerRefresh ? window.parent.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
-        </div>
-    </div>
-</div>
-<div class="custom-header-mobile">
-    <div class="app-main-title" style="margin-bottom: 0.8rem;">🍼 Riley's Dash</div>
-    <div class="mobile-header-controls">
-        <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
-        <a href="javascript:void(0);" onclick="window.parent.triggerRefresh ? window.parent.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+# These columns are natively restyled by the CSS above to perfectly match your layout needs!
+h_col1, h_col2, h_col3 = st.columns([1, 1, 1])
+
+with h_col1:
+    st.markdown('<div class="app-main-title">🍼 Riley\'s Dash</div>', unsafe_allow_html=True)
+
+with h_col2:
+    st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
+
+with h_col3:
+    if st.button("🔄 Refresh", use_container_width=True):
+        st.session_state.show_refresh_toast = True
+        st.cache_data.clear()
+        st.rerun()
+
+if st.session_state.get('show_refresh_toast', False):
+    st.toast("Data successfully updated!", icon="✅")
+    st.session_state.show_refresh_toast = False
 
 # ==========================================
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
 # ==========================================
 st.sidebar.markdown("""
-    <div>
-        <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;">📌 Quick Navigation</div>
+    <div style="margin-bottom: 12px;">
+        <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">📌 Quick Navigation</div>
         <a href="#today" class="toc-button">✨ Today</a>
         <a href="#insights" class="toc-button">📊 Insights</a>
         <a href="#database" class="toc-button">📋 Database</a>
@@ -243,12 +173,14 @@ st.sidebar.markdown("""
 
 DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
 
-st.sidebar.markdown("<div style='margin-top: 32px; font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
 sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
 tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
 if sheet_url_input: st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
 
-st.sidebar.markdown("<div style='margin-top: 32px; font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
 baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
@@ -384,20 +316,22 @@ if 'ed' not in st.session_state:
 cur_sd = st.session_state.sd
 cur_ed = st.session_state.ed
 
-with st.expander("⚙️ Filter & Grouping Settings", expanded=False):
-    granularity = st.radio("Chart Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0, horizontal=True)
-    range_hints = {"Daily": "Default: Last 21 Days", "Weekly": "Default: Last 8 Weeks", "Monthly": "Default: Last 6 Months", "All Time": "Default: Full Data Range"}
-    st.markdown(f"<div style='color: #64748b; font-size: 0.8rem; font-style: italic; margin-top: -5px;'>ℹ️ {range_hints[granularity]}</div>", unsafe_allow_html=True)
-    
-    st.markdown(f"<div style='color: #64748b; font-size: 0.9rem; margin-top: 0.8rem; margin-bottom: 1.2rem; padding-bottom: 0.8rem; border-bottom: 1px solid rgba(128,128,128,0.15); font-weight: 500;'>Data Aggregated from <span style='color: #334155;'>{cur_sd.strftime('%Y-%m-%d')}</span> to <span style='color: #334155;'>{cur_ed.strftime('%Y-%m-%d')}</span></div>", unsafe_allow_html=True)
+exp_title = f"⚙️ Filter & Grouping Settings — Data Aggregated from {cur_sd.strftime('%Y-%m-%d')} to {cur_ed.strftime('%Y-%m-%d')}"
+
+with st.expander(exp_title, expanded=False):
+    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+    f_col1, f_col2, f_col3 = st.columns([1.5, 1, 1])
+    with f_col1:
+        granularity = st.radio("Chart Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0, horizontal=True)
+        range_hints = {"Daily": "Default: Last 21 Days", "Weekly": "Default: Last 8 Weeks", "Monthly": "Default: Last 6 Months", "All Time": "Default: Full Data Range"}
+        st.markdown(f"<span class='default-range-text'>ℹ️ {range_hints[granularity]}</span>", unsafe_allow_html=True)
     
     def set_all_data():
         st.session_state.sd = min_data_date
         st.session_state.ed = max_data_date
 
-    c1, c2 = st.columns(2)
-    with c1: st.date_input("Start Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="sd")
-    with c2: st.date_input("End Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="ed")
+    with f_col2: st.date_input("Start Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="sd")
+    with f_col3: st.date_input("End Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="ed")
     
     st.button("🗓️ Select All Data Range", on_click=set_all_data, use_container_width=True)
 
@@ -588,7 +522,7 @@ with tab2:
         st.plotly_chart(fig_milk, use_container_width=True)
         
         st.caption(f"ℹ️ *Combines stacked Formula and Breast Milk volume (mL) on left axis with Feed Count(s) (orange) on right axis. The grey line plots the 7-period rolling average.*", unsafe_allow_html=True)
-
+        
         avg_vol = total_per_x['Value (Optional)'].mean()
         trend_word = "holding highly stable ⚖️"
         if len(total_per_x) > 3:
