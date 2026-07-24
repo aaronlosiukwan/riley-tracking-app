@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Apple Touch Icon (Cleaned of all custom JS Refresh Logic)
+# Inject Apple Touch Icon ONLY (All custom JS Refresh logic permanently removed)
 components.html(
     """
     <script>
@@ -79,11 +79,11 @@ st.markdown("""
 
     /* Title Styling - Enforced definitively larger than subheaders */
     .app-main-title {
-        font-size: clamp(2.2rem, 6vw + 0.8rem, 3.2rem) !important;
+        font-size: clamp(1.8rem, 5vw + 0.6rem, 2.8rem) !important;
         font-weight: 700 !important;
         line-height: 1.25 !important;
-        white-space: normal !important; /* Allows wrapping instead of cutting off */
-        padding-right: 50px; /* Protects from Streamlit's hamburger menu overlapping */
+        white-space: nowrap !important; /* Forces title to stay on one line natively */
+        padding-right: 40px; 
         color: var(--card-text);
         margin: 0;
     }
@@ -91,15 +91,15 @@ st.markdown("""
     /* --- NATIVE STREAMLIT HEADER RESTRUCTURING --- */
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
         align-items: center !important;
-        margin-top: 2.5rem !important;
-        margin-bottom: 2.0rem !important;
+        margin-top: 2.5rem !important; /* Space above title */
+        margin-bottom: 1.5rem !important;
     }
 
     /* Force Native Streamlit Buttons to adopt Custom UI styling perfectly */
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseButton-secondary"],
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseLinkButton-secondary"] {
-        height: 44px !important; min-height: 44px !important; 
-        padding: 0 !important; border-radius: 8px !important;
+        height: 38px !important; min-height: 38px !important; 
+        padding: 0 10px !important; border-radius: 8px !important;
         border: 1px solid var(--card-border) !important;
         background-color: var(--card-bg) !important;
         box-shadow: var(--card-shadow) !important; transition: all 0.15s ease;
@@ -107,14 +107,14 @@ st.markdown("""
         width: 100% !important; text-decoration: none !important; box-sizing: border-box;
     }
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) p {
-        font-weight: 600 !important; font-size: 0.95rem !important; color: #1e293b !important; margin: 0 !important;
+        font-weight: 600 !important; font-size: 0.85rem !important; color: #1e293b !important; margin: 0 !important;
     }
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseButton-secondary"]:active,
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseLinkButton-secondary"]:active {
         background-color: #f1f5f9 !important; transform: scale(0.98);
     }
 
-    /* Desktop Exact Sizing: Title + <=30% Button + <=30% Button */
+    /* Desktop Exact Sizing: Title + 100px Button + 100px Button */
     @media (min-width: 769px) {
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
             flex-wrap: nowrap !important;
@@ -123,13 +123,15 @@ st.markdown("""
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
             flex: 1 1 auto !important; min-width: 0 !important; width: auto !important;
         }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2),
+        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
+            flex: 0 0 100px !important; max-width: 100px !important; width: 100px !important; min-width: 100px !important; margin-right: 0.5rem !important;
+        }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(3) {
-            flex: 0 0 30% !important; max-width: 130px !important; width: 30% !important; min-width: 0 !important;
+            flex: 0 0 100px !important; max-width: 100px !important; width: 100px !important; min-width: 100px !important;
         }
     }
 
-    /* Mobile 50/50 Split Sizing: Native overrides to prevent stacking */
+    /* Mobile 50/50 Split Sizing */
     @media (max-width: 768px) {
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
             flex-wrap: wrap !important; gap: 0.5rem !important;
@@ -137,24 +139,27 @@ st.markdown("""
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
             flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
-            margin-bottom: 0.5rem !important;
+            margin-bottom: 0.25rem !important;
         }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2),
+        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
+            flex: 0 0 calc(50% - 0.25rem) !important; width: calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; margin-right: 0.5rem !important;
+        }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(3) {
-            flex: 1 1 0 !important; width: auto !important; min-width: 0 !important;
-            margin: 0 !important; /* Reset extra Streamlit margins */
+            flex: 0 0 calc(50% - 0.25rem) !important; width: calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; margin: 0 !important;
         }
     }
 
-    /* Forces 4-column filter expander into a tight 2x2 grid on mobile */
+    /* Mobile Compact 2x2 Grid for Filters */
     @media (max-width: 768px) {
-        div[data-testid="stExpanderDetails"] div[data-testid="stHorizontalBlock"] {
+        div[data-testid="stHorizontalBlock"]:has(> div > div[data-testid="stSelectbox"]) {
             flex-wrap: wrap !important;
+            flex-direction: row !important;
         }
-        div[data-testid="stExpanderDetails"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        div[data-testid="stHorizontalBlock"]:has(> div > div[data-testid="stSelectbox"]) > div[data-testid="column"] {
             width: calc(50% - 0.5rem) !important;
             flex: 1 1 calc(50% - 0.5rem) !important;
             min-width: calc(50% - 0.5rem) !important;
+            margin-bottom: 0.5rem !important;
         }
     }
 
@@ -188,7 +193,7 @@ st.markdown("""
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# RESPONSIVE HEADER SECTION (NATIVE)
+# RESPONSIVE HEADER SECTION (NATIVE STREAMLIT)
 # ---------------------------------------------------------
 h_col1, h_col2, h_col3 = st.columns([1, 1, 1])
 
@@ -204,7 +209,7 @@ with h_col3:
         st.session_state.show_refresh_toast = True
         st.rerun()
 
-# Executes the native Streamlit toast on reload!
+# Executes the native Streamlit toast on reload
 if st.session_state.get('show_refresh_toast', False):
     st.toast("Data successfully updated!", icon="✅")
     st.session_state.show_refresh_toast = False
@@ -353,7 +358,7 @@ def render_insight_card(text):
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. COMPACT QUICK FILTERS & GROUPING
+# 3. EXPOSED QUICK FILTERS (NO EXPANDER)
 # ==========================================
 min_str = min_data_date.strftime('%m.%d')
 max_str = max_data_date.strftime('%m.%d')
@@ -363,32 +368,29 @@ if 'sd' not in st.session_state:
 if 'ed' not in st.session_state: 
     st.session_state.ed = max_data_date
 
-cur_sd = st.session_state.sd
-cur_ed = st.session_state.ed
-exp_title = f"⚙️ Filter & Grouping Settings — Data Aggregated from {cur_sd.strftime('%Y-%m-%d')} to {cur_ed.strftime('%Y-%m-%d')}"
+st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-top: 1rem;'>⚙️ Date Range & Grouping Filters</div>", unsafe_allow_html=True)
 
-with st.expander(exp_title, expanded=False):
-    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
-    
-    # 4-Column Layout that elegantly snaps to a 2x2 grid on mobile via CSS
-    f_col1, f_col2, f_col3, f_col4 = st.columns(4, vertical_alignment="bottom")
-    
-    with f_col1:
-        granularity = st.selectbox("Chart Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0)
-    
-    def set_all_data():
-        st.session_state.sd = min_data_date
-        st.session_state.ed = max_data_date
+# Compact 4-Column Layout (Wrapped neatly on mobile via CSS)
+f_col1, f_col2, f_col3, f_col4 = st.columns(4, vertical_alignment="bottom")
 
-    with f_col2: st.date_input("Start Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="sd")
-    with f_col3: st.date_input("End Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="ed")
-    with f_col4: st.button("🗓️ Select All", on_click=set_all_data, use_container_width=True)
+with f_col1:
+    granularity = st.selectbox("Chart Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0)
+
+def set_all_data():
+    st.session_state.sd = min_data_date
+    st.session_state.ed = max_data_date
+
+with f_col2: st.date_input("Start Date", min_value=min_data_date, max_value=max_data_date, key="sd")
+with f_col3: st.date_input("End Date", min_value=min_data_date, max_value=max_data_date, key="ed")
+with f_col4: st.button("🗓️ Select All", on_click=set_all_data, use_container_width=True)
 
 start_date = st.session_state.sd
 end_date = st.session_state.ed
 group_col_map = {"Daily": "Date", "Weekly": "Week", "Monthly": "Month", "All Time": "Month"}
 group_col = group_col_map[granularity]
 filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
+
+st.markdown(f"<div style='color: #64748b; font-size: 0.9rem; margin-top: 0.5rem; margin-bottom: 2rem; padding-bottom: 0.8rem; border-bottom: 1px solid rgba(128,128,128,0.15); font-weight: 500;'>Data Aggregated from <span style='color: #334155;'>{start_date.strftime('%Y-%m-%d')}</span> to <span style='color: #334155;'>{end_date.strftime('%Y-%m-%d')}</span></div>", unsafe_allow_html=True)
 
 # ==========================================
 # 4. HIGHLIGHTS & SUMMARY CARDS
@@ -419,9 +421,8 @@ else:
 def render_empty_state(title="No Data Logged", subtitle="Try picking a wider date range or logging new entries."):
     st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 {title}</div><div class="empty-data-sub">{subtitle}</div></div>""", unsafe_allow_html=True)
 
-
 # --- A. TODAY'S HIGHLIGHTS ---
-st.markdown('<div id="today" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
+st.markdown('<div id="today"></div>', unsafe_allow_html=True)
 today_date = max(current_local_time.date(), max_data_date)
 today_df = df[df['Date'] == today_date]
 
