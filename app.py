@@ -142,70 +142,54 @@ st.markdown("""
         --card-bg: #ffffff; --card-border: #e2e8f0; --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); --card-text: #1e293b;
     }
 
-    /* Title Styling - Enforced definitively larger than subheaders but wraps cleanly on tiny mobile screens */
+    /* Title Styling */
     .app-main-title {
         font-size: clamp(2.2rem, 6vw + 0.8rem, 3.2rem) !important;
         font-weight: 700 !important;
         line-height: 1.25 !important;
-        white-space: normal !important; /* Allows wrapping instead of cutting off */
-        padding-right: 50px; /* Protects from Streamlit's hamburger menu overlapping */
+        white-space: normal !important;
+        padding-right: 50px;
         color: var(--card-text);
         margin: 0;
     }
 
-    /* --- NATIVE STREAMLIT HEADER RESTRUCTURING (Overrides default stacking) --- */
-    div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
-        align-items: center !important;
-        margin-top: 2.5rem !important; /* Added requested spacing before HEADER title */
-        margin-bottom: 2.0rem !important;
+    /* Custom Header Buttons */
+    .custom-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        background-color: var(--card-bg) !important; color: #1e293b !important;
+        border: 1px solid var(--card-border); box-shadow: var(--card-shadow);
+        border-radius: 8px; height: 44px !important; min-height: 44px !important; 
+        font-size: 0.95rem !important; font-weight: 600;
+        text-decoration: none !important; transition: all 0.15s ease; box-sizing: border-box;
     }
-    
-    /* Custom Header Buttons - Slimmer Height & Reduced Desktop Width */
-    div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseButton-secondary"],
-    div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseLinkButton-secondary"] {
-        height: 40px !important; min-height: 40px !important;
-        padding: 0px !important; border-radius: 8px !important;
-        border: 1px solid var(--card-border) !important;
-        background-color: var(--card-bg) !important;
-        box-shadow: var(--card-shadow) !important; transition: all 0.15s ease;
-        display: inline-flex !important; align-items: center !important; justify-content: center !important;
-    }
-    div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseButton-secondary"]:active,
-    div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseLinkButton-secondary"]:active {
-        background-color: #f1f5f9 !important; transform: scale(0.98);
-    }
-    div[data-testid="stHorizontalBlock"]:has(.app-main-title) p {
-        font-weight: 600 !important; font-size: 0.85rem !important; color: #1e293b !important; margin: 0 !important;
-    }
+    .custom-btn:active { background-color: #f1f5f9 !important; transform: scale(0.98); }
 
-    /* Desktop Exact Sizing - Shrunk buttons to 100px */
+    /* Flawless HTML Desktop/Mobile Header Layouts */
     @media (min-width: 769px) {
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
-            width: calc(100% - 220px) !important; flex: 1 1 calc(100% - 220px) !important; min-width: calc(100% - 220px) !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
-            width: 100px !important; flex: 0 0 100px !important; min-width: 100px !important; margin-right: 0.5rem !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(3) {
-            width: 100px !important; flex: 0 0 100px !important; min-width: 100px !important;
-        }
+        .custom-header-mobile { display: none !important; }
+        .custom-header-desktop { display: block !important; margin-top: 1.5rem; margin-bottom: 1.0rem; }
+        .desktop-header-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; }
+        .desktop-header-controls { display: flex; gap: 0.5rem; justify-content: flex-end; }
+        .desktop-header-controls .custom-btn { width: 100px !important; flex: 0 0 100px !important; padding: 0; }
     }
-    
-    /* Mobile 50/50 Split Sizing */
+
     @media (max-width: 768px) {
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) { flex-wrap: wrap !important; gap: 0.5rem !important; }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
-            width: 100% !important; flex: 1 1 100% !important; min-width: 100% !important; margin-bottom: 0.5rem !important;
+        .custom-header-desktop { display: none !important; }
+        .custom-header-mobile { display: block !important; width: 100%; margin-top: 1.5rem; margin-bottom: 2.0rem !important; }
+        .mobile-header-controls { display: flex; flex-direction: row; justify-content: flex-start; align-items: center; width: 100%; gap: 0.8rem; }
+        .mobile-header-controls .custom-btn { flex: 0 0 28% !important; max-width: 120px !important; width: 28% !important; text-align: center; } 
+        
+        /* Forces 4-column filter expander into a tight 2x2 grid on mobile */
+        div[data-testid="stExpanderDetails"] div[data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
         }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
-            width: calc(50% - 0.25rem) !important; flex: 1 1 calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; margin-right: 0.5rem !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(3) {
-            width: calc(50% - 0.25rem) !important; flex: 1 1 calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important;
+        div[data-testid="stExpanderDetails"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            width: calc(50% - 0.5rem) !important;
+            flex: 1 1 calc(50% - 0.5rem) !important;
+            min-width: calc(50% - 0.5rem) !important;
         }
     }
 
-    /* Standard Elements */
     span[data-baseweb="tag"] { background-color: #e5e7eb !important; color: #1f2937 !important; border: 1px solid #d1d5db !important; font-weight: 500 !important; }
     .toc-button { display: block; width: 100%; padding: 8px 12px; margin: 4px 0; background-color: var(--card-bg); border: 1px solid var(--card-border); box-shadow: var(--card-shadow); color: var(--card-text) !important; text-decoration: none !important; border-radius: 8px; font-size: 0.9rem; font-weight: 500; transition: all 0.15s ease-in-out; }
     .toc-button:hover { background-color: #f1f5f9; border-color: #cbd5e1; text-decoration: none !important; }
@@ -235,22 +219,26 @@ st.markdown("""
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# RESPONSIVE HEADER SECTION (NATIVE STREAMLIT)
+# RESPONSIVE HEADER SECTION
 # ---------------------------------------------------------
-h_col1, h_col2, h_col3 = st.columns([1, 1, 1])
-
-with h_col1:
-    st.markdown('<div class="app-main-title">🍼 Riley\'s Dash</div>', unsafe_allow_html=True)
-
-with h_col2:
-    st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
-
-with h_col3:
-    # Adding unique class injection to explicitly attach JS logic
-    st.markdown('<div class="refresh-btn-anchor"></div>', unsafe_allow_html=True)
-    if st.button("🔄 Refresh", use_container_width=True):
-        st.cache_data.clear()
-        st.rerun()
+st.markdown("""
+<div class="custom-header-desktop">
+    <div class="desktop-header-row">
+        <div class="app-main-title">🍼 Riley's Dash</div>
+        <div class="desktop-header-controls">
+            <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
+            <a href="javascript:void(0);" onclick="window.parent.triggerRefresh ? window.parent.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
+        </div>
+    </div>
+</div>
+<div class="custom-header-mobile">
+    <div class="app-main-title" style="margin-bottom: 1.8rem;">🍼 Riley's Dash</div>
+    <div class="mobile-header-controls">
+        <a href="shortcuts://run-shortcut?name=Riley%20Tracker" class="custom-btn">➕ Add</a>
+        <a href="javascript:void(0);" onclick="window.parent.triggerRefresh ? window.parent.triggerRefresh(this) : window.location.reload(true);" class="custom-btn refresh-btn">🔄 Refresh</a>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ==========================================
 # 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
@@ -259,7 +247,6 @@ st.sidebar.markdown("""
     <div style="margin-bottom: 12px;">
         <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">📌 Quick Navigation</div>
         <a href="#today" class="toc-button">✨ Today</a>
-        <a href="#period-highlights" class="toc-button">📅 Range Highlights</a>
         <a href="#insights" class="toc-button">📊 Insights</a>
         <a href="#database" class="toc-button">📋 Database</a>
     </div>
@@ -407,24 +394,26 @@ if 'sd' not in st.session_state:
 if 'ed' not in st.session_state: 
     st.session_state.ed = max_data_date
 
-def set_all_data():
-    st.session_state.sd = min_data_date
-    st.session_state.ed = max_data_date
+cur_sd = st.session_state.sd
+cur_ed = st.session_state.ed
+exp_title = f"⚙️ Filter & Grouping Settings — Data Aggregated from {cur_sd.strftime('%Y-%m-%d')} to {cur_ed.strftime('%Y-%m-%d')}"
 
-# Sleek, highly compact filtering section anchored right below the main title
-st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True) 
-st.markdown("<div style='font-size: 1.0rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;'>⚙️ Date Range & Grouping Filters</div>", unsafe_allow_html=True)
+with st.expander(exp_title, expanded=False):
+    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+    
+    # 4-Column Layout that elegantly snaps to a 2x2 grid on mobile via CSS
+    f_col1, f_col2, f_col3, f_col4 = st.columns(4, vertical_alignment="bottom")
+    
+    with f_col1:
+        granularity = st.selectbox("Chart Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0)
+    
+    def set_all_data():
+        st.session_state.sd = min_data_date
+        st.session_state.ed = max_data_date
 
-f_c1, f_c2, f_c3, f_c4 = st.columns([1.5, 1, 1, 1], vertical_alignment="bottom")
-
-with f_c1:
-    granularity = st.selectbox("Chart Grouping:", ["Daily", "Weekly", "Monthly", "All Time"], index=0)
-with f_c2: 
-    st.date_input("Start Date", min_value=min_data_date, max_value=max_data_date, key="sd")
-with f_c3: 
-    st.date_input("End Date", min_value=min_data_date, max_value=max_data_date, key="ed")
-with f_c4:
-    st.button("🗓️ All Data", on_click=set_all_data, use_container_width=True)
+    with f_col2: st.date_input("Start Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="sd")
+    with f_col3: st.date_input("End Date (Inclusive)", min_value=min_data_date, max_value=max_data_date, key="ed")
+    with f_col4: st.button("🗓️ Select All", on_click=set_all_data, use_container_width=True)
 
 start_date = st.session_state.sd
 end_date = st.session_state.ed
@@ -509,51 +498,6 @@ else:
         if card_count % 2 != 0 and i == 0 and card_count > 1: cls += " mobile-full-width"
         formatted_today_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
     st.markdown(f'<div class="cards-container">{"".join(formatted_today_cards)}</div>', unsafe_allow_html=True)
-
-
-# --- B. RANGE HIGHLIGHTS ---
-st.markdown('<div id="period-highlights" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
-st.subheader("📅 Range Highlights")
-st.caption(f" - from {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
-
-if filtered_df.empty:
-    st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 No Data Logged in this Period</div><div class="empty-data-sub">Expand date range to view aggregate highlights.</div></div>""", unsafe_allow_html=True)
-else:
-    p_formula = filtered_df[filtered_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
-    p_bm = filtered_df[filtered_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
-    p_milk = p_formula + p_bm
-    p_feed_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
-    p_avg_feed = (p_milk / p_feed_cnt) if p_feed_cnt > 0 else 0
-    p_wet = len(filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
-    p_poop = len(filtered_df[filtered_df['Event Type'].str.contains("Poop", case=False, na=False)])
-    p_pumping = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
-    p_tummy = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
-    p_sleep = filtered_df[filtered_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
-    p_meds = len(filtered_df[filtered_df['Event Type'].str.contains("Meds", case=False, na=False)])
-    p_temp_df = filtered_df[filtered_df['Event Type'].str.contains("Temp", case=False, na=False)]
-    p_latest_temp = p_temp_df.iloc[0]['Value (Optional)'] if not p_temp_df.empty else None
-    p_pump_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)])
-    p_tummy_cnt = len(filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
-
-    period_cards = []
-    if p_milk > 0 or p_feed_cnt > 0: period_cards.append(f"""<div class="highlight-card card-milk"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body">Total <b>{int(p_milk):,} mL</b> across <b>{p_feed_cnt}</b> feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(p_avg_feed)} mL (Form: {int(p_formula):,}mL, BM: {int(p_bm):,}mL)</div></div>""")
-    if p_wet + p_poop > 0: period_cards.append(f"""<div class="highlight-card card-diaper"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body">Total <b>{p_wet + p_poop}</b> change(s).</div></div><div class="highlight-sub">💧 Wet: {p_wet} | 🚽 Poop: {p_poop}</div></div>""")
-    if p_pumping > 0 or p_pump_cnt > 0: period_cards.append(f"""<div class="highlight-card card-pump"><div><div class="highlight-title">🧴 Pumping</div><div class="highlight-body">Pumped <b>{int(p_pumping):,} mL</b> in range.</div></div><div class="highlight-sub">{p_pump_cnt} pumping session(s)</div></div>""")
-    if p_tummy > 0 or p_tummy_cnt > 0: period_cards.append(f"""<div class="highlight-card card-tummy"><div><div class="highlight-title">🛟 Tummy Time</div><div class="highlight-body">Logged <b>{int(p_tummy)} min(s)</b> in range.</div></div><div class="highlight-sub">{p_tummy_cnt} session(s) recorded</div></div>""")
-    if p_sleep > 0: period_cards.append(f"""<div class="highlight-card card-sleep"><div><div class="highlight-title">🛌 Sleep & Rest</div><div class="highlight-body">Logged <b>{int(p_sleep)} hr(s)</b> of rest.</div></div><div class="highlight-sub">{len(filtered_df[filtered_df['Event Type'].str.contains('Sleep', case=False, na=False)])} sleep period(s)</div></div>""")
-    if p_meds > 0: period_cards.append(f"""<div class="highlight-card card-meds"><div><div class="highlight-title">💊 Medication</div><div class="highlight-body">Logged <b>{p_meds}</b> dose(s).</div></div><div class="highlight-sub">Dose(s) tracked in log</div></div>""")
-    if len(p_temp_df) > 0: period_cards.append(f"""<div class="highlight-card card-temp"><div><div class="highlight-title">🌡️ Body Temperature</div><div class="highlight-body"><b>{p_latest_temp:.1f} °C</b></div></div><div class="highlight-sub">{len(p_temp_df)} reading(s) in period</div></div>""")
-    if len(filtered_df) > 0: period_cards.append(f"""<div class="highlight-card card-events"><div><div class="highlight-title">📊 Total Events</div><div class="highlight-body"><b>{len(filtered_df):,}</b> entry(s) logged.</div></div><div class="highlight-sub">From {start_date} to {end_date}</div></div>""")
-
-    p_card_count = len(period_cards)
-    p_base_span = "card-span-3" if p_card_count >= 4 else ("card-span-4" if p_card_count == 3 else ("card-span-6" if p_card_count == 2 else "card-span-12"))
-
-    formatted_p_cards = []
-    for i, card in enumerate(period_cards):
-        cls = f"highlight-card {p_base_span}"
-        if p_card_count % 2 != 0 and i == 0 and p_card_count > 1: cls += " mobile-full-width"
-        formatted_p_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
-    st.markdown(f'<div class="cards-container">{"".join(formatted_p_cards)}</div>', unsafe_allow_html=True)
 
 
 # ==========================================
@@ -658,7 +602,7 @@ with tab2:
         st.plotly_chart(fig_milk, use_container_width=True)
         
         st.caption(f"ℹ️ *Combines stacked Formula and Breast Milk volume (mL) on left axis with Feed Count(s) (orange) on right axis. The grey line plots the 7-period rolling average.*", unsafe_allow_html=True)
-        
+
         avg_vol = total_per_x['Value (Optional)'].mean()
         trend_word = "holding highly stable ⚖️"
         if len(total_per_x) > 3:
