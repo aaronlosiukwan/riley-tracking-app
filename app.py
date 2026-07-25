@@ -552,29 +552,98 @@ def get_unit_from_name(name):
     if "cm" in name: return " cm"
     return ""
 
-def render_insight_card(hardcoded_text, ai_prompt_context=None, category_df=None, subject="Riley", hidden_prefetch=False):
+def format_ai_html(output_text):
+    html_text = output_text.strip()
+    html_text = re.sub(r'```[a-zA-Z]*\n?', '', html_text).replace('```', '')
+    html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', html_text)
+    html_text = re.sub(r'^[-*]\s+(.*?)$', r'&bull; \1', html_text, flags=re.MULTILINE)
+    html_text = html_text.replace('\n', '<br>')
+    html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text)
+    html_text = re.sub(r'(<br>\s*){2,}(?=&bull;)', '<br>', html_text)
+    
+    headers = ["High-Level Summary", "Trend Analysis", "Suggested Action"]
+    for header in headers:
+        pattern = rf'(?:<br>\s*)*(?:<b>|\*\*){header}(?:</b>|\*\*)(?:<br>\s*)*'
+        replacement = f'<div style="margin-top: 18px; margin-bottom: 6px; font-weight: 600; color: #1e293b; letter-spacing: 0.01em;">{header}</div>'
+        html_text = re.sub(pattern, replacement, html_text, flags=re.IGNORECASE)
+        
+    html_text = re.sub(r'(</div>)\s*(?:<br>\s*)+', r'\1', html_text)
+    return html_text.replace('margin-top: 18px;', 'margin-top: 4px;', 1)
+
+
+def render_insight_card(hardcoded_text, ai_prompt_context=None, category_df=None, category_key="default", subject="Riley"):
     api_key_param = st.secrets.get("OPENROUTER_API_KEY", None)
     
-    # SURGICAL CACHING: Use max timestamp of THIS specific category, not the entire sheet!
+    # Extract max timestamp for this specific category
     if category_df is not None and not category_df.empty and 'DateTime' in category_df.columns:
         cat_max_dt = category_df['DateTime'].max()
-        latest_data_timestamp = cat_max_dt.strftime('%Y-%m-%d %H:%M:%S') if pd.notna(cat_max_dt) else "None"
+        cat_data_ts_str = cat_max_dt.strftime('%Y-%m-%d %H:%M:%S') if pd.notna(cat_max_dt) else "None"
     else:
-        latest_data_timestamp = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
+        cat_data_ts_str = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
         
     refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
-    
-    now_local_dt = datetime.utcnow() + timedelta(hours=tz_offset)
-    now_local = now_local_dt.strftime('%Y-%m-%d %H:%M:%S')
+    now_local_str = (datetime.utcnow() + timedelta(hours=tz_offset)).strftime('%Y-%m-%d %H:%M:%S')
+
+    # -------------------------------------------------------------
+    # ⚡ SMART TIMESTAMP CACHE CHECK (0ms Execution on Hit)
+    # -------------------------------------------------------------
+    cached_entry = global_ai_cache.get(category_key)
+    is_cache_valid = False
+
+    if cached_entry and isinstance(cached_entry, dict):
+        cached_ts = cached_entry.get('data_timestamp')
+        cached_ref_key = cached_entry.get('refresh_key')
+        
+        # Cache is valid IF the dataset timestamp and refresh key haven't changed!
+        if cached_ts == cat_data_ts_str and cached_ref_key == refresh_key:
+            is_cache_valid = True
+
+    # Helper function to generate hardcoded preview HTML
+    def get_hardcoded_html():
+        clean_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', hardcoded_text).replace('\n', '<br>')
+        return f"""
+        <div style="background-color: #ffffff; border-left: 4px solid #0ea5e9; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.6;">
+            <strong style="color: #0369a1; font-size: 1.05rem; letter-spacing: 0.01em; display: block; margin-bottom: 8px;">💡 Insight</strong> 
+            {clean_text}
+        </div>
+        """
+
+    card_placeholder = st.empty()
+
+    if not use_ai_insights:
+        card_placeholder.markdown(get_hardcoded_html(), unsafe_allow_html=True)
+        return
+
+    # -------------------------------------------------------------
+    # FAST PATH: Return cached summary immediately
+    # -------------------------------------------------------------
+    if is_cache_valid:
+        html_text = format_ai_html(cached_entry['content'])
+        time_display = f"🕒 AI Summarized: {cached_entry['generated_at']} &bull; ⚡ Instant Cache"
+        
+        ai_final_html = f"""
+        <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
+            <strong style="color: #4c1d95; font-size: 1.05rem; letter-spacing: 0.01em; display: block; margin-bottom: 4px;">✨ AI Insight</strong> 
+            {html_text}
+            <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #94a3b8;">
+                <span>{time_display}</span>
+                <span>🤖 Model: <code style="font-size: 0.70rem; color: #64748b; background-color: #f8fafc; padding: 1px 4px; border-radius: 4px;">{cached_entry['model']}</code></span>
+            </div>
+        </div>
+        """
+        card_placeholder.markdown(ai_final_html, unsafe_allow_html=True)
+        return
+
+    # -------------------------------------------------------------
+    # SLOW PATH: Show hardcoded preview while live API executes
+    # -------------------------------------------------------------
+    card_placeholder.markdown(get_hardcoded_html(), unsafe_allow_html=True)
     
     current_date_obj = datetime.utcnow().date()
     age_days = (current_date_obj - baby_dob).days
     age_months = age_days / 30.437
     
-    if subject == "Riley":
-        subject_context = f"Subject: Riley (Baby Girl, Age: {age_days} days / {age_months:.1f} months old). Evaluate her trends against developmental benchmarks and Hong Kong standards for her exact age."
-    else:
-        subject_context = f"Subject: {subject}."
+    subject_context = f"Subject: Riley (Baby Girl, Age: {age_days} days / {age_months:.1f} months old). Evaluate her trends against developmental benchmarks and Hong Kong standards for her exact age." if subject == "Riley" else f"Subject: {subject}."
 
     prompt_template = f"""DATA CONTEXT:
 {subject_context}
@@ -602,83 +671,40 @@ OUTPUT FORMAT RESTRICTIONS:
 **Suggested Action**
 [Write 1 brief sentence suggesting a practical next step based STRICTLY on completed full-day historical trends (yesterday and earlier).]"""
 
-    # Helper function to generate rich Hardcoded HTML
-    def get_hardcoded_html():
-        clean_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', hardcoded_text)
-        clean_text = clean_text.replace('\n', '<br>')
-        return f"""
-        <div style="background-color: #ffffff; border-left: 4px solid #0ea5e9; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.6;">
-            <strong style="color: #0369a1; font-size: 1.05rem; letter-spacing: 0.01em; display: block; margin-bottom: 8px;">💡 Insight</strong> 
-            {clean_text}
+    with st.spinner(f"🤖 Asking AI to analyze {subject}'s trends..."):
+        if not OPENAI_AVAILABLE:
+            return
+        elif not api_key_param:
+            return
+        elif not ai_prompt_context:
+            return
+        
+        # Make Live Call
+        output_text, is_cached, actual_model_used, gen_time = call_ai(prompt_template, api_key_param, cat_data_ts_str, refresh_key)
+        
+        # Store in global cache with metadata for timestamp comparisons
+        global_ai_cache[category_key] = {
+            'content': output_text,
+            'model': actual_model_used,
+            'generated_at': now_local_str,
+            'data_timestamp': cat_data_ts_str,
+            'refresh_key': refresh_key
+        }
+        
+        html_text = format_ai_html(output_text)
+        time_display = f"🕒 AI Summarized: {now_local_str} &bull; 🚀 Live AI Call"
+        
+        ai_final_html = f"""
+        <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
+            <strong style="color: #4c1d95; font-size: 1.05rem; letter-spacing: 0.01em; display: block; margin-bottom: 4px;">✨ AI Insight</strong> 
+            {html_text}
+            <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #94a3b8;">
+                <span>{time_display}</span>
+                <span>🤖 Model: <code style="font-size: 0.70rem; color: #64748b; background-color: #f8fafc; padding: 1px 4px; border-radius: 4px;">{actual_model_used}</code></span>
+            </div>
         </div>
         """
-
-    card_placeholder = st.empty()
-
-    if use_ai_insights:
-        if hidden_prefetch and ai_prompt_context and api_key_param:
-             call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
-             return
-             
-        cache_key = hash(f"{prompt_template}_{latest_data_timestamp}_{refresh_key}")
-        is_already_cached = cache_key in global_ai_cache
-        
-        if not is_already_cached:
-            card_placeholder.markdown(get_hardcoded_html(), unsafe_allow_html=True)
-        
-        spinner_msg = f"⚡ Extracting {subject}'s cached summary..." if is_already_cached else f"🤖 Asking AI to analyze {subject}'s trends..."
-             
-        with st.spinner(spinner_msg):
-            if not OPENAI_AVAILABLE: 
-                output_text, is_cached, actual_model_used, gen_time = "⚠️ **OpenAI package missing.**", False, "N/A", "N/A"
-            elif not api_key_param: 
-                output_text, is_cached, actual_model_used, gen_time = "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets.", False, "N/A", "N/A"
-            elif not ai_prompt_context: 
-                output_text, is_cached, actual_model_used, gen_time = "⚠️ **No context provided for AI to analyze.**", False, "N/A", "N/A"
-            else: 
-                output_text, is_cached, actual_model_used, gen_time = call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
-            
-            html_text = output_text.strip()
-            html_text = re.sub(r'```[a-zA-Z]*\n?', '', html_text)
-            html_text = html_text.replace('```', '')
-            
-            html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', html_text)
-            html_text = re.sub(r'^[-*]\s+(.*?)$', r'&bull; \1', html_text, flags=re.MULTILINE)
-            html_text = html_text.replace('\n', '<br>')
-            
-            html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text)
-            html_text = re.sub(r'(<br>\s*){2,}(?=&bull;)', '<br>', html_text)
-            
-            headers = ["High-Level Summary", "Trend Analysis", "Suggested Action"]
-            for header in headers:
-                pattern = rf'(?:<br>\s*)*(?:<b>|\*\*){header}(?:</b>|\*\*)(?:<br>\s*)*'
-                replacement = f'<div style="margin-top: 18px; margin-bottom: 6px; font-weight: 600; color: #1e293b; letter-spacing: 0.01em;">{header}</div>'
-                html_text = re.sub(pattern, replacement, html_text, flags=re.IGNORECASE)
-                
-            html_text = re.sub(r'(</div>)\s*(?:<br>\s*)+', r'\1', html_text)
-            html_text = html_text.replace('margin-top: 18px;', 'margin-top: 4px;', 1)
-            
-            if is_cached:
-                time_display = f"🕒 AI Summarized: {gen_time} &bull; ⚡ Cache Loaded: {now_local}"
-            else:
-                time_display = f"🕒 AI Summarized: {gen_time} &bull; 🚀 Live AI Call"
-            
-            ai_final_html = f"""
-            <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
-                <strong style="color: #4c1d95; font-size: 1.05rem; letter-spacing: 0.01em; display: block; margin-bottom: 4px;">✨ AI Insight</strong> 
-                {html_text}
-                <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #94a3b8;">
-                    <span>{time_display}</span>
-                    <span>🤖 Model: <code style="font-size: 0.70rem; color: #64748b; background-color: #f8fafc; padding: 1px 4px; border-radius: 4px;">{actual_model_used}</code></span>
-                </div>
-            </div>
-            """
-            
-            card_placeholder.markdown(ai_final_html, unsafe_allow_html=True)
-            
-    else:
-        if hidden_prefetch: return
-        card_placeholder.markdown(get_hardcoded_html(), unsafe_allow_html=True)
+        card_placeholder.markdown(ai_final_html, unsafe_allow_html=True)
 
 # ==========================================
 # 4. TODAY'S HIGHLIGHTS & GLOBAL TREND DATAFRAMES
@@ -977,7 +1003,7 @@ with tab1:
 • **Activity & Rest:** {int(t_tummy)} min tummy time | {int(t_sleep)} hrs rest | {t_meds} med dose(s)"""
 
         ai_context = f"Category: 24h Overview. Today: {t_feed_cnt} feeds, {t_diaper_changes} diaper changes. Recent 7-Day Avg: {feed_cnt_7d:.1f} feeds/day, {diaper_cnt_7d:.1f} diapers/day."
-        render_insight_card(analysis, ai_prompt_context=ai_context, category_df=today_24h_df)
+        render_insight_card(analysis, ai_prompt_context=ai_context, category_df=today_24h_df, category_key="today")
     else: 
         render_empty_state("No Events Logged in the Last 24 Hours")
 
@@ -1029,7 +1055,7 @@ with tab2:
 • **Today's Status:** **{int(t_milk):,} mL** logged today (7-day baseline avg: ~{int(milk_7d):,} mL/day)."""
 
         ai_milk_context = f"Category: Milk Intake. Today: {t_milk:.0f} mL. Recent 7-Day Avg (excluding today): {milk_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}) Avg: {avg_vol:.0f} mL per {granularity.lower()}."
-        render_insight_card(hardcoded_milk, ai_prompt_context=ai_milk_context, category_df=milk_df)
+        render_insight_card(hardcoded_milk, ai_prompt_context=ai_milk_context, category_df=milk_df, category_key="milk")
     else: 
         render_empty_state("No Feeding Data Logged in this period")
 
@@ -1069,7 +1095,7 @@ with tab3:
 • **Today's Status:** **{t_diaper}** change(s) today (7-day baseline avg: ~{diaper_7d:.1f} changes/day)."""
 
         ai_diaper_context = f"Category: Diaper Output. Today: {t_diaper} diaper changes. Recent 7-Day Avg (excluding today): {diaper_7d:.1f} changes/day. Selected Range ({start_date} to {end_date}) Avg: {avg_diapers:.1f} changes/day. (Total events in range: {wets} wet, {poops} poops)."
-        render_insight_card(hardcoded_diaper, ai_prompt_context=ai_diaper_context, category_df=diaper_df)
+        render_insight_card(hardcoded_diaper, ai_prompt_context=ai_diaper_context, category_df=diaper_df, category_key="diapers")
     else: 
         render_empty_state("No Diaper Data Logged in this period")
 
@@ -1103,7 +1129,7 @@ with tab4:
 • **Today's Output:** **{int(t_pump):,} mL** pumped today across {p_cnt_today} session(s)."""
 
         ai_pump_context = f"Category: Pumping. Today: {t_pump:.0f} mL. Recent 7-Day Avg (excluding today): {pump_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}): {len(pump_df)} sessions, avg {avg_pump:.0f} mL/session."
-        render_insight_card(hardcoded_pump, ai_prompt_context=ai_pump_context, category_df=pump_df, subject="Yanyi")
+        render_insight_card(hardcoded_pump, ai_prompt_context=ai_pump_context, category_df=pump_df, category_key="pumping", subject="Yanyi")
     else: 
         render_empty_state("No Pumping Data Logged in this period")
 
@@ -1138,7 +1164,7 @@ with tab5:
 • **Today's Progress:** **{int(t_tummy)} min(s)** completed today ({tummy_cnt_today} session(s))."""
 
         ai_tummy_context = f"Category: Tummy Time. Today: {t_tummy:.0f} mins. Recent 7-Day Avg (excluding today): {tummy_7d:.0f} mins/day. Selected Range ({start_date} to {end_date}): {total_tummy:.0f} total mins, avg {avg_tummy:.0f} mins/session."
-        render_insight_card(hardcoded_tummy, ai_prompt_context=ai_tummy_context, category_df=tummy_df)
+        render_insight_card(hardcoded_tummy, ai_prompt_context=ai_tummy_context, category_df=tummy_df, category_key="tummy")
     else: 
         render_empty_state("No Tummy Time Data Logged in this period")
 
@@ -1152,14 +1178,14 @@ with tab6:
 
     who_option = st.radio("Select Growth Chart:", options=["⚖️ Weight", "🏔️ Height", "🐷 Head"], horizontal=True, label_visibility="collapsed")
     
-    # STRICT SEQUENTIAL PRE-FETCHING FOR ALL 3 GROWTH OPTIONS
-    if use_ai_insights:
-        for prefetch_opt in ["⚖️ Weight", "🏔️ Height", "🐷 Head"]:
-            if prefetch_opt != who_option:
-                p_keyword = "⚖️ Weight (kg)" if "Weight" in prefetch_opt else ("🏔️ Height (cm)" if "Height" in prefetch_opt else "🐷 Head Size (cm)")
-                p_context = build_growth_ai_context(p_keyword, prefetch_opt)
-                p_df = df[df['Event Type'] == p_keyword]
-                render_insight_card("", ai_prompt_context=p_context, category_df=p_df, hidden_prefetch=True)
+    # # STRICT SEQUENTIAL PRE-FETCHING FOR ALL 3 GROWTH OPTIONS
+    # if use_ai_insights:
+    #     for prefetch_opt in ["⚖️ Weight", "🏔️ Height", "🐷 Head"]:
+    #         if prefetch_opt != who_option:
+    #             p_keyword = "⚖️ Weight (kg)" if "Weight" in prefetch_opt else ("🏔️ Height (cm)" if "Height" in prefetch_opt else "🐷 Head Size (cm)")
+    #             p_context = build_growth_ai_context(p_keyword, prefetch_opt)
+    #             p_df = df[df['Event Type'] == p_keyword]
+    #             render_insight_card("", ai_prompt_context=p_context, category_df=p_df, hidden_prefetch=True)
     
     db_keyword = "⚖️ Weight (kg)" if "Weight" in who_option else ("🏔️ Height (cm)" if "Height" in who_option else "🐷 Head Size (cm)")
     who_df = df[df['Event Type'] == db_keyword].copy()
@@ -1269,7 +1295,8 @@ with tab6:
 • **Growth Trajectory:** **{len(who_df)}** total data point(s) recorded in database."""
 
         ai_growth_context = build_growth_ai_context(db_keyword, who_option)
-        render_insight_card(hardcoded_growth, ai_prompt_context=ai_growth_context, category_df=who_df)
+        growth_key = f"growth_{who_option.split(' ')[1].lower()}"
+        render_insight_card(hardcoded_growth, ai_prompt_context=ai_growth_context, category_df=who_df, category_key=growth_key)
     else: 
         render_empty_state(f"No {who_option} Data Logged")
 
@@ -1281,13 +1308,13 @@ with tab7:
     act_option = st.radio("Select Category:", options=["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"], index=0, horizontal=True, label_visibility="collapsed")
     
     # STRICT SEQUENTIAL PRE-FETCHING FOR ALL HEALTH OPTIONS
-    if use_ai_insights:
-        for prefetch_opt in ["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"]:
-            if prefetch_opt != act_option:
-                p_context = build_health_ai_context(prefetch_opt)
-                p_kw = act_mapping[prefetch_opt][0]
-                p_df = filtered_df[filtered_df['Event Type'].str.contains(p_kw, case=False, na=False)]
-                render_insight_card("", ai_prompt_context=p_context, category_df=p_df, hidden_prefetch=True)
+    # if use_ai_insights:
+    #     for prefetch_opt in ["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"]:
+    #         if prefetch_opt != act_option:
+    #             p_context = build_health_ai_context(prefetch_opt)
+    #             p_kw = act_mapping[prefetch_opt][0]
+    #             p_df = filtered_df[filtered_df['Event Type'].str.contains(p_kw, case=False, na=False)]
+    #             render_insight_card("", ai_prompt_context=p_context, category_df=p_df, hidden_prefetch=True)
     
     keyword, y_title, act_color, unit = act_mapping[act_option]
     act_df = filtered_df[filtered_df['Event Type'].str.contains(keyword, case=False, na=False)].copy()
@@ -1346,7 +1373,8 @@ with tab7:
 • **Today's Status:** **{t_meds}** dose(s) recorded today."""
 
         ai_health_context = build_health_ai_context(act_option)
-        render_insight_card(hardcoded_health, ai_prompt_context=ai_health_context, category_df=act_df)
+        health_key = f"health_{act_option.split(' ')[1].lower()}"
+        render_insight_card(hardcoded_health, ai_prompt_context=ai_health_context, category_df=act_df, category_key=health_key)
     else: 
         render_empty_state(f"No {act_option.split(' ')[1]} Data Logged in this period")
 
@@ -1418,7 +1446,7 @@ with tab8:
 
     ai_vac_context = f"Category: Vaccines. Total administered so far: {total_vacs}. Next scheduled action required: {next_due}. Check HK standard pediatric guidelines for a {age_days}-day-old / {age_days/30.437:.1f}-month-old baby girl. Cross-reference all administered vaccines against standard HK requirements to identify any missing, upcoming, or additional recommended shots."
     
-    render_insight_card(hardcoded_vac, ai_prompt_context=ai_vac_context, category_df=vac_df)
+    render_insight_card(hardcoded_vac, ai_prompt_context=ai_vac_context, category_df=vac_df, category_key="vaccines")
 
     v_col1, v_col2 = st.columns([1, 1])
     with v_col1: grouping = st.radio("Sort View:", ["By Age Milestone", "By Vaccine Type"], horizontal=True, label_visibility="collapsed")
