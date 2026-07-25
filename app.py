@@ -1481,11 +1481,28 @@ if search_query:
 
 current_max_time = df['DateTime'].max() if not df.empty else None
 
+# --- MOBILE-OPTIMIZED COLUMN CONFIGURATION ---
 col_config = {
-    "DateTime": st.column_config.DatetimeColumn("DateTime", format="YYYY-MM-DD HH:mm", width="medium", required=True),
-    "Event Type": st.column_config.SelectboxColumn("Event Type", options=ALL_EVENT_CATEGORIES, width="medium", required=True),
-    "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
-    "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
+    "DateTime": st.column_config.DatetimeColumn(
+        "Date & Time", 
+        format="MM-DD HH:mm", 
+        width="small", 
+        required=True
+    ),
+    "Event Type": st.column_config.SelectboxColumn(
+        "Event", 
+        options=ALL_EVENT_CATEGORIES, 
+        width="small", 
+        required=True
+    ),
+    "Value (Optional)": st.column_config.NumberColumn(
+        "Value", 
+        width="small"
+    ),
+    "Notes / Details (Optional)": st.column_config.TextColumn(
+        "Notes", 
+        width="medium"
+    )
 }
 
 display_df = table_df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
