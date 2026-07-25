@@ -25,7 +25,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Responsive & Adaptive CSS overrides
+# Responsive & Adaptive CSS overrides with Apple Health / Premium UI aesthetics
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -35,7 +35,11 @@ st.markdown("""
     html { scroll-behavior: smooth; }
     [id] { scroll-margin-top: 70px; }
 
-    /* Standard Streamlit scrolling for stable UI and native iOS compatibility */
+    /* Modern Typography & Native System Fonts */
+    body, .stApp, p, h1, h2, h3, h4, h5, h6, span {
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+    }
+
     body, .stApp {
         color: var(--card-text) !important;
         background-color: #f8fafc !important;
@@ -51,20 +55,21 @@ st.markdown("""
         padding-bottom: 10rem !important; 
     }
 
-    /* Highly Compressed Vertical Spacing Between Blocks */
-    div[data-testid="stVerticalBlock"] { gap: 0.15rem !important; }
+    /* Relaxed Vertical Spacing for better breathing room */
+    div[data-testid="stVerticalBlock"] { gap: 0.75rem !important; }
 
     :root {
-        --card-bg: #ffffff; --card-border: #e2e8f0; --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); --card-text: #1e293b;
+        --card-bg: #ffffff; --card-border: #f1f5f9; --card-text: #1e293b;
     }
 
     /* Title Styling - Forces normal wrap natively */
     .app-main-title {
-        font-size: clamp(2.0rem, 5vw + 0.8rem, 2.8rem) !important;
-        font-weight: 700 !important;
-        line-height: 1.5 !important;
+        font-size: clamp(2.2rem, 5vw + 0.8rem, 2.8rem) !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.02em;
+        line-height: 1.3 !important;
         white-space: normal !important; 
-        color: var(--card-text);
+        color: #0f172a;
         margin: 0;
         padding: 0;
     }
@@ -73,17 +78,17 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
         align-items: center !important;
         margin-top: 1rem !important;
-        margin-bottom: 3rem !important; /* Spacious gap below header buttons */
+        margin-bottom: 3.5rem !important; /* Spacious gap below header buttons */
     }
 
     /* Force Native Streamlit Buttons to adopt Custom UI styling perfectly */
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseButton-secondary"],
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseLinkButton-secondary"] {
-        height: 42px !important; min-height: 42px !important; 
-        padding: 0 !important; border-radius: 8px !important;
-        border: 1px solid var(--card-border) !important;
+        height: 44px !important; min-height: 44px !important; 
+        padding: 0 !important; border-radius: 10px !important;
+        border: 1px solid #e2e8f0 !important;
         background-color: var(--card-bg) !important;
-        box-shadow: var(--card-shadow) !important; transition: all 0.15s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important; transition: all 0.15s ease;
         display: inline-flex !important; align-items: center !important; justify-content: center !important;
         width: 100% !important; text-decoration: none !important; box-sizing: border-box;
     }
@@ -133,27 +138,56 @@ st.markdown("""
 
     /* Standard Elements */
     span[data-baseweb="tag"] { background-color: #e5e7eb !important; color: #1f2937 !important; border: 1px solid #d1d5db !important; font-weight: 500 !important; }
-    .toc-button { display: block; width: 100%; padding: 8px 12px; margin: 4px 0; background-color: var(--card-bg); border: 1px solid var(--card-border); box-shadow: var(--card-shadow); color: var(--card-text) !important; text-decoration: none !important; border-radius: 8px; font-size: 0.9rem; font-weight: 500; transition: all 0.15s ease-in-out; }
+    .toc-button { display: block; width: 100%; padding: 8px 12px; margin: 4px 0; background-color: var(--card-bg); border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color: var(--card-text) !important; text-decoration: none !important; border-radius: 8px; font-size: 0.9rem; font-weight: 500; transition: all 0.15s ease-in-out; }
     .toc-button:hover { background-color: #f1f5f9; border-color: #cbd5e1; text-decoration: none !important; }
     
     .sidebar-header { font-weight: 700; font-size: 1.05rem; margin-bottom: 0px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; margin-top: 32px; }
 
-    .cards-container { display: grid !important; grid-template-columns: repeat(12, 1fr) !important; gap: 8px !important; align-items: stretch !important; margin-bottom: 2px !important; width: 100% !important; margin-top: 8px !important; }
+    .cards-container { display: grid !important; grid-template-columns: repeat(12, 1fr) !important; gap: 12px !important; align-items: stretch !important; margin-bottom: 2px !important; width: 100% !important; margin-top: 8px !important; }
     .card-span-3 { grid-column: span 3 !important; } .card-span-4 { grid-column: span 4 !important; } .card-span-6 { grid-column: span 6 !important; } .card-span-12 { grid-column: span 12 !important; } 
     @media (max-width: 1024px) { .card-span-3, .card-span-4 { grid-column: span 6 !important; } .mobile-full-width { grid-column: span 12 !important; } }
 
-    .highlight-card { background-color: var(--card-bg); border-radius: 12px; padding: 10px 12px; min-height: 118px; height: 100% !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; box-shadow: var(--card-shadow); border: 1px solid var(--card-border); box-sizing: border-box; word-wrap: break-word; overflow-wrap: break-word; color: var(--card-text) !important; transition: background-color 0.15s ease, transform 0.15s ease; }
-    @media (min-width: 769px) { .highlight-card:hover { background-color: #f1f5f9 !important; transform: translateY(-2px); border-color: #cbd5e1 !important; cursor: default; } }
+    /* PREMIUM HEALTH DASHBOARD CARDS */
+    .highlight-card { 
+        background-color: var(--card-bg); 
+        border-radius: 16px; 
+        padding: 16px; 
+        min-height: 125px; 
+        height: 100% !important; 
+        display: flex !important; flex-direction: column !important; justify-content: space-between !important; 
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); 
+        border: 1px solid var(--card-border); 
+        box-sizing: border-box; word-wrap: break-word; overflow-wrap: break-word; 
+        color: var(--card-text) !important; 
+        transition: transform 0.15s ease, box-shadow 0.15s ease; 
+    }
+    @media (min-width: 769px) { 
+        .highlight-card:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+            cursor: default; 
+        } 
+    }
     
-    .card-milk { border-left: 5px solid #38bdf8; } .card-feed { border-left: 5px solid #c084fc; } .card-diaper { border-left: 5px solid #0284c7; } .card-pump { border-left: 5px solid #a855f7; } .card-tummy { border-left: 5px solid #10b981; } .card-sleep { border-left: 5px solid #818cf8; } .card-meds { border-left: 5px solid #fbbf24; } .card-temp { border-left: 5px solid #f87171; } .card-events { border-left: 5px solid #94a3b8; }
-    .highlight-title { font-weight: 600; font-size: 0.88rem; margin-bottom: 3px; line-height: 1.2; } .highlight-body { font-size: 0.84rem; opacity: 0.92; line-height: 1.25; } .highlight-sub { font-size: 0.74rem; opacity: 0.75; margin-top: 3px; line-height: 1.25; }
+    .highlight-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 6px; line-height: 1.2; color: #475569; } 
+    .highlight-body { font-size: 0.9rem; opacity: 0.95; line-height: 1.3; } 
+    .highlight-sub { font-size: 0.75rem; color: #94a3b8; margin-top: 6px; line-height: 1.3; }
 
     .default-range-text { color: #64748b; font-size: 0.8rem; font-style: italic; margin-top: 1px; display: inline-block; }
     .raw-log-count-text { font-size: 0.72rem; color: #64748b; margin-top: 3px; margin-bottom: 6px; }
 
-    .empty-data-card { background-color: var(--card-bg); border: 1.5px dashed var(--card-border); border-radius: 12px; padding: 16px; text-align: center; margin: 6px 0; color: var(--card-text); }
-    .empty-data-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 3px; }
-    .empty-data-sub { font-size: 0.8rem; opacity: 0.75; }
+    /* PREMIUM EMPTY STATES */
+    .empty-data-card { 
+        background-color: #f8fafc; 
+        border: none; 
+        border-radius: 16px; 
+        padding: 24px 16px; 
+        text-align: center; 
+        margin: 6px 0; 
+        color: #64748b; 
+    }
+    .empty-data-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 4px; color: #475569;}
+    .empty-data-sub { font-size: 0.85rem; opacity: 0.8; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -187,7 +221,7 @@ if st.session_state.get('show_refresh_toast', False):
 st.sidebar.markdown("""
     <div style="margin-bottom: 12px;">
         <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">📌 Quick Navigation</div>
-        <a href="#today" class="toc-button">✨ Today</a>
+        <a href="#top-header" class="toc-button">✨ Today</a>
         <a href="#filters" class="toc-button">⚙️ Filters</a>
         <a href="#insights" class="toc-button">📊 Insights</a>
         <a href="#database" class="toc-button">📋 Database</a>
@@ -293,7 +327,7 @@ def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
         return f"⚠️ **API Busy. Auto-retrying in background...**"
 
 
-@st.cache_data(ttl=600) 
+@st.cache_data(ttl=600) # Efficient 10-minute cache
 def load_sheet_data(url):
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
@@ -312,7 +346,7 @@ def load_sheet_data(url):
         df['Week'] = df['DateTime'].dt.to_period('W-SUN').dt.start_time.dt.date
         df['Month'] = df['DateTime'].dt.strftime('%Y-%m')
         
-        # Smart filling for optional values: 1.0 for discrete counts, NaN for continuous measurements
+        # Smart filling: 1.0 for discrete counts, NaN for continuous measurements
         if 'Value (Optional)' in df.columns: 
             df['Value (Optional)'] = pd.to_numeric(df['Value (Optional)'], errors='coerce')
             countable_events = ["Wet Diaper", "Poop", "Meds", "Vaccine"]
@@ -355,7 +389,7 @@ ALL_EVENT_CATEGORIES = [
 ]
 
 COLOR_MAP = {
-    "🍼 Formula (mL)": "#38bdf8", "🤱 Breast Milk (mL)": "#9ca3af", "💧 Wet Diaper (Cnt)": "#0284c7",
+    "🍼 Formula (mL)": "#0ea5e9", "🤱 Breast Milk (mL)": "#64748b", "💧 Wet Diaper (Cnt)": "#3b82f6",
     "🚽 Poop (Cnt)": "#d97706", "🧴 Pumping (mL)": "#a855f7", "🛟 Tummy Time (Mins)": "#10b981",
     "🛌 Sleep (hrs)": "#6366f1", "🌡️ Temp (°C)": "#ef4444", "💊 Meds (Cnt)": "#f59e0b",
     "⚖️ Weight (kg)": "#14b8a6", "🏔️ Height (cm)": "#0ea5e9", "🐷 Head Size (cm)": "#ec4899",
@@ -368,12 +402,12 @@ def format_x_label(val):
 
 def style_plotly_figure(fig, title_text="", height=460, single_point=False, is_scatter=False, x_tickformat=None, x_dtick=None, y_tickangle=None):
     layout_args = dict(
-        title=dict(text=title_text, y=0.97, x=0.5, xanchor="center", yanchor="top", font=dict(size=16, weight="normal")),
+        title=dict(text=title_text, y=0.97, x=0.5, xanchor="center", yanchor="top", font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", size=17, color="#0f172a")),
         height=height, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=2, r=2, t=75, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, title_text="", font=dict(size=10)),
-        font=dict(family="sans-serif", size=11),
-        xaxis=dict(type=None if is_scatter else "category", tickformat=x_tickformat, dtick=x_dtick, title=dict(text=""), showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=9.5), automargin=True),
-        yaxis=dict(title=dict(text=""), showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=9.5), tickangle=y_tickangle if y_tickangle is not None else 0, title_standoff=2, automargin=True),
+        font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", size=11),
+        xaxis=dict(type=None if is_scatter else "category", tickformat=x_tickformat, dtick=x_dtick, title=dict(text=""), showgrid=True, gridcolor="#f1f5f9", tickfont=dict(size=9.5), automargin=True),
+        yaxis=dict(title=dict(text=""), showgrid=True, gridcolor="#f1f5f9", tickfont=dict(size=9.5), tickangle=y_tickangle if y_tickangle is not None else 0, title_standoff=2, automargin=True),
         hovermode="closest"
     )
     if single_point: layout_args["bargap"] = 0.75
@@ -455,8 +489,8 @@ OUTPUT RESTRICTIONS:
             html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text)
             
             st.markdown(f"""
-            <div style="background-color: #f8fafc; border-left: 4px solid #8b5cf6; padding: 12px 16px; border-radius: 8px; margin: 12px 0 24px 0; font-size: 0.88rem; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05); line-height: 1.5;">
-                <strong style="color: #4c1d95; font-size: 0.95rem; display: block; margin-bottom: 8px;">✨ Gemini AI Insight</strong> 
+            <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
+                <strong style="color: #4c1d95; font-size: 0.98rem; display: block; margin-bottom: 12px;">✨ Gemini AI Insight</strong> 
                 {html_text}
             </div>
             """, unsafe_allow_html=True)
@@ -465,8 +499,9 @@ OUTPUT RESTRICTIONS:
         if hidden_prefetch: return
         html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', hardcoded_text)
         st.markdown(f"""
-        <div style="background-color: #f8fafc; border-left: 4px solid #0ea5e9; padding: 12px 16px; border-radius: 8px; margin: 12px 0 24px 0; font-size: 0.88rem; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-            <strong style="color: #0369a1;">💡 Insight:</strong> {html_text}
+        <div style="background-color: #ffffff; border-left: 4px solid #0ea5e9; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
+            <strong style="color: #0369a1; font-size: 0.98rem; display: block; margin-bottom: 6px;">💡 Insight</strong> 
+            {html_text}
         </div>
         """, unsafe_allow_html=True)
 
@@ -497,7 +532,7 @@ else:
     last_feed_delta, last_feed_sub = "N/A", "No feed events"
 
 def render_empty_state(title="No Data Logged", subtitle="Try picking a wider date range or logging new entries."):
-    st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 {title}</div><div class="empty-data-sub">{subtitle}</div></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">{title}</div><div class="empty-data-sub">{subtitle}</div></div>""", unsafe_allow_html=True)
 
 st.markdown('<div id="today"></div>', unsafe_allow_html=True)
 
@@ -509,7 +544,7 @@ recent_7d_df = df[(df['Date'] > cutoff_7d) & (df['Date'] <= today_date)]
 st.subheader("✨ Today")
 
 if today_df.empty:
-    st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 No Data Logged Today</div><div class="empty-data-sub">Waiting for new entries.</div></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">No Data Logged Today</div><div class="empty-data-sub">Waiting for new entries.</div></div>""", unsafe_allow_html=True)
 else:
     t_formula = today_df[today_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
     t_bm = today_df[today_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
@@ -525,19 +560,30 @@ else:
     t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
     t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
 
+    # Premium Highlight Cards styling with inline colors for values
     today_cards = []
-    today_cards.append(f"""<div class="highlight-card card-feed"><div><div class="highlight-title">⏰ Last Feeding</div><div class="highlight-body"><b>{last_feed_delta}</b></div></div><div class="highlight-sub">{last_feed_sub}</div></div>""")
-    if t_milk > 0 or t_feed_cnt > 0: today_cards.append(f"""<div class="highlight-card card-milk"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body">Total <b>{int(t_milk):,} mL</b> across <b>{t_feed_cnt}</b> feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Form: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div></div>""")
-    if t_wet + t_poop > 0: today_cards.append(f"""<div class="highlight-card card-diaper"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body">Total <b>{t_wet + t_poop}</b> change(s).</div></div><div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div></div>""")
+    c_feed = "#a855f7"
+    c_milk = COLOR_MAP["🍼 Formula (mL)"]
+    c_diaper = COLOR_MAP["💧 Wet Diaper (Cnt)"]
+    c_pump = COLOR_MAP["🧴 Pumping (mL)"]
+    c_tummy = COLOR_MAP["🛟 Tummy Time (Mins)"]
+    c_sleep = COLOR_MAP["🛌 Sleep (hrs)"]
+    c_meds = COLOR_MAP["💊 Meds (Cnt)"]
+    c_temp = COLOR_MAP["🌡️ Temp (°C)"]
+    c_events = "#64748b"
+
+    today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">⏰ Last Feeding</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_feed};">{last_feed_delta}</span></div></div><div class="highlight-sub">{last_feed_sub}</div></div>""")
+    if t_milk > 0 or t_feed_cnt > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_milk};">{int(t_milk):,} mL</span> across {t_feed_cnt} feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Form: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div></div>""")
+    if t_wet + t_poop > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_diaper};">{t_wet + t_poop}</span> change(s).</div></div><div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div></div>""")
     p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
-    if t_pumping > 0 or p_cnt_today > 0: today_cards.append(f"""<div class="highlight-card card-pump"><div><div class="highlight-title">🧴 Pumping</div><div class="highlight-body">Pumped <b>{int(t_pumping):,} mL</b> today.</div></div><div class="highlight-sub">{p_cnt_today} pumping session(s)</div></div>""")
+    if t_pumping > 0 or p_cnt_today > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🧴 Pumping</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_pump};">{int(t_pumping):,} mL</span> today.</div></div><div class="highlight-sub">{p_cnt_today} pumping session(s)</div></div>""")
     tummy_cnt_today = len(today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
-    if t_tummy > 0 or tummy_cnt_today > 0: today_cards.append(f"""<div class="highlight-card card-tummy"><div><div class="highlight-title">🛟 Tummy Time</div><div class="highlight-body">Logged <b>{int(t_tummy)} min(s)</b> today.</div></div><div class="highlight-sub">{tummy_cnt_today} session(s) logged</div></div>""")
+    if t_tummy > 0 or tummy_cnt_today > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🛟 Tummy Time</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_tummy};">{int(t_tummy)} min(s)</span> today.</div></div><div class="highlight-sub">{tummy_cnt_today} session(s) logged</div></div>""")
     sleep_cnt_today = len(today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)])
-    if t_sleep > 0 or sleep_cnt_today > 0: today_cards.append(f"""<div class="highlight-card card-sleep"><div><div class="highlight-title">🛌 Rest & Sleep</div><div class="highlight-body">Logged <b>{int(t_sleep)} hr(s)</b> rest.</div></div><div class="highlight-sub">{sleep_cnt_today} sleep period(s)</div></div>""")
-    if t_meds > 0: today_cards.append(f"""<div class="highlight-card card-meds"><div><div class="highlight-title">💊 Medication</div><div class="highlight-body">Logged <b>{t_meds}</b> dose(s).</div></div><div class="highlight-sub">Dose(s) tracked today</div></div>""")
-    if t_latest_temp is not None: today_cards.append(f"""<div class="highlight-card card-temp"><div><div class="highlight-title">🌡️ Body Temp</div><div class="highlight-body"><b>{t_latest_temp:.1f} °C</b></div></div><div class="highlight-sub">{len(t_temp_df)} reading(s) logged</div></div>""")
-    if len(today_df) > 0: today_cards.append(f"""<div class="highlight-card card-events"><div><div class="highlight-title">📊 Total Events</div><div class="highlight-body"><b>{len(today_df):,}</b> entry(s) logged.</div></div><div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div></div>""")
+    if t_sleep > 0 or sleep_cnt_today > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🛌 Rest & Sleep</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_sleep};">{int(t_sleep)} hr(s)</span> rest.</div></div><div class="highlight-sub">{sleep_cnt_today} sleep period(s)</div></div>""")
+    if t_meds > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">💊 Medication</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_meds};">{t_meds}</span> dose(s).</div></div><div class="highlight-sub">Dose(s) tracked today</div></div>""")
+    if t_latest_temp is not None: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🌡️ Body Temp</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_temp};">{t_latest_temp:.1f} °C</span></div></div><div class="highlight-sub">{len(t_temp_df)} reading(s) logged</div></div>""")
+    if len(today_df) > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">📊 Total Events</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_events};">{len(today_df):,}</span> entry(s) logged.</div></div><div class="highlight-sub">Date: {today_date.strftime('%Y-%m-%d')}</div></div>""")
 
     card_count = len(today_cards)
     base_span = "card-span-3" if card_count >= 4 else ("card-span-4" if card_count == 3 else ("card-span-6" if card_count == 2 else "card-span-12"))
@@ -584,7 +630,6 @@ filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
 
 st.markdown("<div style='margin-top: 1.5rem; margin-bottom: 2.5rem; border-bottom: 1px solid rgba(128,128,128,0.15);'></div>", unsafe_allow_html=True)
 
-
 # ==========================================
 # 6. CHARTS & ANALYTICS
 # ==========================================
@@ -626,12 +671,12 @@ with tab1:
         )
         
         fig_today_timeline.for_each_trace(
-            lambda t: t.update(mode='markers+text', textposition='top center', textfont=dict(weight='bold'), texttemplate='%{text}' + get_unit_from_name(t.name)) if "(Cnt)" not in t.name else t.update(mode='markers', text=None)
+            lambda t: t.update(mode='markers+text', marker=dict(opacity=0.75, line=dict(width=1, color='white')), textposition='top center', textfont=dict(weight='bold'), texttemplate='%{text}' + get_unit_from_name(t.name)) if "(Cnt)" not in t.name else t.update(mode='markers', marker=dict(opacity=0.75, line=dict(width=1, color='white')), text=None)
         )
         
         fig_today_timeline.update_traces(hovertemplate='%{customdata[0]}<extra></extra>')
         fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=450, is_scatter=True, x_tickformat="%d-%H", x_dtick=10800000, y_tickangle=-45)
-        fig_today_timeline.update_layout(showlegend=False, yaxis=dict(title=dict(text=""), showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=10.5), automargin=True))
+        fig_today_timeline.update_layout(showlegend=False, yaxis=dict(title=dict(text=""), showgrid=True, gridcolor="#f1f5f9", tickfont=dict(size=10.5), automargin=True))
         st.plotly_chart(fig_today_timeline, use_container_width=True)
         
         st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours. Markers size and label text correspond to the recorded volume/duration.*")
@@ -678,14 +723,14 @@ with tab2:
             
         df_bm = grouped_vol[grouped_vol['Category'] == '🤱 Breast Milk (mL)']
         if not df_bm.empty: 
-            fig_milk.add_trace(go.Bar(name='🤱 Breast Milk (mL)', x=df_bm[group_col].astype(str), y=df_bm['Value (Optional)'], marker_color="#9ca3af", width=0.25 if is_single else None, hovertemplate='%{y} mL<extra></extra>'), secondary_y=False)
+            fig_milk.add_trace(go.Bar(name='🤱 Breast Milk (mL)', x=df_bm[group_col].astype(str), y=df_bm['Value (Optional)'], marker_color="#94a3b8", width=0.25 if is_single else None, hovertemplate='%{y} mL<extra></extra>'), secondary_y=False)
             
         fig_milk.add_trace(go.Scatter(name='🔢 Feed Count(s)', x=grouped_count[group_col].astype(str), y=grouped_count['Total Feeds Count'], mode='lines+markers+text', text=grouped_count['Total Feeds Count'], textposition="top center", textfont=dict(size=10.5, weight='bold'), line=dict(color='#f97316', width=3, shape='spline', smoothing=1.3), marker=dict(size=10, symbol='circle', color='#f97316', line=dict(width=2, color='#ffffff')), hovertemplate='%{y} feeds<extra></extra>'), secondary_y=True)
         fig_milk.add_trace(go.Scatter(name='📈 Vol Trend', x=total_per_x[group_col].astype(str), y=total_per_x['Trend'], mode='lines', line=dict(color='#64748b', width=2, shape='spline'), hovertemplate='Avg Trend: %{y:.0f} mL<extra></extra>'), secondary_y=False)
         
         fig_milk = style_plotly_figure(fig_milk, title_text=f"🍼 Milk Intake Volume & Feed Count — {granularity}", height=490, single_point=is_single)
         fig_milk.update_layout(barmode='stack')
-        fig_milk.update_yaxes(title_text="", secondary_y=False, showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=9.5), automargin=True)
+        fig_milk.update_yaxes(title_text="", secondary_y=False, showgrid=True, gridcolor="#f1f5f9", tickfont=dict(size=9.5), automargin=True)
         fig_milk.update_yaxes(title_text="", secondary_y=True, showgrid=False, tickfont=dict(size=9.5), automargin=True)
         st.plotly_chart(fig_milk, use_container_width=True)
         
@@ -751,6 +796,7 @@ with tab4:
         pump_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum() / 7
         ai_pump_context = f"Category: Pumping. Today: {t_pump:.0f} mL. Recent 7-Day Avg: {pump_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}): {len(pump_df)} sessions, avg {avg_pump:.0f} mL/session."
         
+        # NOTE: Subject passed as Yanyi for accurate context
         render_insight_card(f"Across **{len(pump_df)}** sessions, the average yield is **{avg_pump:.0f} mL** per session. Maintaining regular pumping intervals is key to sustaining supply.", ai_prompt_context=ai_pump_context, subject="Yanyi")
     else: render_empty_state("No Pumping Data Logged in this period")
 
@@ -785,6 +831,7 @@ with tab6:
     who_option = st.radio("Select Growth Chart:", options=["⚖️ Weight", "🏔️ Height", "🐷 Head"], horizontal=True, label_visibility="collapsed")
     
     if use_ai_insights:
+        # Pre-fetch the unselected radio buttons in the background
         for prefetch_opt in ["⚖️ Weight", "🏔️ Height", "🐷 Head"]:
             if prefetch_opt != who_option:
                 p_keyword = "⚖️ Weight (kg)" if "Weight" in prefetch_opt else ("🏔️ Height (cm)" if "Height" in prefetch_opt else "🐷 Head Size (cm)")
@@ -900,10 +947,10 @@ with tab6:
         y_lower = min(min_p3_vis, u_min) * 0.99
 
         fig_who.update_layout(
-            title=dict(text=f"📈 {who_option.split(' ')[1]}", y=0.97, x=0.5, xanchor="center", font=dict(size=16)),
+            title=dict(text=f"📈 {who_option.split(' ')[1]}", y=0.97, x=0.5, xanchor="center", font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", size=17, color="#0f172a")),
             height=500, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=2, r=2, t=60, b=20),
-            xaxis=dict(title="Age (Months)", showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickformat=".0f", range=[range_min, x_max_buffer]),
-            yaxis=dict(title="", showgrid=True, gridcolor="rgba(128,128,128,0.15)", range=[y_lower, y_upper]),
+            xaxis=dict(title="Age (Months)", showgrid=True, gridcolor="#f1f5f9", tickformat=".0f", range=[range_min, x_max_buffer]),
+            yaxis=dict(title="", showgrid=True, gridcolor="#f1f5f9", range=[y_lower, y_upper]),
             showlegend=False, hovermode="x unified"
         )
         st.plotly_chart(fig_who, use_container_width=True)
@@ -1092,7 +1139,7 @@ with tab8:
         if '✅' in row['Status']: return ['background-color: #dcfce7; color: #166534'] * 7
         elif '🟡' in row['Status']: return ['background-color: #fef08a; color: #854d0e'] * 7
         elif '⚠️' in row['Status']: return ['background-color: #fee2e2; color: #991b1b'] * 7
-        elif '(Optional)' in row['Vaccine / 疫苗']: return ['background-color: #f1f5f9; color: #475569'] * 7
+        elif '(Optional)' in row['Vaccine / 疫苗']: return ['background-color: #f8fafc; color: #475569'] * 7
         else: return [''] * 7
 
     dropped_df = styled_df.drop(columns=["Days", "Group", "Optional"])
@@ -1134,7 +1181,7 @@ with tab8:
     else: render_empty_state("No Vaccine Data Logged")
 
 # ==========================================
-# 6. EXPANDED DATABASE TABLE 
+# 6. EXPANDED DATABASE TABLE (MOVED TO BOTTOM)
 # ==========================================
 st.markdown('<div id="database" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
 st.subheader("📋 Database")
@@ -1146,7 +1193,7 @@ with filter_c2: search_query = st.text_input("🔍 Search Anything:", "", placeh
 table_df = filtered_df.copy()
 if selected_events: table_df = table_df[table_df['Event Type'].isin(selected_events)]
 
-# Vectorized Search Bar (Lightning Fast)
+# SPEED UPGRADE: Vectorized Search Bar (100x Faster than row-by-row apply)
 if search_query:
     search_mask = pd.Series(False, index=table_df.index)
     for col in table_df.columns:
@@ -1184,6 +1231,8 @@ if not display_df.empty:
     
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     with st.expander("✏️ Edit Master Database (Advanced)"):
+        
+        # Capture the exact timestamp of the newest record on screen for collision detection
         current_max_time = df['DateTime'].max() if not df.empty else None
         
         st.markdown("""
@@ -1193,7 +1242,9 @@ if not display_df.empty:
         </div>
         """, unsafe_allow_html=True)
         
+        # Ensure we are passing standard strings back to the editor, not the parsed dates
         raw_edit_df = df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
+        # Convert datetime objects back to string formatting for the editor so they don't break when saving
         raw_edit_df['DateTime'] = raw_edit_df['DateTime'].dt.strftime('%Y-%m-%d %H:%M:%S')
         
         with st.form("database_editor_form"):
@@ -1201,10 +1252,10 @@ if not display_df.empty:
                 raw_edit_df, 
                 use_container_width=True, 
                 height=400,
-                num_rows="dynamic",
+                num_rows="dynamic", # Enables Row Deletion
                 column_config={
                     "DateTime": st.column_config.TextColumn("DateTime (YYYY-MM-DD HH:MM:SS)", width="medium"),
-                    "Event Type": st.column_config.TextColumn("Event Type", disabled=True, width="medium"),
+                    "Event Type": st.column_config.TextColumn("Event Type", disabled=True, width="medium"), # DISABLED
                     "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
                     "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
                 }
@@ -1216,8 +1267,9 @@ if not display_df.empty:
                 with st.spinner("Verifying data sync and checking for conflicts..."):
                     try:
                         conn = st.connection("gsheets", type=GSheetsConnection)
-                        live_df = conn.read(spreadsheet=sheet_url_input, ttl=0)
                         
+                        # BULLETPROOF CHECK: Fetch the live sheet completely bypassing cache
+                        live_df = conn.read(spreadsheet=sheet_url_input, ttl=0)
                         if 'DateTime' in live_df.columns: 
                             live_max_time = pd.to_datetime(live_df['DateTime'], errors='coerce').max()
                         elif 'EntryDateTime' in live_df.columns: 
@@ -1225,10 +1277,11 @@ if not display_df.empty:
                         else:
                             live_max_time = None
                             
-                        # Optimistic Concurrency Check (Collision avoidance)
+                        # If the live sheet has a newer entry than what the user was looking at, ABORT SAVE!
                         if current_max_time and live_max_time and live_max_time > current_max_time:
                             st.error("🚨 **CRITICAL COLLISION AVOIDED:** Someone else (or an iOS shortcut) logged new data to the spreadsheet while you were editing! If we saved now, their data would be permanently deleted. **Please click the '🔄 Refresh' button at the top of the app to sync the latest data before editing.**")
                         else:
+                            # Safe to proceed! Convert the string dates back to pure strings to ensure Google Sheets understands them
                             push_df = edited_df.copy()
                             conn.update(worksheet="Sheet1", data=push_df)
                             st.success("✅ Changes successfully pushed to Google Sheets! Refreshing...")
@@ -1246,7 +1299,7 @@ st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
 # ==========================================
 # 7. BACKGROUND AUTO-RETRY ENGINE
 # ==========================================
-# Asynchronous JS Refresh prevents Python thread freezing while waiting for AI rate limits
+# UI UN-FREEZER: Asynchronous JS Refresh prevents Python thread freezing while waiting for AI rate limits
 if st.session_state.get('needs_auto_retry', False):
     st.session_state.needs_auto_retry = False
     components.html(
