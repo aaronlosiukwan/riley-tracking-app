@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import re
+from streamlit_gsheets import GSheetsConnection
 
 # ==========================================
 # 1. APP CONFIGURATION & STYLING
@@ -117,18 +118,13 @@ st.markdown("""
     /* Mobile 50/50 Split Sizing (Title 100%, Buttons 50/50 Below it) */
     @media (max-width: 768px) {
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
-            
             flex-wrap: wrap !important; gap: 0.5rem !important;
             flex-direction: row !important; /* Force row layout to stop stacking */
             margin-bottom: 2.5rem !important;
-            align-items: flex-start !important; /* Prevent flex from ignoring vertical margins */
-        }
-        .app-main-title {
-            margin-bottom: 1.5rem !important; /* Force direct margin on the title itself */
-            padding-bottom: 0.25rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
             flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
+            margin-bottom: 1.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
             flex: 0 0 calc(50% - 0.25rem) !important; width: calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; margin-right: 0.5rem !important;
@@ -184,7 +180,6 @@ st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 # ---------------------------------------------------------
 # 2. RESPONSIVE HEADER SECTION (NATIVE STREAMLIT)
 # ---------------------------------------------------------
-# Natively structured 60% / 20% / 20% columns ensuring buttons are <= 30% each on Desktop
 h_col1, h_col2, h_col3 = st.columns([6, 2, 2], vertical_alignment="center")
 
 with h_col1:
@@ -230,39 +225,40 @@ st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bo
 baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
-def get_csv_export_url(url_or_id):
-    if not url_or_id: return None
-    if "docs.google.com/spreadsheets" in url_or_id:
-        try: return f"https://docs.google.com/spreadsheets/d/{url_or_id.split('/d/')[1].split('/')[0]}/export?format=csv"
-        except IndexError: return None
-    return f"https://docs.google.com/spreadsheets/d/{url_or_id}/export?format=csv"
-
+# ---------------------------------------------------------
+# AUTHENTICATED GSHEETS CONNECTION
+# ---------------------------------------------------------
 @st.cache_data(ttl=1)
-def load_sheet_data(csv_url):
+def load_sheet_data(url):
     try:
-        df = pd.read_csv(csv_url)
+        # Establish secure connection
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        df = conn.read(spreadsheet=url)
+        
+        # Clean the data
         df.columns = df.columns.astype(str).str.strip()
         if 'DateTime' in df.columns: df['DateTime'] = pd.to_datetime(df['DateTime'], errors='coerce')
         elif 'EntryDateTime' in df.columns: df['DateTime'] = pd.to_datetime(df['EntryDateTime'], errors='coerce')
         else:
             date_cols = [c for c in df.columns if 'date' in c.lower()]
             if date_cols: df['DateTime'] = pd.to_datetime(df[date_cols[0]], errors='coerce')
+            
         df = df.dropna(subset=['DateTime'])
         df['Date'] = df['DateTime'].dt.date
         df['Week'] = df['DateTime'].dt.to_period('W-SUN').dt.start_time.dt.date
         df['Month'] = df['DateTime'].dt.strftime('%Y-%m')
+        
         if 'Value (Optional)' in df.columns: df['Value (Optional)'] = pd.to_numeric(df['Value (Optional)'], errors='coerce').fillna(1.0)
         else: df['Value (Optional)'] = 1.0
+        
         if 'Event Type' in df.columns: df['Event Type'] = df['Event Type'].astype(str).str.strip()
         return df.sort_values('DateTime', ascending=False)
+        
     except Exception as e:
-        st.error(f"Error fetching Google Sheet: {e}")
+        st.error(f"Error fetching Google Sheet securely: {e}")
         return pd.DataFrame()
 
-csv_url = get_csv_export_url(sheet_url_input)
-if not csv_url: st.stop()
-
-df = load_sheet_data(csv_url)
+df = load_sheet_data(sheet_url_input)
 if df.empty: st.stop()
 
 max_data_date = df['Date'].max()
@@ -350,7 +346,7 @@ def render_insight_card(text):
 
 
 # ==========================================
-# 4. TODAY'S HIGHLIGHTS (Moved Up)
+# 4. TODAY'S HIGHLIGHTS
 # ==========================================
 utc_now = datetime.utcnow()
 current_local_time = utc_now + timedelta(hours=tz_offset)
@@ -565,7 +561,7 @@ with tab2:
         st.plotly_chart(fig_milk, use_container_width=True)
         
         st.caption(f"ℹ️ *Combines stacked Formula and Breast Milk volume (mL) on left axis with Feed Count(s) (orange) on right axis. The grey line plots the 7-period rolling average.*", unsafe_allow_html=True)
-        
+
         avg_vol = total_per_x['Value (Optional)'].mean()
         trend_word = "holding highly stable ⚖️"
         if len(total_per_x) > 3:
@@ -942,7 +938,7 @@ with tab8:
     else: render_empty_state("No Vaccine Data Logged")
 
 # ==========================================
-# 7. EXPANDED DATABASE TABLE (MOVED TO BOTTOM)
+# 6. EXPANDED DATABASE TABLE (MOVED TO BOTTOM)
 # ==========================================
 st.markdown('<div id="database" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
 st.subheader("📋 Database")
@@ -985,6 +981,40 @@ if not display_df.empty:
             "Month": st.column_config.TextColumn("Month", width="small")
         }
     )
+    
+    st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
+    with st.expander("✏️ Edit Master Database (Advanced)"):
+        st.caption("⚠️ **Warning:** This editor contains your *entire, unfiltered* dataset. Clicking 'Save' pushes this exact table back to Google Sheets. Modifying or deleting rows here will permanently alter your data.")
+        
+        raw_edit_df = df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
+        
+        with st.form("database_editor_form"):
+            edited_df = st.data_editor(
+                raw_edit_df, 
+                use_container_width=True, 
+                height=400,
+                num_rows="dynamic",
+                column_config={
+                    "DateTime": st.column_config.DatetimeColumn("DateTime", format="YYYY-MM-DD HH:mm", width="medium"),
+                    "Event Type": st.column_config.SelectboxColumn("Event Type", options=ALL_EVENT_CATEGORIES, width="medium"),
+                    "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
+                    "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
+                }
+            )
+            
+            submit_button = st.form_submit_button("💾 Save Changes to Google Sheets", type="primary", use_container_width=True)
+            
+            if submit_button:
+                try:
+                    conn = st.connection("gsheets", type=GSheetsConnection)
+                    push_df = edited_df.copy()
+                    conn.update(worksheet="Sheet1", data=push_df)
+                    st.success("✅ Changes successfully pushed to Google Sheets!")
+                    st.cache_data.clear()
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to update Google Sheets: {e}")
+
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
