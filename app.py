@@ -321,23 +321,27 @@ if st.session_state.last_ai_data_datetime is None:
 def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
     cache_key = hash(f"{prompt_text}_{latest_data_timestamp}_{refresh_key}")
     
-    # 1. Check cache: Now safely handles both new dictionaries AND legacy strings
+    # Calculate exact local timestamp for when the AI is processing
+    now_local = (datetime.utcnow() + timedelta(hours=tz_offset)).strftime('%Y-%m-%d %H:%M:%S')
+    
+    # 1. Check cache: Now safely handles new dicts (with generation time) and legacy data
     if cache_key in global_ai_cache:
         cached_data = global_ai_cache[cache_key]
         if isinstance(cached_data, dict):
-            return cached_data['content'], True, cached_data['model']
+            # Fetch generated time, defaulting to "Unknown" for dicts saved right before this update
+            gen_time = cached_data.get('generated_at', "Previous Session")
+            return cached_data['content'], True, cached_data['model'], gen_time
         else:
-            # Handles old cache data from before the update
-            return cached_data, True, "Legacy Cache"
+            return cached_data, True, "Legacy Cache", "Previous Session"
 
     if not OPENAI_AVAILABLE:
-        return "⚠️ **OpenAI package missing.** Install `openai` in `requirements.txt`.", False, "N/A"
+        return "⚠️ **OpenAI package missing.** Install `openai` in `requirements.txt`.", False, "N/A", "N/A"
     
     if not api_key_param:
-        return "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets.", False, "N/A"
+        return "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets.", False, "N/A", "N/A"
         
     if st.session_state.get('ai_retry_count', 0) >= 3:
-        return "⚠️ **API Limit Reached.** OpenRouter is overloaded. Please check back later.", False, "N/A"
+        return "⚠️ **API Limit Reached.** OpenRouter is overloaded. Please check back later.", False, "N/A", "N/A"
     
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
@@ -354,8 +358,6 @@ def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
             ],
         )
         content = chat_completion.choices[0].message.content
-        
-        # EXTRACT THE EXACT MODEL USED BY THE ROUTER!
         exact_model = chat_completion.model 
         
         content = re.sub(r'(?i)User Safety:.*?(?=\n|<br>|$)', '', content)
@@ -363,23 +365,27 @@ def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
         
         if "User Safety" in content or "Unauthorized Advice" in content or not content:
             st.session_state.needs_auto_retry = True
-            return "⚠️ API Safety Filter tripped. Auto-retrying...", False, exact_model
+            return "⚠️ API Safety Filter tripped. Auto-retrying...", False, exact_model, now_local
             
-        # Store both the content and the exact model in the cache
-        global_ai_cache[cache_key] = {'content': content, 'model': exact_model}
+        # Store content, exact model, AND the generation timestamp in the cache
+        global_ai_cache[cache_key] = {
+            'content': content, 
+            'model': exact_model,
+            'generated_at': now_local
+        }
         st.session_state.ai_retry_count = 0
         
-        return content, False, exact_model
+        return content, False, exact_model, now_local
         
     except Exception as e:
         err_msg = str(e)
         if "429" in err_msg or "Rate limit" in err_msg or "busy" in err_msg.lower():
             st.session_state.needs_auto_retry = True
-            return f"⚠️ **Rate Limit (429):** Free API is busy. Retrying...", False, "N/A"
+            return f"⚠️ **Rate Limit (429):** Free API is busy. Retrying...", False, "N/A", "N/A"
         elif "401" in err_msg or "Authentication" in err_msg:
-            return f"⚠️ **Auth Error (401):** Your OpenRouter API key is invalid or missing.", False, "N/A"
+            return f"⚠️ **Auth Error (401):** Your OpenRouter API key is invalid or missing.", False, "N/A", "N/A"
         else:
-            return f"⚠️ **API Error:** {err_msg}", False, "N/A"
+            return f"⚠️ **API Error:** {err_msg}", False, "N/A", "N/A"
 
 def standardize_event_name(event_str):
     s = str(event_str).strip()
@@ -458,8 +464,8 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
     latest_data_timestamp = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
     refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
     
-    now_local = datetime.utcnow() + timedelta(hours=tz_offset)
-    generated_timestamp_str = now_local.strftime('%Y-%m-%d %H:%M:%S')
+    # Capture the exact time the UI is rendering this card
+    now_local = (datetime.utcnow() + timedelta(hours=tz_offset)).strftime('%Y-%m-%d %H:%M:%S')
     
     current_date_obj = datetime.utcnow().date()
     age_days = (current_date_obj - baby_dob).days
@@ -503,14 +509,14 @@ OUTPUT FORMAT RESTRICTIONS:
              
         with st.spinner(spinner_msg):
             if not OPENAI_AVAILABLE: 
-                output_text, is_cached, actual_model_used = "⚠️ **OpenAI package missing.**", False, "N/A"
+                output_text, is_cached, actual_model_used, gen_time = "⚠️ **OpenAI package missing.**", False, "N/A", "N/A"
             elif not api_key_param: 
-                output_text, is_cached, actual_model_used = "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets.", False, "N/A"
+                output_text, is_cached, actual_model_used, gen_time = "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets.", False, "N/A", "N/A"
             elif not ai_prompt_context: 
-                output_text, is_cached, actual_model_used = "⚠️ **No context provided for AI to analyze.**", False, "N/A"
+                output_text, is_cached, actual_model_used, gen_time = "⚠️ **No context provided for AI to analyze.**", False, "N/A", "N/A"
             else: 
-                # Unpack the exact model name from our updated call_ai function!
-                output_text, is_cached, actual_model_used = call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
+                # Unpack all 4 variables, including the actual AI generation time
+                output_text, is_cached, actual_model_used, gen_time = call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
             
             html_text = output_text.strip()
             html_text = re.sub(r'```[a-zA-Z]*\n?', '', html_text)
@@ -532,15 +538,18 @@ OUTPUT FORMAT RESTRICTIONS:
             html_text = re.sub(r'(</div>)\s*(?:<br>\s*)+', r'\1', html_text)
             html_text = html_text.replace('margin-top: 18px;', 'margin-top: 4px;', 1)
             
-            status_badge = "⚡ Cached" if is_cached else "🚀 Live AI Call"
+            # Format Footer String
+            if is_cached:
+                time_display = f"🕒 AI Summarized: {gen_time} &bull; ⚡ Cache Loaded: {now_local}"
+            else:
+                time_display = f"🕒 AI Summarized: {gen_time} &bull; 🚀 Live AI Call"
             
-            # Inject the actual dynamic model name into the footer
             st.markdown(f"""
             <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
                 <strong style="color: #4c1d95; font-size: 0.98rem; display: block; margin-bottom: 4px;">✨ AI Insight</strong> 
                 {html_text}
                 <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #94a3b8;">
-                    <span>🕒 {generated_timestamp_str} &bull; <strong>{status_badge}</strong></span>
+                    <span>{time_display}</span>
                     <span>🤖 Model: <code style="font-size: 0.70rem; color: #64748b; background-color: #f8fafc; padding: 1px 4px; border-radius: 4px;">{actual_model_used}</code></span>
                 </div>
             </div>
