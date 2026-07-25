@@ -1281,7 +1281,7 @@ if st.session_state.edit_mode:
                         master_df = pd.concat([master_df, new_rows])
                         
                         # BUG FIX: Explicitly passing the `spreadsheet=sheet_url_input` target for the update!
-                        conn.update(spreadsheet=sheet_url_input, worksheet="Sheet1", data=master_df)
+                        conn.update(spreadsheet=sheet_url_input, worksheet="Log", data=master_df)
                         
                         st.success("✅ Changes successfully pushed to Google Sheets! Refreshing...")
                         st.session_state.edit_mode = False
