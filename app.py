@@ -173,13 +173,34 @@ with h_col2:
 DEFAULT_SHEET_URL = "[https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing](https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing)"
 
 @st.cache_data(ttl=600)
+@st.cache_data(ttl=600)
 def load_sheet_data(url):
     try:
-        conn = st.connection("gsheets", type=GSheetsConnection)
-        df = conn.read(spreadsheet=url, worksheet="Log", ttl=0)
+        # 1. Authenticate using native gspread (Bypasses the buggy Streamlit wrapper)
+        secrets_dict = dict(st.secrets["connections"]["gsheets"])
+        secrets_dict.pop("spreadsheet", None)
+        secrets_dict.pop("worksheet", None)
+        secrets_dict.pop("type", None)
+        
+        client = gspread.service_account_from_dict(secrets_dict)
+        sheet = client.open_by_url(url).worksheet("Log")
+        
+        # 2. Fetch all data safely
+        data = sheet.get_all_values()
+        if not data or len(data) < 2:
+            return pd.DataFrame()
+        
+        # 3. Convert to Pandas DataFrame
+        headers = data[0]
+        df = pd.DataFrame(data[1:], columns=headers)
+        
+        # 4. Map the exact Google Sheet Row ID (df.index 0 is Row 2 in Google Sheets)
         df['SheetRow'] = df.index + 2 
         
+        # 5. Clean the data
         df.columns = df.columns.astype(str).str.strip()
+        df.replace("", np.nan, inplace=True) # Crucial: Converts empty string cells to NaN
+        
         if 'DateTime' in df.columns: df['DateTime'] = pd.to_datetime(df['DateTime'], errors='coerce')
         elif 'EntryDateTime' in df.columns: df['DateTime'] = pd.to_datetime(df['EntryDateTime'], errors='coerce')
         else:
@@ -1167,7 +1188,11 @@ if st.session_state.edit_mode:
                     client = gspread.service_account_from_dict(secrets_dict)
                     sheet = client.open_by_url(sheet_url_input).worksheet("Log")
                     
-                    live_df = conn.read(spreadsheet=sheet_url_input, worksheet="Log", ttl=0)
+                    # Fetch live data safely using gspread instead of conn.read
+                    live_data = sheet.get_all_values()
+                    live_df = pd.DataFrame(live_data[1:], columns=live_data[0]) if len(live_data) > 1 else pd.DataFrame()
+                    live_df.replace("", np.nan, inplace=True)
+                    
                     live_max_time = pd.to_datetime(live_df['DateTime'], errors='coerce').max() if 'DateTime' in live_df.columns else None
                         
                     if current_max_time and live_max_time and live_max_time > current_max_time:
