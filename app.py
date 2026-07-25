@@ -584,6 +584,121 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, category_df=None
     refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
     now_local_str = (datetime.utcnow() + timedelta(hours=tz_offset)).strftime('%Y-%m-%d %H:%M:%S')
 
+    # Helper function to generate standard Rule-Based Insight HTML
+    def get_hardcoded_html():
+        clean_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', hardcoded_text).replace('\n', '<br>')
+        margin_bottom = "16px" if use_ai_insights else "24px"
+        return f"""
+        <div style="background-color: #ffffff; border-left: 4px solid #0ea5e9; padding: 16px 20px; border-radius: 12px; margin: 12px 0 {margin_bottom} 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.6;">
+            <strong style="color: #0369a1; font-size: 1.05rem; letter-spacing: 0.01em; display: block; margin-bottom: 8px;">💡 Insight</strong> 
+            {clean_text}
+        </div>
+        """
+
+    # Helper function to generate AI Insight HTML
+    def get_ai_html(content, time_display, model_used):
+        formatted_content = format_ai_html(content)
+        return f"""
+        <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 0 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
+            <strong style="color: #4c1d95; font-size: 1.05rem; letter-spacing: 0.01em; display: block; margin-bottom: 4px;">✨ AI Insight</strong> 
+            {formatted_content}
+            <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #94a3b8;">
+                <span>{time_display}</span>
+                <span>🤖 Model: <code style="font-size: 0.70rem; color: #64748b; background-color: #f8fafc; padding: 1px 4px; border-radius: 4px;">{model_used}</code></span>
+            </div>
+        </div>
+        """
+
+    # 1. ALWAYS render the Rule-Based Insight Card first
+    st.markdown(get_hardcoded_html(), unsafe_allow_html=True)
+
+    # If AI Insights are disabled, stop here
+    if not use_ai_insights:
+        return
+
+    # 2. Render AI Insight Card below the Hardcoded one
+    ai_card_placeholder = st.empty()
+
+    cached_entry = global_ai_cache.get(category_key)
+    is_cache_valid = False
+
+    if cached_entry and isinstance(cached_entry, dict):
+        cached_ts = cached_entry.get('data_timestamp')
+        cached_ref_key = cached_entry.get('refresh_key')
+        
+        if cached_ts == cat_data_ts_str and cached_ref_key == refresh_key:
+            is_cache_valid = True
+
+    # FAST PATH: Instant cache hit (0ms execution)
+    if is_cache_valid:
+        time_display = f"🕒 AI Summarized: {cached_entry['generated_at']} &bull; ⚡ Instant Cache"
+        ai_card_placeholder.markdown(get_ai_html(cached_entry['content'], time_display, cached_entry['model']), unsafe_allow_html=True)
+        return
+
+    # SLOW PATH: Make live API call
+    current_date_obj = datetime.utcnow().date()
+    age_days = (current_date_obj - baby_dob).days
+    age_months = age_days / 30.437
+    
+    subject_context = f"Subject: Riley (Baby Girl, Age: {age_days} days / {age_months:.1f} months old). Evaluate her trends against developmental benchmarks and Hong Kong standards for her exact age." if subject == "Riley" else f"Subject: {subject}."
+
+    prompt_template = f"""DATA CONTEXT:
+{subject_context}
+{ai_prompt_context}
+
+ROLE: You are an analytical data tool. You are NOT a medical professional. Never give medical advice.
+TASK: Write a summary strictly based on the numbers provided. 
+
+STRICT DATA EVALUATION RULES:
+1. TODAY'S DATA IS PARTIAL / IN-PROGRESS: Use Today's logged metrics ONLY for factual, descriptive reporting.
+2. TREND ANALYSIS MUST IGNORE TODAY: Evaluate trends strictly by comparing full completed days (Yesterday and prior completed days) against the Recent 7-Day Avg and Selected Historical Range. Absolutely DO NOT evaluate trends or draw health conclusions using Today's partial data.
+3. SUGGESTED ACTION MUST IGNORE TODAY: Base your practical recommendation STRICTLY on completed full-day trends (Yesterday and earlier). Never base recommendations on Today's partial progress.
+
+OUTPUT FORMAT RESTRICTIONS:
+- DO NOT wrap the output in ```html or ```markdown code blocks.
+- Provide the response in plain text using the exact section headers below (wrapped in **).
+
+**High-Level Summary**
+- [Bullet point 1: Factual/descriptive summary of Today's logged progress so far]
+- [Bullet point 2: Key observation from recent full-day baselines]
+
+**Trend Analysis**
+[Write a single paragraph (3-4 sentences) evaluating full completed days (Yesterday and prior) compared against the Recent 7-Day Avg and Selected Range. Ignore today's partial numbers. Evaluate if healthy for her current age based on HK standards.]
+
+**Suggested Action**
+[Write 1 brief sentence suggesting a practical next step based STRICTLY on completed full-day historical trends (yesterday and earlier).]"""
+
+    with st.spinner(f"🤖 Asking AI to analyze {subject}'s trends..."):
+        if not OPENAI_AVAILABLE or not api_key_param or not ai_prompt_context:
+            return
+        
+        output_text, is_cached, actual_model_used, gen_time = call_ai(prompt_template, api_key_param, cat_data_ts_str, refresh_key)
+        
+        global_ai_cache[category_key] = {
+            'content': output_text,
+            'model': actual_model_used,
+            'generated_at': now_local_str,
+            'data_timestamp': cat_data_ts_str,
+            'refresh_key': refresh_key
+        }
+        
+        time_display = f"🕒 AI Summarized: {now_local_str} &bull; 🚀 Live AI Call"
+        ai_card_placeholder.markdown(get_ai_html(output_text, time_display, actual_model_used), unsafe_allow_html=True)
+
+
+def render_insight_card(hardcoded_text, ai_prompt_context=None, category_df=None, category_key="default", subject="Riley"):
+    api_key_param = st.secrets.get("OPENROUTER_API_KEY", None)
+    
+    # Extract max timestamp for this specific category
+    if category_df is not None and not category_df.empty and 'DateTime' in category_df.columns:
+        cat_max_dt = category_df['DateTime'].max()
+        cat_data_ts_str = cat_max_dt.strftime('%Y-%m-%d %H:%M:%S') if pd.notna(cat_max_dt) else "None"
+    else:
+        cat_data_ts_str = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
+        
+    refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
+    now_local_str = (datetime.utcnow() + timedelta(hours=tz_offset)).strftime('%Y-%m-%d %H:%M:%S')
+
     # -------------------------------------------------------------
     # ⚡ SMART TIMESTAMP CACHE CHECK (0ms Execution on Hit)
     # -------------------------------------------------------------
