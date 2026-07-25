@@ -295,27 +295,41 @@ def call_ai(prompt_text, api_key_param):
     if not api_key_param:
         return "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets."
     
-    try:
-        client = OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=api_key_param,
-        )
-        chat_completion = client.chat.completions.create(
-            model="meta-llama/llama-3.1-8b-instruct:free",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a supportive, concise pediatric assistant. Respond directly without filler."
-                },
-                {
-                    "role": "user",
-                    "content": prompt_text,
-                }
-            ],
-        )
-        return chat_completion.choices[0].message.content
-    except Exception as e:
-        return f"⚠️ **AI Insight Error:** {str(e)}"
+    # Fallback list of reliable, permanently free models to ensure the app never breaks
+    free_models = [
+        "meta-llama/llama-3.1-8b-instruct:free",
+        "google/gemma-2-9b-it:free",
+        "mistralai/mistral-7b-instruct:free",
+        "huggingfaceh4/zephyr-7b-beta:free"
+    ]
+    
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key_param,
+    )
+    
+    last_error = ""
+    for model_id in free_models:
+        try:
+            chat_completion = client.chat.completions.create(
+                model=model_id,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a supportive, concise pediatric assistant. Respond directly without filler."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt_text,
+                    }
+                ],
+            )
+            return chat_completion.choices[0].message.content
+        except Exception as e:
+            last_error = str(e)
+            continue # If a model is down or becomes paid, seamlessly try the next one in the list
+            
+    return f"⚠️ **AI Insight Error (All free models failed):** {last_error}"
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_suggested_questions(context_str, api_key_param):
