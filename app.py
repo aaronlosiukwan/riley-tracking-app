@@ -238,28 +238,50 @@ if "ai_retry_count" not in st.session_state:
 
 with h_col3:
     if st.button("🔄 Refresh", use_container_width=True):
-        # 1. Clear data cache so fresh sheet rows load
-        st.cache_data.clear()
-        
-        # 2. Check if AI insights are enabled
-        current_ai_state = st.session_state.get('ai_insights_enabled', False)
-        
-        # 3. Check for new rows in Column E to decide whether AI needs re-generation
-        temp_df = load_sheet_data(DEFAULT_SHEET_URL)
-        if not temp_df.empty:
-            current_max_dt = temp_df['DateTime'].max()
-            if (st.session_state.last_ai_data_datetime is None) or (current_max_dt > st.session_state.last_ai_data_datetime):
-                st.session_state.ai_refresh_key = str(datetime.utcnow())
-                st.session_state.last_ai_data_datetime = current_max_dt
-                global_ai_cache.clear()
-        
-        # 4. Explicitly preserve AI toggle state
-        st.session_state.ai_insights_enabled = current_ai_state
-        st.session_state.show_refresh_toast = True
-        st.rerun()
+        with st.spinner("Checking for new data..."):
+            try:
+                # 1. FAST PEEK: Authenticate and check only Column E securely
+                secrets_dict = dict(st.secrets["connections"]["gsheets"])
+                secrets_dict.pop("spreadsheet", None); secrets_dict.pop("worksheet", None); secrets_dict.pop("type", None)
+                client = gspread.service_account_from_dict(secrets_dict)
+                sheet = client.open_by_url(DEFAULT_SHEET_URL).worksheet("Log")
+                
+                # Fetch only the DateTime column (extremely fast)
+                dt_col = sheet.col_values(5) 
+                live_max_dt = pd.to_datetime(dt_col[1:], errors='coerce').max() if len(dt_col) > 1 else None
+                cached_max_dt = st.session_state.get('last_ai_data_datetime')
+                
+                # 2. COMPARE: If no new data is found, STOP immediately. No grey-out reload!
+                if cached_max_dt and live_max_dt and live_max_dt <= cached_max_dt:
+                    st.session_state.show_up_to_date_toast = True
+                    st.rerun() # Instant rerun just to show the toast, feels seamless.
+                
+                # 3. NEW DATA FOUND: Proceed with a full cache clear and AI refresh
+                else:
+                    st.cache_data.clear()
+                    current_ai_state = st.session_state.get('ai_insights_enabled', False)
+                    
+                    st.session_state.ai_refresh_key = str(datetime.utcnow())
+                    st.session_state.last_ai_data_datetime = live_max_dt
+                    global_ai_cache.clear()
+                    
+                    st.session_state.ai_insights_enabled = current_ai_state
+                    st.session_state.show_refresh_toast = True
+                    st.rerun()
+                    
+            except Exception as e:
+                # Fallback if the fast peek fails
+                st.cache_data.clear()
+                st.session_state.show_refresh_toast = True
+                st.rerun()
+
+# --- Toast Notification Handlers ---
+if st.session_state.get('show_up_to_date_toast', False):
+    st.toast("Data is already up to date!", icon="⚡")
+    st.session_state.show_up_to_date_toast = False
 
 if st.session_state.get('show_refresh_toast', False):
-    st.toast("Data successfully updated!", icon="✅")
+    st.toast("New data synced successfully!", icon="✅")
     st.session_state.show_refresh_toast = False
 
 # ==========================================
