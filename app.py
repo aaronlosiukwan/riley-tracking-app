@@ -451,10 +451,42 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
     latest_data_timestamp = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
     refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
     
+    # Calculate exact age context for the AI
+    current_date_obj = datetime.utcnow().date()
+    age_days = (current_date_obj - baby_dob).days
+    age_months = age_days / 30.437
+    
+    # Define the core prompt dynamically based on the subject
+    if subject == "Riley":
+        subject_context = f"Subject: Riley (Baby Girl, Age: {age_days} days / {age_months:.1f} months old). Always evaluate her trends against typical developmental milestones and Hong Kong standards for her exact age."
+    else:
+        subject_context = f"Subject: {subject}."
+
+    prompt_template = f"""DATA CONTEXT:
+{subject_context}
+{ai_prompt_context}
+
+ROLE: You are an analytical data tool. You are NOT a medical professional. Never give medical advice.
+TASK: Write a summary strictly based on the numbers provided. 
+
+OUTPUT RESTRICTIONS:
+- OUTPUT ONLY THE EXACT HTML STRUCTURE BELOW. 
+- DO NOT OUTPUT ANY METADATA.
+- DO NOT WRAP THE OUTPUT IN ```html CODE BLOCKS.
+- NO MARKDOWN BOLDING (**).
+- DO NOT ADD EXTRA BLANK LINES OR <br> TAGS BETWEEN BULLET POINTS.
+
+<b>High-Level Summary</b><br>
+&bull; [Bullet point 1 highlighting a key metric]<br>
+&bull; [Bullet point 2 highlighting a key metric]<br><br>
+<b>Trend Analysis</b><br>
+[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. the Selected Range. Evaluate if this is healthy for her current age based on HK standards.]<br><br>
+<b>Suggested Action</b><br>
+[Write 1 brief sentence suggesting a practical next step based on the data.]"""
+
     if use_ai_insights:
         if hidden_prefetch and ai_prompt_context and api_key_param:
-             prompt = f"DATA CONTEXT:\n{ai_prompt_context}\n\nROLE: You are an automated data formatting tool. You are NOT a medical professional. Never give medical advice.\nTASK: Write an analytical summary based STRICTLY on the numbers provided. The subject of this data is {subject}.\n\nOUTPUT RESTRICTIONS:\n- OUTPUT ONLY THE EXACT HTML STRUCTURE BELOW.\n- DO NOT OUTPUT ANY METADATA (e.g., \"User Safety: safe\").\n- DO NOT USE MARKDOWN (NO ** OR *).\n- DO NOT ADD EXTRA BLANK LINES BETWEEN BULLET POINTS.\n\n<b>High-Level Summary</b><br>\n&bull; [Bullet point 1 highlighting a key metric]<br>\n&bull; [Bullet point 2 highlighting a key metric]<br><br>\n<b>Trend Analysis</b><br>\n[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. the Selected Range. Highlight any positive trends.]<br><br>\n<b>Suggested Action</b><br>\n[Write 1 brief sentence suggesting a practical next step based on the data.]"
-             call_ai(prompt, api_key_param, latest_data_timestamp, refresh_key)
+             call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
              return
              
         with st.spinner(f"🤖 Summarizing {subject}'s trends..."):
@@ -465,38 +497,21 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
             elif not ai_prompt_context:
                 output_text = "⚠️ **No context provided for AI to analyze.**"
             else:
-                prompt = f"""DATA CONTEXT:
-{ai_prompt_context}
-
-ROLE: You are an automated data formatting tool. You are NOT a medical professional. Never give medical advice.
-TASK: Write an analytical summary based STRICTLY on the numbers provided. The subject of this data is {subject}.
-
-OUTPUT RESTRICTIONS:
-- OUTPUT ONLY THE EXACT HTML STRUCTURE BELOW.
-- DO NOT OUTPUT ANY METADATA (e.g., "User Safety: safe").
-- DO NOT USE MARKDOWN (NO ** OR *).
-- DO NOT ADD EXTRA BLANK LINES BETWEEN BULLET POINTS.
-
-<b>High-Level Summary</b><br>
-&bull; [Bullet point 1 highlighting a key metric]<br>
-&bull; [Bullet point 2 highlighting a key metric]<br><br>
-<b>Trend Analysis</b><br>
-[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. the Selected Range. Highlight any positive trends.]<br><br>
-<b>Suggested Action</b><br>
-[Write 1 brief sentence suggesting a practical next step based on the data.]
-"""
-                output_text = call_ai(prompt, api_key_param, latest_data_timestamp, refresh_key)
+                output_text = call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
             
-            # Format HTML to ensure beautiful UI rendering
+            # AGGRESSIVE CLEANING: Strip out markdown blocks and fix spacing
             html_text = output_text
+            html_text = re.sub(r'```html\n?', '', html_text, flags=re.IGNORECASE) # Strip opening ```html
+            html_text = re.sub(r'```\n?', '', html_text) # Strip closing ```
             html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', html_text) 
             html_text = re.sub(r'^[-*]\s+(.*?)$', r'&bull; \1', html_text, flags=re.MULTILINE)
             html_text = html_text.replace('\n', '<br>')
-            html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text)
+            html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text) # Collapse huge spaces
+            html_text = re.sub(r'(<br>){2,}(?=&bull;)', '<br>', html_text) # Collapse spaces specifically between bullets
             
             st.markdown(f"""
             <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
-                <strong style="color: #4c1d95; font-size: 0.98rem; display: block; margin-bottom: 12px;">✨ Gemini AI Insight</strong> 
+                <strong style="color: #4c1d95; font-size: 0.98rem; display: block; margin-bottom: 12px;">✨ AI Insight</strong> 
                 {html_text}
             </div>
             """, unsafe_allow_html=True)
@@ -1130,7 +1145,10 @@ with tab8:
         total_vacs = len(vac_df)
         upcoming = [r for r in rows if r["Status"] == "🟡 Due Soon" or r["Status"] == "⚠️ Overdue"]
         next_due = upcoming[0]["Vaccine / 疫苗"] if upcoming else "All caught up"
-        ai_vac_context = f"Category: Vaccines. Total administered so far: {total_vacs}. Next action required: {next_due}."
+        
+        # Inject instruction to cross-reference missing vaccines
+        ai_vac_context = f"Category: Vaccines. Total administered so far: {total_vacs}. Next scheduled action required: {next_due}. Based on standard pediatric guidelines, please evaluate if any other typical vaccines are missing or highly recommended at her current age."
+        
         render_insight_card(f"Riley has received **{total_vacs}** vaccine(s). Status of next vaccine: **{next_due}**.", ai_prompt_context=ai_vac_context)
 
     v_col1, v_col2 = st.columns([1, 1])
