@@ -602,12 +602,13 @@ OUTPUT FORMAT RESTRICTIONS:
 **Suggested Action**
 [Write 1 brief sentence suggesting a practical next step based STRICTLY on completed full-day historical trends (yesterday and earlier).]"""
 
-    # Helper function to generate the Hardcoded HTML
+    # Helper function to generate rich Hardcoded HTML
     def get_hardcoded_html():
         clean_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', hardcoded_text)
+        clean_text = clean_text.replace('\n', '<br>')
         return f"""
-        <div style="background-color: #ffffff; border-left: 4px solid #0ea5e9; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
-            <strong style="color: #0369a1; font-size: 0.98rem; display: block; margin-bottom: 6px;">💡 Insight</strong> 
+        <div style="background-color: #ffffff; border-left: 4px solid #0ea5e9; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.6;">
+            <strong style="color: #0369a1; font-size: 1.05rem; letter-spacing: 0.01em; display: block; margin-bottom: 8px;">💡 Insight</strong> 
             {clean_text}
         </div>
         """
@@ -956,8 +957,11 @@ with tab1:
         feed_cnt_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Formula|Breast Milk")]) / 7
         diaper_cnt_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Diaper|Poop")]) / 7
         
-        analysis = f"Riley has had **{feed_cnt} feeds** and **{diaper_cnt} diaper changes** in the past 24 hours."
-        ai_context = f"Category: 24h Overview. Today: {feed_cnt} feeds, {diaper_cnt} diaper changes. Recent 7-Day Avg: {feed_cnt_7d:.1f} feeds/day, {diaper_cnt_7d:.1f} diapers/day."
+        analysis = f"""• **Milk Intake:** {int(t_milk):,} mL across {t_feed_cnt} feed(s) (Avg: ~{int(t_avg_feed)} mL | Form: {int(t_formula):,} mL, BM: {int(t_bm):,} mL)
+• **Diaper Output:** {t_diaper_changes} change(s) ({t_wet} wet, {t_poop} poop)
+• **Activity & Rest:** {int(t_tummy)} min tummy time | {int(t_sleep)} hrs rest | {t_meds} med dose(s)"""
+        
+        ai_context = f"Category: 24h Overview. Today: {t_feed_cnt} feeds, {t_diaper_changes} diaper changes. Recent 7-Day Avg: {feed_cnt_7d:.1f} feeds/day, {diaper_cnt_7d:.1f} diapers/day."
         render_insight_card(analysis, ai_prompt_context=ai_context, category_df=today_24h_df)
     else: render_empty_state("No Events Logged in the Last 24 Hours")
 
