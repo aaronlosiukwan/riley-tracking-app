@@ -354,10 +354,10 @@ st.sidebar.markdown("""
 # --- SECTION 1: NAVIGATION ---
 st.sidebar.markdown('<div class="pro-sidebar-header" style="margin-top: 0;">Navigation</div>', unsafe_allow_html=True)
 st.sidebar.markdown("""
-    <a href="#top-header" class="pro-nav-item">✨ Today's Highlights</a>
-    <a href="#filters" class="pro-nav-item">⚙️ Groups & Filters</a>
+    <a href="#top-header" class="pro-nav-item">✨ Today</a>
+    <a href="#filters" class="pro-nav-item">⚙️ Filters</a>
     <a href="#insights" class="pro-nav-item">📊 Insights</a>
-    <a href="#database" class="pro-nav-item">📋 Master Database</a>
+    <a href="#database" class="pro-nav-item">📋 Database</a>
 """, unsafe_allow_html=True)
 
 # --- SECTION 2: ACTIONS ---
@@ -824,7 +824,7 @@ if 'ed' not in st.session_state:
     st.session_state.ed = max_data_date
 
 st.markdown('<div id="filters" style="margin-top: 4rem; padding-top: 1rem;"></div>', unsafe_allow_html=True)
-st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;'>⚙️ Date Range & Grouping Filters</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;'>⚙️ Date Range / Grouping</div>", unsafe_allow_html=True)
 
 f_col1, f_col2, f_col3, f_col4 = st.columns([1.2, 1, 1, 0.8], vertical_alignment="bottom")
 
