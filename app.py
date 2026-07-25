@@ -252,37 +252,30 @@ with h_col3:
     if st.button("🔄 Refresh", use_container_width=True):
         with st.spinner("Checking for new data..."):
             try:
-                # 1. FAST PEEK: Authenticate and check only Column E securely
                 secrets_dict = dict(st.secrets["connections"]["gsheets"])
                 secrets_dict.pop("spreadsheet", None); secrets_dict.pop("worksheet", None); secrets_dict.pop("type", None)
                 client = gspread.service_account_from_dict(secrets_dict)
                 sheet = client.open_by_url(DEFAULT_SHEET_URL).worksheet("Log")
                 
-                # Fetch only the DateTime column (extremely fast)
                 dt_col = sheet.col_values(5) 
                 live_max_dt = pd.to_datetime(dt_col[1:], errors='coerce').max() if len(dt_col) > 1 else None
                 cached_max_dt = st.session_state.get('last_ai_data_datetime')
                 
-                # 2. COMPARE: If no new data is found, STOP immediately. No grey-out reload!
                 if cached_max_dt and live_max_dt and live_max_dt <= cached_max_dt:
                     st.session_state.show_up_to_date_toast = True
-                    st.rerun() # Instant rerun just to show the toast, feels seamless.
+                    st.rerun()
                 
-                # 3. NEW DATA FOUND: Proceed with a full cache clear and AI refresh
                 else:
                     st.cache_data.clear()
                     current_ai_state = st.session_state.get('ai_insights_enabled', False)
-                    
-                    st.session_state.ai_refresh_key = str(datetime.utcnow())
                     st.session_state.last_ai_data_datetime = live_max_dt
-                    global_ai_cache.clear()
                     
+                    # DO NOT CLEAR global_ai_cache! Unmodified categories remain cached automatically.
                     st.session_state.ai_insights_enabled = current_ai_state
                     st.session_state.show_refresh_toast = True
                     st.rerun()
                     
             except Exception as e:
-                # Fallback if the fast peek fails
                 st.cache_data.clear()
                 st.session_state.show_refresh_toast = True
                 st.rerun()
@@ -559,9 +552,16 @@ def get_unit_from_name(name):
     if "cm" in name: return " cm"
     return ""
 
-def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley", hidden_prefetch=False):
+def render_insight_card(hardcoded_text, ai_prompt_context=None, category_df=None, subject="Riley", hidden_prefetch=False):
     api_key_param = st.secrets.get("OPENROUTER_API_KEY", None)
-    latest_data_timestamp = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
+    
+    # SURGICAL CACHING: Use max timestamp of THIS specific category, not the entire sheet!
+    if category_df is not None and not category_df.empty and 'DateTime' in category_df.columns:
+        cat_max_dt = category_df['DateTime'].max()
+        latest_data_timestamp = cat_max_dt.strftime('%Y-%m-%d %H:%M:%S') if pd.notna(cat_max_dt) else "None"
+    else:
+        latest_data_timestamp = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
+        
     refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
     
     now_local_dt = datetime.utcnow() + timedelta(hours=tz_offset)
@@ -612,7 +612,6 @@ OUTPUT FORMAT RESTRICTIONS:
         </div>
         """
 
-    # Create a dynamic Streamlit placeholder container
     card_placeholder = st.empty()
 
     if use_ai_insights:
@@ -623,7 +622,6 @@ OUTPUT FORMAT RESTRICTIONS:
         cache_key = hash(f"{prompt_template}_{latest_data_timestamp}_{refresh_key}")
         is_already_cached = cache_key in global_ai_cache
         
-        # Display hardcoded placeholder if waiting for API
         if not is_already_cached:
             card_placeholder.markdown(get_hardcoded_html(), unsafe_allow_html=True)
         
@@ -960,7 +958,7 @@ with tab1:
         
         analysis = f"Riley has had **{feed_cnt} feeds** and **{diaper_cnt} diaper changes** in the past 24 hours."
         ai_context = f"Category: 24h Overview. Today: {feed_cnt} feeds, {diaper_cnt} diaper changes. Recent 7-Day Avg: {feed_cnt_7d:.1f} feeds/day, {diaper_cnt_7d:.1f} diapers/day."
-        render_insight_card(analysis, ai_prompt_context=ai_context)
+        render_insight_card(analysis, ai_prompt_context=ai_context, category_df=today_24h_df)
     else: render_empty_state("No Events Logged in the Last 24 Hours")
 
 # TAB 2: MILK
@@ -1002,10 +1000,9 @@ with tab2:
         milk_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]['Value (Optional)'].sum() / 7
         ai_milk_context = f"Category: Milk Intake. Today: {t_milk:.0f} mL. Recent 7-Day Avg: {milk_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}) Avg: {avg_vol:.0f} mL per {granularity.lower()}."
         
-        render_insight_card(f"Riley's intake averages **{avg_vol:.0f} mL** per {granularity.lower()}.", ai_prompt_context=ai_milk_context)
+        render_insight_card(f"Riley's intake averages **{avg_vol:.0f} mL** per {granularity.lower()}.", ai_prompt_context=ai_milk_context, category_df=milk_df)
     else: render_empty_state("No Feeding Data Logged in this period")
 
-# TAB 3: DIAPERS
 # TAB 3: DIAPERS
 with tab3:
     diaper_df = filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)].copy()
@@ -1035,7 +1032,7 @@ with tab3:
         
         ai_diaper_context = f"Category: Diaper Output. Target Date ({today_date}): {t_diaper} diaper changes. Recent 7-Day Avg (excluding target day): {diaper_7d:.1f} changes/day. Selected Range ({start_date} to {end_date}) Avg: {avg_diapers:.1f} changes/day. (Total events in range: {wets} wet, {poops} poops)."
         
-        render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diaper events across **{avg_diapers:.1f}** daily changes.", ai_prompt_context=ai_diaper_context)
+        render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diaper events...", ai_prompt_context=ai_diaper_context, category_df=diaper_df)
 
 # TAB 4: PUMPING
 with tab4:
@@ -1057,7 +1054,7 @@ with tab4:
         pump_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum() / 7
         ai_pump_context = f"Category: Pumping. Today: {t_pump:.0f} mL. Recent 7-Day Avg: {pump_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}): {len(pump_df)} sessions, avg {avg_pump:.0f} mL/session."
         
-        render_insight_card(f"Across **{len(pump_df)}** sessions, average yield is **{avg_pump:.0f} mL**.", ai_prompt_context=ai_pump_context, subject="Yanyi")
+        render_insight_card(f"Across **{len(pump_df)}** sessions...", ai_prompt_context=ai_pump_context, category_df=pump_df, subject="Yanyi")
     else: render_empty_state("No Pumping Data Logged in this period")
 
 # TAB 5: TUMMY
@@ -1081,7 +1078,7 @@ with tab5:
         tummy_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum() / 7
         ai_tummy_context = f"Category: Tummy Time. Today: {t_tummy:.0f} mins. Recent 7-Day Avg: {tummy_7d:.0f} mins/day. Selected Range ({start_date} to {end_date}): {total_tummy:.0f} total mins, avg {avg_tummy:.0f} mins/session."
         
-        render_insight_card(f"Riley achieved **{total_tummy:.0f} total minutes** of tummy time.", ai_prompt_context=ai_tummy_context)
+        render_insight_card(f"Riley achieved **{total_tummy:.0f} total minutes**...", ai_prompt_context=ai_tummy_context, category_df=tummy_df)
     else: render_empty_state("No Tummy Time Data Logged in this period")
 
 # TAB 6: GROWTH
@@ -1198,7 +1195,7 @@ with tab6:
         latest_val = latest_data['Value (Optional)']
         
         ai_growth_context = build_growth_ai_context(db_keyword, who_option)
-        render_insight_card(f"At **{latest_data['Age_Months']:.1f} months**, Riley's {who_option.split(' ')[1].lower()} is **{latest_val:.1f} {unit_str}** (~**{latest_pct:.0f}th** percentile).", ai_prompt_context=ai_growth_context)
+        render_insight_card(f"At **{latest_data['Age_Months']:.1f} months**...", ai_prompt_context=ai_growth_context, category_df=who_df)
     else: render_empty_state(f"No {who_option} Data Logged")
 
 # TAB 7: HEALTH
@@ -1244,7 +1241,7 @@ with tab7:
 
         avg_act = act_df['Value (Optional)'].mean()
         ai_health_context = build_health_ai_context(act_option)
-        render_insight_card(f"Across **{len(act_df)}** records, Riley averages **{avg_act:.1f} {unit}**.", ai_prompt_context=ai_health_context)
+        render_insight_card(f"Across **{len(act_df)}** records...", ai_prompt_context=ai_health_context, category_df=act_df)
     else: render_empty_state(f"No {act_option.split(' ')[1]} Data Logged in this period")
 
 # TAB 8: VACCINE
@@ -1303,7 +1300,7 @@ with tab8:
         # ONLINE REFERENCE INSTRUCTION: Evaluates missing or additional recommended shots for HK standard
         ai_vac_context = f"Category: Vaccines. Total administered so far: {total_vacs}. Next scheduled action required: {next_due}. Check HK standard pediatric guidelines for a {age_days}-day-old / {age_days/30.437:.1f}-month-old baby girl. Cross-reference all administered vaccines against standard HK requirements to identify any missing, upcoming, or additional recommended shots."
         
-        render_insight_card(f"Riley has received **{total_vacs}** vaccine(s). Next status: **{next_due}**.", ai_prompt_context=ai_vac_context)
+        render_insight_card(f"Riley has received **{total_vacs}** vaccine(s)...", ai_prompt_context=ai_vac_context, category_df=vac_df)
 
     v_col1, v_col2 = st.columns([1, 1])
     with v_col1: grouping = st.radio("Sort View:", ["By Age Milestone", "By Vaccine Type"], horizontal=True, label_visibility="collapsed")
