@@ -742,7 +742,7 @@ else:
     c_temp = COLOR_MAP["🌡️ Temp (°C)"]
     c_events = "#64748b"
 
-    today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">⏰ Last Feeding</div><div class="highlight-body"><span style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: {c_feed}; line-height: 1.1;">last_feed_delta}</span></div></div><div class="highlight-sub">{last_feed_sub}</div></div>""")
+    today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">⏰ Last Feeding</div><div class="highlight-body"><span style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: {c_feed}; line-height: 1.1;">last_feed_delta}></span></div></div><div class="highlight-sub">{last_feed_sub}</div></div>""")
     if t_milk > 0 or t_feed_cnt > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_milk};">{int(t_milk):,} mL</span> across {t_feed_cnt} feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Form: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div></div>""")
     if t_wet + t_poop > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_diaper};">{t_wet + t_poop}</span> change(s).</div></div><div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div></div>""")
     p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
