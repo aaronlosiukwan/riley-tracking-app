@@ -238,9 +238,13 @@ if "ai_retry_count" not in st.session_state:
 
 with h_col3:
     if st.button("🔄 Refresh", use_container_width=True):
+        # 1. Clear data cache so fresh sheet rows load
         st.cache_data.clear()
         
-        # SMART REFRESH RULE: Compare Column E Max DateTime against Last Generated DateTime
+        # 2. Check if AI insights are enabled
+        current_ai_state = st.session_state.get('ai_insights_enabled', False)
+        
+        # 3. Check for new rows in Column E to decide whether AI needs re-generation
         temp_df = load_sheet_data(DEFAULT_SHEET_URL)
         if not temp_df.empty:
             current_max_dt = temp_df['DateTime'].max()
@@ -248,7 +252,9 @@ with h_col3:
                 st.session_state.ai_refresh_key = str(datetime.utcnow())
                 st.session_state.last_ai_data_datetime = current_max_dt
                 global_ai_cache.clear()
-                
+        
+        # 4. Explicitly preserve AI toggle state
+        st.session_state.ai_insights_enabled = current_ai_state
         st.session_state.show_refresh_toast = True
         st.rerun()
 
@@ -486,7 +492,7 @@ OUTPUT FORMAT RESTRICTIONS:
             elif not ai_prompt_context: output_text = "⚠️ **No context provided for AI to analyze.**"
             else: output_text = call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
             
-            # UNIFORM FORMATTING ENGINE: Strictly standardizes padding across all summaries
+            # UNIFORM FORMATTING & SPACING ENGINE
             html_text = output_text.strip()
             html_text = re.sub(r'```[a-zA-Z]*\n?', '', html_text)
             html_text = html_text.replace('```', '')
@@ -495,15 +501,20 @@ OUTPUT FORMAT RESTRICTIONS:
             html_text = re.sub(r'^[-*]\s+(.*?)$', r'&bull; \1', html_text, flags=re.MULTILINE)
             html_text = html_text.replace('\n', '<br>')
             
+            # Collapse duplicate breaks
             html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text)
             html_text = re.sub(r'(<br>\s*){2,}(?=&bull;)', '<br>', html_text)
             
+            # Replace markdown headers with styled div blocks
             headers = ["High-Level Summary", "Trend Analysis", "Suggested Action"]
             for header in headers:
                 pattern = rf'(?:<br>\s*)*(?:<b>|\*\*){header}(?:</b>|\*\*)(?:<br>\s*)*'
                 replacement = f'<div style="margin-top: 18px; margin-bottom: 6px; font-weight: 600; color: #1e293b; letter-spacing: 0.01em;">{header}</div>'
                 html_text = re.sub(pattern, replacement, html_text, flags=re.IGNORECASE)
                 
+            # CRITICAL FIX: Strip ANY residual <br> tags immediately following a </div> block
+            html_text = re.sub(r'(</div>)\s*(?:<br>\s*)+', r'\1', html_text)
+            
             # Remove top margin from the very first header so it sits flush under "✨ AI Insight"
             html_text = html_text.replace('margin-top: 18px;', 'margin-top: 4px;', 1)
             
