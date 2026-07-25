@@ -117,6 +117,9 @@ st.markdown("""
 
     /* Mobile 50/50 Split Sizing (Title 100%, Buttons 50/50 Below it) */
     @media (max-width: 768px) {
+        .app-main-title {
+            margin-bottom: 1.2rem !important; /* Added explicit gap below title on mobile */
+        }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
             flex-wrap: wrap !important; gap: 0.5rem !important;
             flex-direction: row !important; /* Force row layout to stop stacking */
@@ -124,7 +127,6 @@ st.markdown("""
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
             flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
-            margin-bottom: 1.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
             flex: 0 0 calc(50% - 0.25rem) !important; width: calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; margin-right: 0.5rem !important;
@@ -434,7 +436,7 @@ if 'ed' not in st.session_state:
     st.session_state.ed = max_data_date
 
 st.markdown('<div id="filters" style="margin-top: 4rem; padding-top: 1rem;"></div>', unsafe_allow_html=True)
-st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;'>⚙️ Date Range & Grouping Filters</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;'>⚙️ Date Range & Grouping Filters</div>", unsafe_allow_html=True)
 
 # Compact 4-Column Layout (Wrapped neatly into 2x2 grid on mobile via CSS)
 f_col1, f_col2, f_col3, f_col4 = st.columns([1.2, 1, 1, 0.8], vertical_alignment="bottom")
@@ -984,19 +986,22 @@ if not display_df.empty:
     
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     with st.expander("✏️ Edit Master Database (Advanced)"):
-        st.caption("⚠️ **Warning:** This editor contains your *entire, unfiltered* dataset. Clicking 'Save' pushes this exact table back to Google Sheets. Modifying or deleting rows here will permanently alter your data.")
+        st.caption("⚠️ **Warning:** This editor contains your *entire, unfiltered* dataset. Editing cells or deleting rows here and clicking 'Save' will permanently overwrite your Google Sheet data. Event Types cannot be modified.")
         
+        # Ensure we are passing standard strings back to the editor, not the parsed dates
         raw_edit_df = df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
+        # Convert datetime objects back to string formatting for the editor so they don't break when saving
+        raw_edit_df['DateTime'] = raw_edit_df['DateTime'].dt.strftime('%Y-%m-%d %H:%M:%S')
         
         with st.form("database_editor_form"):
             edited_df = st.data_editor(
                 raw_edit_df, 
                 use_container_width=True, 
                 height=400,
-                num_rows="dynamic",
+                num_rows="dynamic", # Enables Row Deletion (Click left gray box -> Press Delete)
                 column_config={
-                    "DateTime": st.column_config.DatetimeColumn("DateTime", format="YYYY-MM-DD HH:mm", width="medium"),
-                    "Event Type": st.column_config.SelectboxColumn("Event Type", options=ALL_EVENT_CATEGORIES, width="medium"),
+                    "DateTime": st.column_config.TextColumn("DateTime (YYYY-MM-DD HH:MM:SS)", width="medium"),
+                    "Event Type": st.column_config.TextColumn("Event Type", disabled=True, width="medium"), # DISABLED
                     "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
                     "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
                 }
@@ -1007,9 +1012,13 @@ if not display_df.empty:
             if submit_button:
                 try:
                     conn = st.connection("gsheets", type=GSheetsConnection)
+                    
+                    # Convert the string dates back to pure strings to ensure Google Sheets understands them
                     push_df = edited_df.copy()
+                    
+                    # You MUST specify the exact worksheet name your data lives in! Defaults to Sheet1
                     conn.update(worksheet="Sheet1", data=push_df)
-                    st.success("✅ Changes successfully pushed to Google Sheets!")
+                    st.success("✅ Changes successfully pushed to Google Sheets! Refreshing...")
                     st.cache_data.clear()
                     st.rerun()
                 except Exception as e:
