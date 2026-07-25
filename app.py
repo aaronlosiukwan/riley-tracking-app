@@ -288,11 +288,16 @@ if st.session_state.get('show_refresh_toast', False):
 # 3. SIDEBAR TABLE OF CONTENTS & SETTINGS
 # ==========================================
 
-# --- SECTION 1: VISUALLY DISTINCT NAVIGATION CARD ---
+# --- PRE-LOAD VARIABLES FOR LINK BUTTONS ---
+DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
+clean_default_url = DEFAULT_SHEET_URL.strip("[]'\"")
+active_url = st.session_state.get("sheet_url_input", clean_default_url)
+
+# --- SECTION 1: NAVIGATION ---
 st.sidebar.markdown("""
-    <div style="background-color: #f1f5f9; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 12px;">
-        <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-            📌 Quick Navigation
+    <div style="background-color: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+        <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+            📌 Navigation
         </div>
         <a href="#top-header" class="toc-button">✨ Today's Highlights</a>
         <a href="#filters" class="toc-button">⚙️ Date Filters</a>
@@ -301,45 +306,47 @@ st.sidebar.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-st.sidebar.divider() # Creates a clean, native visual break
+# --- SECTION 2: ACTIONS ---
+st.sidebar.markdown("""
+    <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">
+        🛠️ Actions
+    </div>
+""", unsafe_allow_html=True)
 
-# --- SECTION 2: UNIFIED SETTINGS ---
-st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.15rem; margin-bottom: 16px; color: #0f172a;'>⚙️ Settings</div>", unsafe_allow_html=True)
-
-# 1. AI & Insights Sub-section
-st.sidebar.markdown("<div style='font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: #334155;'>🧠 AI & Insights</div>", unsafe_allow_html=True)
-
-if "ai_insights_enabled" not in st.session_state:
-    st.session_state.ai_insights_enabled = True
-
-use_ai_insights = st.sidebar.toggle(
-    "✨ Enable AI Insights", 
-    key="ai_insights_enabled", 
-    help="Switches insights from rule-based formulas to LLM narrative analysis."
-)
-
-# Added type="primary" to make this definitively look and feel like a button
+# Stacked full-width buttons for a clean UI
 if st.sidebar.button("🔄 Force Refresh AI Summaries", type="primary", use_container_width=True, help="Forces the AI to completely re-generate insights based on the latest data."):
     st.session_state.ai_refresh_key = str(datetime.utcnow())
     global_ai_cache.clear()
     st.rerun()
 
-st.sidebar.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+if active_url:
+    st.sidebar.link_button("🔗 Open Google Sheet", active_url, use_container_width=True)
 
-# 2. Data Connection (Tucked in Expander to keep Settings clean)
+st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+
+# --- SECTION 3: SETTINGS ---
+st.sidebar.markdown("""
+    <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">
+        ⚙️ Settings
+    </div>
+""", unsafe_allow_html=True)
+
+# All settings are neatly tucked into toggled expanders
+with st.sidebar.expander("🧠 AI Preferences", expanded=True):
+    if "ai_insights_enabled" not in st.session_state:
+        st.session_state.ai_insights_enabled = True
+
+    use_ai_insights = st.toggle(
+        "✨ Enable AI Insights", 
+        key="ai_insights_enabled", 
+        help="Switches insights from rule-based formulas to LLM narrative analysis."
+    )
+
 with st.sidebar.expander("🔌 Data Connection", expanded=False):
-    DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
-    clean_default_url = DEFAULT_SHEET_URL.strip("[]'\"")
-    
-    sheet_url_input = st.text_input("Google Sheet URL", value=clean_default_url)
+    sheet_url_input = st.text_input("Google Sheet URL", value=clean_default_url, key="sheet_url_input")
     sheet_url_input = sheet_url_input.strip("[]'\"")
-    
-    if sheet_url_input: 
-        st.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
-    
     tz_offset = st.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
 
-# 3. Baby Profile (Tucked in Expander)
 with st.sidebar.expander("👶 Baby Profile", expanded=False):
     baby_dob = st.date_input("Birth Date", value=datetime(2026, 6, 29).date())
     baby_gender = st.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
