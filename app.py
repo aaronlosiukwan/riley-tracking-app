@@ -451,6 +451,11 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
     latest_data_timestamp = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
     refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
     
+    # Calculate exact local timestamp for summary generation
+    now_local = datetime.utcnow() + timedelta(hours=tz_offset)
+    generated_timestamp_str = now_local.strftime('%Y-%m-%d %H:%M:%S')
+    model_name = "openrouter/free"
+    
     current_date_obj = datetime.utcnow().date()
     age_days = (current_date_obj - baby_dob).days
     age_months = age_days / 30.437
@@ -501,27 +506,27 @@ OUTPUT FORMAT RESTRICTIONS:
             html_text = re.sub(r'^[-*]\s+(.*?)$', r'&bull; \1', html_text, flags=re.MULTILINE)
             html_text = html_text.replace('\n', '<br>')
             
-            # Collapse duplicate breaks
             html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text)
             html_text = re.sub(r'(<br>\s*){2,}(?=&bull;)', '<br>', html_text)
             
-            # Replace markdown headers with styled div blocks
             headers = ["High-Level Summary", "Trend Analysis", "Suggested Action"]
             for header in headers:
                 pattern = rf'(?:<br>\s*)*(?:<b>|\*\*){header}(?:</b>|\*\*)(?:<br>\s*)*'
                 replacement = f'<div style="margin-top: 18px; margin-bottom: 6px; font-weight: 600; color: #1e293b; letter-spacing: 0.01em;">{header}</div>'
                 html_text = re.sub(pattern, replacement, html_text, flags=re.IGNORECASE)
                 
-            # CRITICAL FIX: Strip ANY residual <br> tags immediately following a </div> block
             html_text = re.sub(r'(</div>)\s*(?:<br>\s*)+', r'\1', html_text)
-            
-            # Remove top margin from the very first header so it sits flush under "✨ AI Insight"
             html_text = html_text.replace('margin-top: 18px;', 'margin-top: 4px;', 1)
             
+            # Render card with low-visibility metadata footer
             st.markdown(f"""
             <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
                 <strong style="color: #4c1d95; font-size: 0.98rem; display: block; margin-bottom: 4px;">✨ AI Insight</strong> 
                 {html_text}
+                <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #94a3b8;">
+                    <span>🕒 Summarized: {generated_timestamp_str}</span>
+                    <span>🤖 Model: <code style="font-size: 0.70rem; color: #64748b; background-color: #f8fafc; padding: 1px 4px; border-radius: 4px;">{model_name}</code></span>
+                </div>
             </div>
             """, unsafe_allow_html=True)
             
