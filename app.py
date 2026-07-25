@@ -147,6 +147,7 @@ st.markdown("""
             flex: 1 1 calc(50% - 0.5rem) !important;
             min-width: calc(50% - 0.5rem) !important;
             margin-bottom: 0.5rem !important;
+            margin-top: 3rem !important;
         }
     }
 
