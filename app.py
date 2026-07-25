@@ -93,7 +93,7 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
         align-items: center !important;
         margin-top: 1rem !important;
-        margin-bottom: 2.0rem !important;
+        margin-bottom: 1.5rem !important;
     }
 
     /* Force Native Streamlit Buttons to adopt Custom UI styling perfectly */
