@@ -8,6 +8,7 @@ from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import re
 from streamlit_gsheets import GSheetsConnection
+import gspread
 
 try:
     from openai import OpenAI
@@ -331,7 +332,12 @@ def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
 def load_sheet_data(url):
     try:
         conn = st.connection("gsheets", type=GSheetsConnection)
-        df = conn.read(spreadsheet=url, ttl=0)
+        # BUG FIX: Explicitly target "Log" to avoid "Sheet1" errors
+        df = conn.read(spreadsheet=url, worksheet="Log", ttl=0)
+        
+        # MAP UNIQUE ROW ID: Header is Row 1, ArrayFormula is Row 2.
+        # df.index 0 corresponds to Row 2 in Google Sheets.
+        df['SheetRow'] = df.index + 2 
         
         # Clean the data
         df.columns = df.columns.astype(str).str.strip()
@@ -1180,7 +1186,6 @@ with tab8:
         )
     else: render_empty_state("No Vaccine Data Logged")
 
-# ==========================================
 # 7. UNIFIED MASTER DATABASE & EDITOR
 # ==========================================
 if 'edit_mode' not in st.session_state:
@@ -1194,7 +1199,6 @@ with db_c1:
 with db_c2:
     if not st.session_state.edit_mode:
         if st.button("🔓 Enable Edit Mode", use_container_width=True):
-            # Forcing a cache clear ensures you edit the absolute most recent data!
             st.cache_data.clear()
             st.session_state.edit_mode = True
             st.rerun()
@@ -1203,9 +1207,8 @@ with db_c2:
             st.session_state.edit_mode = False
             st.rerun()
 
-# Ensure we keep the exact original dataframe with index intact for safe merging
-master_df = df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
-# Convert datetime back to strict string for safe editing & pushing
+# Capture the exact Google Sheet Row ID in the master dataframe
+master_df = df[['SheetRow', 'DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
 master_df['DateTime'] = master_df['DateTime'].dt.strftime('%Y-%m-%d %H:%M:%S')
 
 filter_c1, filter_c2 = st.columns([1, 1])
@@ -1217,17 +1220,14 @@ table_df = master_df.copy()
 if selected_events: 
     table_df = table_df[table_df['Event Type'].isin(selected_events)]
 
-# SPEED UPGRADE: Vectorized Search Bar
 if search_query:
     search_mask = pd.Series(False, index=table_df.index)
     for col in table_df.columns:
         search_mask |= table_df[col].astype(str).str.contains(search_query, case=False, na=False)
     table_df = table_df[search_mask]
 
-# Capture the exact timestamp of the newest record on screen for collision detection
 current_max_time = df['DateTime'].max() if not df.empty else None
 
-# Pre-define column configurations so both Dataframe and Data_Editor match visually
 col_config = {
     "DateTime": st.column_config.TextColumn("DateTime (YYYY-MM-DD HH:MM:SS)", width="medium", required=True),
     "Event Type": st.column_config.SelectboxColumn("Event Type", options=ALL_EVENT_CATEGORIES, width="medium", required=True),
@@ -1235,75 +1235,123 @@ col_config = {
     "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
 }
 
-# The Unified View / Editor Engine
+# Strip out the SheetRow so it doesn't show in the UI, but keep the index identical!
+display_df = table_df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
+
 if st.session_state.edit_mode:
     st.markdown("""
     <div style="background-color: #fef2f2; border: 1px solid #f87171; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-        <strong style="color: #991b1b;">⚠️ Edit Mode Active (Live Sync)</strong><br>
-        <span style="color: #7f1d1d; font-size: 0.85rem;">Editing cells, adding rows, or deleting rows (click the left gray box and press Delete) will push changes to Google Sheets. <b>Auto-refresh completed upon enabling.</b></span>
+        <strong style="color: #991b1b;">⚠️ Edit Mode Active (Surgical Sync)</strong><br>
+        <span style="color: #7f1d1d; font-size: 0.85rem;">Your edits will target <b>Columns D through H</b> only, safely preserving all your ArrayFormulas in Columns A, B, and C.</span>
     </div>
     """, unsafe_allow_html=True)
     
     with st.form("database_editor_form"):
         edited_df = st.data_editor(
-            table_df, 
+            display_df, 
             use_container_width=True, 
-            height=900, # Extended height shows ~25 rows
-            num_rows="dynamic", # Enables Row Addition & Deletion
+            height=900,
+            num_rows="dynamic",
             column_config=col_config
         )
         
         submit_button = st.form_submit_button("💾 Save Changes to Google Sheets", type="primary", use_container_width=True)
         
         if submit_button:
-            with st.spinner("Verifying data sync and checking for conflicts..."):
+            with st.spinner("Executing surgical cell updates..."):
                 try:
                     conn = st.connection("gsheets", type=GSheetsConnection)
+                    client = conn.client
+                    sheet = client.open_by_url(sheet_url_input).worksheet("Log")
                     
-                    # BULLETPROOF CHECK: Fetch the live sheet completely bypassing cache
-                    live_df = conn.read(spreadsheet=sheet_url_input, ttl=0)
+                    live_df = conn.read(spreadsheet=sheet_url_input, worksheet="Log", ttl=0)
+                    live_max_time = None
                     if 'DateTime' in live_df.columns: 
                         live_max_time = pd.to_datetime(live_df['DateTime'], errors='coerce').max()
                     elif 'EntryDateTime' in live_df.columns: 
                         live_max_time = pd.to_datetime(live_df['EntryDateTime'], errors='coerce').max()
-                    else:
-                        live_max_time = None
                         
-                    # If the live sheet has a newer entry than what the user was looking at, ABORT SAVE!
                     if current_max_time and live_max_time and live_max_time > current_max_time:
-                        st.error("🚨 **CRITICAL COLLISION AVOIDED:** Someone else (or an iOS shortcut) logged new data to the spreadsheet while you were editing! Please click 'Cancel Editing' and re-enable it to sync the latest data.")
+                        st.error("🚨 **CRITICAL COLLISION:** Someone logged new data to the spreadsheet while you were editing! Please click 'Cancel Editing' and re-enable it to sync the latest data.")
                     else:
-                        # SMART MERGE: Only updates/deletes rows the user actually changed in the filtered view!
-                        master_df.update(edited_df)
+                        # 1. IDENTIFY DELETIONS
                         deleted_indices = set(table_df.index) - set(edited_df.index)
-                        master_df = master_df.drop(index=deleted_indices)
-                        new_rows = edited_df[~edited_df.index.isin(table_df.index)]
-                        master_df = pd.concat([master_df, new_rows])
+                        deleted_sheet_rows = table_df.loc[list(deleted_indices), 'SheetRow'].tolist()
                         
-                        # BUG FIX: Explicitly passing the `spreadsheet=sheet_url_input` target for the update!
-                        conn.update(spreadsheet=sheet_url_input, worksheet="Log", data=master_df)
+                        # 2. IDENTIFY ADDITIONS
+                        new_rows_df = edited_df[~edited_df.index.isin(table_df.index)]
                         
-                        st.success("✅ Changes successfully pushed to Google Sheets! Refreshing...")
+                        # 3. IDENTIFY EDITS
+                        common_indices = set(table_df.index).intersection(set(edited_df.index))
+                        edits_to_push = []
+                        
+                        for idx in common_indices:
+                            old_row = table_df.loc[idx]
+                            new_row = edited_df.loc[idx]
+                            sheet_row = int(old_row['SheetRow'])
+                            
+                            # Compare explicitly and build atomic Cell updates (Cols D=4, E=5, F=6, G=7, H=8)
+                            if str(old_row['DateTime']) != str(new_row['DateTime']):
+                                edits_to_push.append(gspread.Cell(row=sheet_row, col=5, value=str(new_row['DateTime'])))
+                                
+                            if str(old_row['Event Type']) != str(new_row['Event Type']):
+                                edits_to_push.append(gspread.Cell(row=sheet_row, col=6, value=str(new_row['Event Type'])))
+                                
+                            old_val = "" if pd.isna(old_row['Value (Optional)']) else str(old_row['Value (Optional)'])
+                            new_val = "" if pd.isna(new_row['Value (Optional)']) else str(new_row['Value (Optional)'])
+                            if old_val != new_val:
+                                edits_to_push.append(gspread.Cell(row=sheet_row, col=7, value=new_row['Value (Optional)'] if not pd.isna(new_row['Value (Optional)']) else ""))
+                                
+                            old_note = "" if pd.isna(old_row['Notes / Details (Optional)']) else str(old_row['Notes / Details (Optional)'])
+                            new_note = "" if pd.isna(new_row['Notes / Details (Optional)']) else str(new_row['Notes / Details (Optional)'])
+                            if old_note != new_note:
+                                edits_to_push.append(gspread.Cell(row=sheet_row, col=8, value=new_note))
+                        
+                        # EXECUTE BATCH UPDATES
+                        if edits_to_push:
+                            sheet.update_cells(edits_to_push)
+                            
+                        # EXECUTE DELETIONS (Must be done in reverse order to prevent shifting rows)
+                        if deleted_sheet_rows:
+                            for r in sorted(deleted_sheet_rows, reverse=True):
+                                sheet.delete_rows(r)
+                                
+                        # EXECUTE ADDITIONS (Inject strictly into D:H, skipping A:C formulas)
+                        if not new_rows_df.empty:
+                            dt_col = sheet.col_values(5) # Get all values in Col E (DateTime)
+                            next_row = len(dt_col) + 1   # Find the absolute bottom
+                            
+                            new_data = []
+                            for _, r in new_rows_df.iterrows():
+                                entry_dt = (datetime.utcnow() + timedelta(hours=tz_offset)).strftime('%Y-%m-%d %H:%M:%S')
+                                dt = str(r['DateTime'])
+                                ev = str(r['Event Type'])
+                                val = r['Value (Optional)'] if pd.notna(r['Value (Optional)']) else ""
+                                notes = str(r['Notes / Details (Optional)']) if pd.notna(r['Notes / Details (Optional)']) else ""
+                                new_data.append([entry_dt, dt, ev, val, notes])
+                                
+                            sheet.update(values=new_data, range_name=f"D{next_row}:H{next_row + len(new_data) - 1}")
+                            
+                        st.success("✅ Surgical updates successfully pushed to Google Sheets! Refreshing...")
                         st.session_state.edit_mode = False
                         st.cache_data.clear()
                         st.rerun()
                 except Exception as e:
-                    st.error(f"Failed to update Google Sheets: {e}")
+                    st.error(f"Failed to execute surgical update: {e}")
 else:
-    # Read-Only View (Clean and Fast)
     st.dataframe(
-        table_df, 
+        display_df, 
         use_container_width=True, 
-        height=900, # Extended height shows ~25 rows
+        height=900,
         column_config=col_config
     )
 
 st.markdown(f'<div class="raw-log-count-text">Showing {len(table_df)} entry(s) matching your criteria.</div>', unsafe_allow_html=True)
 st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
+
 # ==========================================
 # 8. BACKGROUND AUTO-RETRY ENGINE
 # ==========================================
-# UI UN-FREEZER: Asynchronous JS Refresh prevents Python thread freezing while waiting for AI rate limits
 if st.session_state.get('needs_auto_retry', False):
     st.session_state.needs_auto_retry = False
     components.html(
