@@ -287,19 +287,24 @@ if st.session_state.get('show_refresh_toast', False):
 # ==========================================
 # 3. SIDEBAR TABLE OF CONTENTS & SETTINGS
 # ==========================================
+
+# --- SECTION 1: VISUALLY DISTINCT NAVIGATION CARD ---
 st.sidebar.markdown("""
-    <div style="margin-bottom: 12px;">
-        <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">📌 Quick Navigation</div>
-        <a href="#top-header" class="toc-button">✨ Today</a>
-        <a href="#filters" class="toc-button">⚙️ Filters</a>
-        <a href="#insights" class="toc-button">📊 Insights</a>
-        <a href="#database" class="toc-button">📋 Database</a>
+    <div style="background-color: #f1f5f9; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 12px;">
+        <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+            📌 Quick Navigation
+        </div>
+        <a href="#top-header" class="toc-button">✨ Today's Highlights</a>
+        <a href="#filters" class="toc-button">⚙️ Date Filters</a>
+        <a href="#insights" class="toc-button">📊 Data Insights</a>
+        <a href="#database" class="toc-button">📋 Master Database</a>
     </div>
 """, unsafe_allow_html=True)
 
-# --- Sub-Category 1: AI Settings ---
-st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>🤖 AI & Insights</div>", unsafe_allow_html=True)
+st.sidebar.divider() # Creates a clean, native visual break
+
+# --- SECTION 2: AI CAPABILITIES ---
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>🧠 AI & Insights</div>", unsafe_allow_html=True)
 
 if "ai_insights_enabled" not in st.session_state:
     st.session_state.ai_insights_enabled = True
@@ -315,28 +320,25 @@ if st.sidebar.button("🔄 Force Refresh AI Summaries", use_container_width=True
     global_ai_cache.clear()
     st.rerun()
 
-# --- Sub-Category 2: Data Connection ---
 st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>🔌 Data Connection</div>", unsafe_allow_html=True)
 
-# Strip out weird formatting artifacts (brackets/quotes) from the URL
-DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
-clean_default_url = DEFAULT_SHEET_URL.strip("[]'\"")
+# --- SECTION 3: ADVANCED CONFIGURATION (HIDDEN IN EXPANDERS) ---
+with st.sidebar.expander("🔌 Data Connection Settings", expanded=False):
+    # Strip out weird formatting artifacts (brackets/quotes) from the URL
+    DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
+    clean_default_url = DEFAULT_SHEET_URL.strip("[]'\"")
+    
+    sheet_url_input = st.text_input("Google Sheet URL", value=clean_default_url)
+    sheet_url_input = sheet_url_input.strip("[]'\"")
+    
+    if sheet_url_input: 
+        st.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
+    
+    tz_offset = st.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
 
-sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=clean_default_url)
-sheet_url_input = sheet_url_input.strip("[]'\"") # Ensure the active variable is also clean
-
-if sheet_url_input: 
-    st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
-
-tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
-
-# --- Sub-Category 3: Baby Settings ---
-st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
-
-baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
-baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
+with st.sidebar.expander("👶 Baby Profile", expanded=False):
+    baby_dob = st.date_input("Birth Date", value=datetime(2026, 6, 29).date())
+    baby_gender = st.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
 # ---------------------------------------------------------
 # GSHEET DATA ENGINE & AI PIPELINE
