@@ -1466,24 +1466,19 @@ if search_query:
 
 current_max_time = df['DateTime'].max() if not df.empty else None
 
-# --- MOBILE-OPTIMIZED COLUMN CONFIGURATION ---
-# --- MOBILE-OPTIMIZED COLUMN CONFIGURATION & TABLE DISPLAY ---
+# --- RESPONSIVE COLUMN CONFIGURATION ---
 col_config = {
     "DateTime": st.column_config.DatetimeColumn("Date & Time", format="MM-DD HH:mm", width="small", required=True),
     "Event Type": st.column_config.SelectboxColumn("Event", options=ALL_EVENT_CATEGORIES, width="small", required=True),
     "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
+    "Notes / Details (Optional)": st.column_config.TextColumn("Notes", width="large")
 }
 
-# Notes column removed for maximum mobile row density
-display_df = table_df[['DateTime', 'Event Type', 'Value (Optional)']].copy()
+# Notes column included in display_df for both Read and Edit mode
+display_df = table_df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
 display_df['DateTime'] = pd.to_datetime(display_df['DateTime'], errors='coerce')
 
 if st.session_state.edit_mode:
-    # Include notes only when actively editing
-    col_config["Notes / Details (Optional)"] = st.column_config.TextColumn("Notes", width="medium")
-    edit_display_df = table_df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
-    edit_display_df['DateTime'] = pd.to_datetime(edit_display_df['DateTime'], errors='coerce')
-
     with st.form("database_editor_form"):
         st.markdown("""
         <div style="background-color: #fef2f2; border: 1px solid #f87171; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
@@ -1496,8 +1491,7 @@ if st.session_state.edit_mode:
         with btn_col1: submit_button = st.form_submit_button("💾 Save Changes", type="primary", use_container_width=True)
         with btn_col2: cancel_button = st.form_submit_button("🔒 Cancel Editing", use_container_width=True)
 
-        # Height shrunk from 900 to 450 for mobile
-        edited_df = st.data_editor(edit_display_df, use_container_width=True, height=450, num_rows="dynamic", column_config=col_config, hide_index=True)
+        edited_df = st.data_editor(display_df, use_container_width=True, height=450, num_rows="dynamic", column_config=col_config, hide_index=True)
         
         if cancel_button:
             st.session_state.edit_mode = False
@@ -1541,7 +1535,7 @@ if st.session_state.edit_mode:
                                 edits_to_push.append(gspread.Cell(row=sheet_row, col=6, value=str(new_row['Event Type']))); row_changed = True
                             if str(old_row['Value (Optional)']) != str(new_row['Value (Optional)']):
                                 edits_to_push.append(gspread.Cell(row=sheet_row, col=7, value=new_row['Value (Optional)'] if pd.notna(new_row['Value (Optional)']) else "")); row_changed = True
-                            if 'Notes / Details (Optional)' in new_row and str(old_row['Notes / Details (Optional)']) != str(new_row['Notes / Details (Optional)']):
+                            if str(old_row['Notes / Details (Optional)']) != str(new_row['Notes / Details (Optional)']):
                                 edits_to_push.append(gspread.Cell(row=sheet_row, col=8, value=str(new_row['Notes / Details (Optional)']) if pd.notna(new_row['Notes / Details (Optional)']) else "")); row_changed = True
                             
                             if row_changed:
@@ -1567,7 +1561,6 @@ if st.session_state.edit_mode:
                         st.rerun()
                 except Exception as e: st.error(f"Failed to update Google Sheets: {e}")
 else:
-    # Clean, compact table without notes, height shrunk to 450px
     st.dataframe(display_df, use_container_width=True, height=450, hide_index=True, column_config=col_config)
 
 st.markdown(f'<div class="raw-log-count-text">Showing {len(table_df)} entry(s) matching your criteria.</div>', unsafe_allow_html=True)
