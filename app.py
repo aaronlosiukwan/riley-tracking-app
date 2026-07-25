@@ -293,28 +293,84 @@ DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkic
 clean_default_url = DEFAULT_SHEET_URL.strip("[]'\"")
 active_url = st.session_state.get("sheet_url_input", clean_default_url)
 
-# --- SECTION 1: NAVIGATION ---
+# --- PRO UI CSS INJECTIONS ---
 st.sidebar.markdown("""
-    <div style="background-color: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-        <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
-            📌 Navigation
-        </div>
-        <a href="#top-header" class="toc-button">✨ Today's Highlights</a>
-        <a href="#filters" class="toc-button">⚙️ Date Filters</a>
-        <a href="#insights" class="toc-button">📊 Data Insights</a>
-        <a href="#database" class="toc-button">📋 Master Database</a>
-    </div>
+    <style>
+    /* Supertitle Section Headers */
+    .pro-sidebar-header {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        font-weight: 700;
+        margin-top: 2rem;
+        margin-bottom: 0.75rem;
+        padding-left: 4px;
+    }
+    
+    /* Sleek, borderless navigation links with micro-interactions */
+    .pro-nav-item {
+        display: block;
+        padding: 8px 12px;
+        border-radius: 8px;
+        color: #334155 !important;
+        text-decoration: none !important;
+        font-weight: 500;
+        font-size: 0.92rem;
+        margin-bottom: 4px;
+        transition: all 0.2s ease;
+        background-color: transparent;
+    }
+    .pro-nav-item:hover {
+        background-color: #f1f5f9;
+        color: #0f172a !important;
+        transform: translateX(3px); /* Subtle slide effect */
+    }
+    
+    /* Custom Primary Button Styling (Refresh AI) */
+    [data-testid="stSidebar"] button[kind="primary"] {
+        background-color: #8b5cf6 !important;
+        color: white !important;
+        border: none !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        transition: all 0.2s ease !important;
+    }
+    [data-testid="stSidebar"] button[kind="primary"]:hover {
+        background-color: #7c3aed !important;
+        box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.25), 0 2px 4px -1px rgba(139, 92, 246, 0.1) !important;
+    }
+    
+    /* Custom Secondary Button Styling (Open Sheet) */
+    [data-testid="stSidebar"] a[data-testid="baseLinkButton-secondary"] {
+        border: 1px solid #cbd5e1 !important;
+        background-color: transparent !important;
+        color: #334155 !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
+        transition: all 0.2s ease !important;
+    }
+    [data-testid="stSidebar"] a[data-testid="baseLinkButton-secondary"]:hover {
+        background-color: #f8fafc !important;
+        border-color: #94a3b8 !important;
+        color: #0f172a !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- SECTION 1: NAVIGATION ---
+st.sidebar.markdown('<div class="pro-sidebar-header" style="margin-top: 0;">Navigation</div>', unsafe_allow_html=True)
+st.sidebar.markdown("""
+    <a href="#top-header" class="pro-nav-item">✨ Today's Highlights</a>
+    <a href="#filters" class="pro-nav-item">⚙️ Date Filters</a>
+    <a href="#insights" class="pro-nav-item">📊 Data Insights</a>
+    <a href="#database" class="pro-nav-item">📋 Master Database</a>
 """, unsafe_allow_html=True)
 
 # --- SECTION 2: ACTIONS ---
-st.sidebar.markdown("""
-    <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">
-        🛠️ Actions
-    </div>
-""", unsafe_allow_html=True)
+st.sidebar.markdown('<div class="pro-sidebar-header">Actions</div>', unsafe_allow_html=True)
 
-# Stacked full-width buttons for a clean UI
-if st.sidebar.button("🔄 Force Refresh AI Summaries", type="primary", use_container_width=True, help="Forces the AI to completely re-generate insights based on the latest data."):
+if st.sidebar.button("🔄 Refresh AI Summaries", type="primary", use_container_width=True, help="Forces the AI to completely re-generate insights based on the latest data."):
     st.session_state.ai_refresh_key = str(datetime.utcnow())
     global_ai_cache.clear()
     st.rerun()
@@ -322,17 +378,11 @@ if st.sidebar.button("🔄 Force Refresh AI Summaries", type="primary", use_cont
 if active_url:
     st.sidebar.link_button("🔗 Open Google Sheet", active_url, use_container_width=True)
 
-st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
-
 # --- SECTION 3: SETTINGS ---
-st.sidebar.markdown("""
-    <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">
-        ⚙️ Settings
-    </div>
-""", unsafe_allow_html=True)
+st.sidebar.markdown('<div class="pro-sidebar-header">Settings</div>', unsafe_allow_html=True)
 
-# All settings are neatly tucked into toggled expanders
-with st.sidebar.expander("🧠 AI Preferences", expanded=True):
+# All settings are neatly tucked into expanders, closed by default (expanded=False)
+with st.sidebar.expander("🧠 AI Preferences", expanded=False):
     if "ai_insights_enabled" not in st.session_state:
         st.session_state.ai_insights_enabled = True
 
