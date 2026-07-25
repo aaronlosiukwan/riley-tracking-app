@@ -140,12 +140,12 @@ st.markdown("""
     @media (max-width: 768px) {
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
             flex-wrap: wrap !important; gap: 0.5rem !important;
-            flex-direction: row !important; /* Force row layout to stop stacking */
-            margin-bottom: 2.5rem !important; /* Space above today section */
+            flex-direction: row !important;
+            margin-bottom: 2.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
             flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
-            margin-bottom: 1.5rem !important; /* Space between title and buttons */
+            margin-bottom: 1.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
             flex: 0 0 calc(50% - 0.25rem) !important; width: calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; margin-right: 0.5rem !important;
@@ -168,45 +168,6 @@ st.markdown("""
             margin-bottom: 0.5rem !important;
             margin-top: 3rem !important;
         }
-    }
-
-    /* AI Floating Chat Widget Styles */
-    div[data-testid="stPopover"] {
-        position: fixed !important;
-        bottom: 2rem !important;
-        right: 2rem !important;
-        z-index: 99999 !important;
-    }
-    div[data-testid="stPopover"] > button {
-        border-radius: 50px !important;
-        width: 60px !important;
-        height: 60px !important;
-        background-color: #8b5cf6 !important;
-        color: white !important;
-        border: none !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: transform 0.2s ease;
-    }
-    div[data-testid="stPopover"] > button p {
-        font-size: 1.8rem !important;
-        margin: 0 !important;
-    }
-    div[data-testid="stPopover"] > button:hover {
-        transform: scale(1.05);
-        background-color: #7c3aed !important;
-    }
-    div[data-testid="stPopoverBody"] {
-        width: 360px !important;
-        max-width: 90vw !important;
-        border-radius: 16px !important;
-        padding: 1.2rem !important;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
-    }
-    @media (max-width: 768px) {
-        div[data-testid="stPopover"] { bottom: 1.5rem !important; right: 1.5rem !important; }
     }
 
     /* Standard Elements */
@@ -275,6 +236,7 @@ st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bo
 sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
 tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
 
+# Default is False (AI is off by default)
 use_ai_insights = st.sidebar.toggle("✨ Enable AI Insights", value=False, help="Switches cards from rule-based calculations to OpenRouter AI narrative insights.")
 
 if sheet_url_input: st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
@@ -295,7 +257,6 @@ def call_ai(prompt_text, api_key_param):
     if not api_key_param:
         return "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets."
     
-    # Fallback list of reliable, permanently free models to ensure the app never breaks
     free_models = [
         "openrouter/free",
         "openai/gpt-oss-20b:free",
@@ -307,7 +268,7 @@ def call_ai(prompt_text, api_key_param):
         base_url="https://openrouter.ai/api/v1",
         api_key=api_key_param,
         default_headers={
-            "HTTP-Referer": "https://streamlit.app", # Required by OpenRouter for free models
+            "HTTP-Referer": "https://streamlit.app", 
             "X-Title": "Rileys Dash"
         }
     )
@@ -320,7 +281,7 @@ def call_ai(prompt_text, api_key_param):
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a supportive, concise pediatric assistant. Respond directly without filler."
+                        "content": "You are a data-driven pediatric assistant. You MUST base your answer ONLY on the provided data numbers. NEVER ask the user to provide more logs or data. Respond directly with insights, no conversational filler."
                     },
                     {
                         "role": "user",
@@ -331,21 +292,9 @@ def call_ai(prompt_text, api_key_param):
             return chat_completion.choices[0].message.content
         except Exception as e:
             last_error = f"Model {model_id} failed: {str(e)}"
-            continue # If a model is down or becomes paid, seamlessly try the next one in the list
+            continue 
             
-    return f"⚠️ **AI Insight Error:** {last_error}. Please check your OpenRouter API Key in Streamlit Secrets."
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def get_suggested_questions(context_str, api_key_param):
-    if not OPENAI_AVAILABLE or not api_key_param:
-        return ["How is Riley's sleep pattern?", "Is her milk intake normal?", "Any upcoming vaccines?"]
-    
-    prompt = f"Based on these recent logs:\n{context_str}\n\nSuggest exactly 3 short, highly relevant questions the parents could ask an AI pediatrician about this data. Return ONLY the 3 questions, one per line, without bullet points or numbers."
-    try:
-        res = call_ai(prompt, api_key_param)
-        return [q.strip().replace('- ', '').replace('*', '') for q in res.split('\n') if q.strip()][:3]
-    except:
-        return ["How is Riley's sleep pattern?", "Is her milk intake normal?", "Any upcoming vaccines?"]
+    return f"⚠️ **AI Insight Error:** {last_error}"
 
 @st.cache_data(ttl=1)
 def load_sheet_data(url):
@@ -455,17 +404,29 @@ def get_unit_from_name(name):
 
 def render_insight_card(hardcoded_text, ai_prompt_context=None):
     api_key_param = st.secrets.get("OPENROUTER_API_KEY", None)
-    if use_ai_insights and ai_prompt_context and OPENAI_AVAILABLE:
-        with st.spinner("🤖 Generating AI insight..."):
-            prompt = "Evaluate baby Riley's logs: {ai_prompt_context}. Write a 1-2 sentence encouraging insight highlighting key trends. Keep formatting simple with bold key metrics. Do not include introductory filler and any html code."
-            output_text = call_ai(prompt, api_key_param)
+    
+    # If the user toggled AI insights ON, it will strictly lock into this block
+    if use_ai_insights:
+        with st.spinner("🤖 Summarizing..."):
+            if not OPENAI_AVAILABLE:
+                output_text = "⚠️ **OpenAI package missing.**"
+            elif not api_key_param:
+                output_text = "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets."
+            elif not ai_prompt_context:
+                output_text = "⚠️ **No context provided for AI to analyze.**"
+            else:
+                prompt = f"DATA: {ai_prompt_context}\n\nTASK: Write exactly 1-2 encouraging sentences summarizing these exact numbers. DO NOT ask for more data or logs. No introductory filler."
+                output_text = call_ai(prompt, api_key_param)
+            
             border_color = "#8b5cf6"
             badge_title = "✨ AI Insight"
             text_color = "#4c1d95"
+            
+    # If the user toggled AI insights OFF (default), it strictly renders the hardcoded math summary
     else:
         output_text = hardcoded_text
         border_color = "#0284c7"
-        badge_title = "📊 Insight."
+        badge_title = "💡 Insight"
         text_color = "#0369a1"
 
     html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', output_text)
@@ -1085,7 +1046,6 @@ with tab8:
         )
     else: render_empty_state("No Vaccine Data Logged")
 
-
 # ==========================================
 # 7. EXPANDED DATABASE TABLE 
 # ==========================================
@@ -1170,59 +1130,3 @@ else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
 
 st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
-
-# ==========================================
-# 8. FLOATING AI CHAT WIDGET
-# ==========================================
-if 'chat_history' not in st.session_state:
-    st.session_state.chat_history = []
-
-with st.popover("💬"):
-    st.markdown("<h4 style='margin-bottom:0;'>🤖 Riley's AI Assistant</h4>", unsafe_allow_html=True)
-    st.caption("Ask anything about Riley's recent logs! (Powered by OpenRouter)")
-    
-    # Generate a tight string context of the top 40 logs to feed the AI
-    recent_logs_str = df.head(40)[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].to_string(index=False)
-    current_api_key = st.secrets.get("OPENROUTER_API_KEY", None)
-    
-    chat_container = st.container(height=320)
-    for msg in st.session_state.chat_history:
-        chat_container.chat_message(msg['role']).write(msg['content'])
-        
-    # Show Top 3 Suggested Questions ONLY if chat is completely empty
-    if not st.session_state.chat_history:
-        st.markdown("<div style='margin-top: 10px; font-size: 0.85rem; font-weight: 600; color: #64748b;'>Suggested Questions:</div>", unsafe_allow_html=True)
-        suggested_qs = get_suggested_questions(recent_logs_str, current_api_key)
-        for q in suggested_qs:
-            if st.button(q, use_container_width=True):
-                st.session_state.chat_history.append({"role": "user", "content": q})
-                
-                with chat_container.chat_message("user"):
-                    st.write(q)
-                with chat_container.chat_message("assistant"):
-                    with st.spinner("Thinking..."):
-                        prompt = f"Riley (Born {baby_dob}, {baby_gender}). Logs:\n{recent_logs_str}\n\nParent asks: {q}"
-                        resp = call_ai(prompt, current_api_key)
-                        st.write(resp)
-                st.session_state.chat_history.append({"role": "assistant", "content": resp})
-                st.rerun()
-
-    # Chat Input Box
-    with st.form("ai_chat_form", clear_on_submit=True):
-        cols = st.columns([4, 1], vertical_alignment="bottom")
-        user_msg = cols[0].text_input("Message...", label_visibility="collapsed", placeholder="Type your question here...")
-        submitted = cols[1].form_submit_button("Send", use_container_width=True)
-        
-    if submitted and user_msg:
-        st.session_state.chat_history.append({"role": "user", "content": user_msg})
-        
-        with chat_container.chat_message("user"):
-            st.write(user_msg)
-        with chat_container.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                chat_context = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.chat_history[-4:]])
-                prompt = f"Riley (Born {baby_dob}, {baby_gender}). Logs:\n{recent_logs_str}\n\nConversation:\n{chat_context}\n\nRespond clearly and encouragingly."
-                resp = call_ai(prompt, current_api_key)
-                st.write(resp)
-        st.session_state.chat_history.append({"role": "assistant", "content": resp})
-        st.rerun()
