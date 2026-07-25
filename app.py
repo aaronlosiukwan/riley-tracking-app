@@ -303,8 +303,11 @@ st.sidebar.markdown("""
 
 st.sidebar.divider() # Creates a clean, native visual break
 
-# --- SECTION 2: AI CAPABILITIES ---
-st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>🧠 AI & Insights</div>", unsafe_allow_html=True)
+# --- SECTION 2: UNIFIED SETTINGS ---
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.15rem; margin-bottom: 16px; color: #0f172a;'>⚙️ Settings</div>", unsafe_allow_html=True)
+
+# 1. AI & Insights Sub-section
+st.sidebar.markdown("<div style='font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; color: #334155;'>🧠 AI & Insights</div>", unsafe_allow_html=True)
 
 if "ai_insights_enabled" not in st.session_state:
     st.session_state.ai_insights_enabled = True
@@ -315,16 +318,16 @@ use_ai_insights = st.sidebar.toggle(
     help="Switches insights from rule-based formulas to LLM narrative analysis."
 )
 
-if st.sidebar.button("🔄 Force Refresh AI Summaries", use_container_width=True, help="Forces the AI to completely re-generate insights based on the latest data."):
+# Added type="primary" to make this definitively look and feel like a button
+if st.sidebar.button("🔄 Force Refresh AI Summaries", type="primary", use_container_width=True, help="Forces the AI to completely re-generate insights based on the latest data."):
     st.session_state.ai_refresh_key = str(datetime.utcnow())
     global_ai_cache.clear()
     st.rerun()
 
-st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 
-# --- SECTION 3: ADVANCED CONFIGURATION (HIDDEN IN EXPANDERS) ---
-with st.sidebar.expander("🔌 Data Connection Settings", expanded=False):
-    # Strip out weird formatting artifacts (brackets/quotes) from the URL
+# 2. Data Connection (Tucked in Expander to keep Settings clean)
+with st.sidebar.expander("🔌 Data Connection", expanded=False):
     DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
     clean_default_url = DEFAULT_SHEET_URL.strip("[]'\"")
     
@@ -336,6 +339,7 @@ with st.sidebar.expander("🔌 Data Connection Settings", expanded=False):
     
     tz_offset = st.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
 
+# 3. Baby Profile (Tucked in Expander)
 with st.sidebar.expander("👶 Baby Profile", expanded=False):
     baby_dob = st.date_input("Birth Date", value=datetime(2026, 6, 29).date())
     baby_gender = st.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
