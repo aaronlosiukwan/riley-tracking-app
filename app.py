@@ -321,18 +321,19 @@ if st.session_state.last_ai_data_datetime is None:
 def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
     cache_key = hash(f"{prompt_text}_{latest_data_timestamp}_{refresh_key}")
     
+    # 1. Check cache: Now returns a dictionary with content AND model
     if cache_key in global_ai_cache:
-        return global_ai_cache[cache_key]
+        cached_data = global_ai_cache[cache_key]
+        return cached_data['content'], True, cached_data['model']
 
     if not OPENAI_AVAILABLE:
-        return "⚠️ **OpenAI package missing.** Install `openai` in `requirements.txt`."
+        return "⚠️ **OpenAI package missing.** Install `openai` in `requirements.txt`.", False, "N/A"
     
     if not api_key_param:
-        return "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets."
+        return "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets.", False, "N/A"
         
-    # Prevent infinite loops: Stop trying if we failed 3 times
     if st.session_state.get('ai_retry_count', 0) >= 3:
-        return "⚠️ **API Limit Reached.** OpenRouter is overloaded. Please check back later."
+        return "⚠️ **API Limit Reached.** OpenRouter is overloaded. Please check back later.", False, "N/A"
     
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
@@ -350,29 +351,31 @@ def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
         )
         content = chat_completion.choices[0].message.content
         
+        # EXTRACT THE EXACT MODEL USED BY THE ROUTER!
+        exact_model = chat_completion.model 
+        
         content = re.sub(r'(?i)User Safety:.*?(?=\n|<br>|$)', '', content)
         content = re.sub(r'(?i)Safety Categories:.*?(?=\n|<br>|$)', '', content).strip()
         
         if "User Safety" in content or "Unauthorized Advice" in content or not content:
             st.session_state.needs_auto_retry = True
-            return "⚠️ API Safety Filter tripped. Auto-retrying..."
+            return "⚠️ API Safety Filter tripped. Auto-retrying...", False, exact_model
             
-        global_ai_cache[cache_key] = content
-        
-        # Success! Reset the retry counter.
+        # Store both the content and the exact model in the cache
+        global_ai_cache[cache_key] = {'content': content, 'model': exact_model}
         st.session_state.ai_retry_count = 0
-        return content
+        
+        return content, False, exact_model
         
     except Exception as e:
         err_msg = str(e)
-        # Expose the REAL error so you aren't left guessing
         if "429" in err_msg or "Rate limit" in err_msg or "busy" in err_msg.lower():
             st.session_state.needs_auto_retry = True
-            return f"⚠️ **Rate Limit (429):** Free API is busy. Retrying..."
+            return f"⚠️ **Rate Limit (429):** Free API is busy. Retrying...", False, "N/A"
         elif "401" in err_msg or "Authentication" in err_msg:
-            return f"⚠️ **Auth Error (401):** Your OpenRouter API key is invalid or missing."
+            return f"⚠️ **Auth Error (401):** Your OpenRouter API key is invalid or missing.", False, "N/A"
         else:
-            return f"⚠️ **API Error:** {err_msg}"
+            return f"⚠️ **API Error:** {err_msg}", False, "N/A"
 
 def standardize_event_name(event_str):
     s = str(event_str).strip()
@@ -451,10 +454,8 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
     latest_data_timestamp = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
     refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
     
-    # Calculate exact local timestamp for summary generation
     now_local = datetime.utcnow() + timedelta(hours=tz_offset)
     generated_timestamp_str = now_local.strftime('%Y-%m-%d %H:%M:%S')
-    model_name = "openrouter/free"
     
     current_date_obj = datetime.utcnow().date()
     age_days = (current_date_obj - baby_dob).days
@@ -491,13 +492,22 @@ OUTPUT FORMAT RESTRICTIONS:
              call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
              return
              
-        with st.spinner(f"🤖 Summarizing {subject}'s trends..."):
-            if not OPENAI_AVAILABLE: output_text = "⚠️ **OpenAI package missing.**"
-            elif not api_key_param: output_text = "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets."
-            elif not ai_prompt_context: output_text = "⚠️ **No context provided for AI to analyze.**"
-            else: output_text = call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
+        cache_key = hash(f"{prompt_template}_{latest_data_timestamp}_{refresh_key}")
+        is_already_cached = cache_key in global_ai_cache
+        
+        spinner_msg = f"⚡ Extracting {subject}'s cached summary..." if is_already_cached else f"🤖 Asking AI to analyze {subject}'s trends..."
+             
+        with st.spinner(spinner_msg):
+            if not OPENAI_AVAILABLE: 
+                output_text, is_cached, actual_model_used = "⚠️ **OpenAI package missing.**", False, "N/A"
+            elif not api_key_param: 
+                output_text, is_cached, actual_model_used = "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets.", False, "N/A"
+            elif not ai_prompt_context: 
+                output_text, is_cached, actual_model_used = "⚠️ **No context provided for AI to analyze.**", False, "N/A"
+            else: 
+                # Unpack the exact model name from our updated call_ai function!
+                output_text, is_cached, actual_model_used = call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
             
-            # UNIFORM FORMATTING & SPACING ENGINE
             html_text = output_text.strip()
             html_text = re.sub(r'```[a-zA-Z]*\n?', '', html_text)
             html_text = html_text.replace('```', '')
@@ -518,14 +528,16 @@ OUTPUT FORMAT RESTRICTIONS:
             html_text = re.sub(r'(</div>)\s*(?:<br>\s*)+', r'\1', html_text)
             html_text = html_text.replace('margin-top: 18px;', 'margin-top: 4px;', 1)
             
-            # Render card with low-visibility metadata footer
+            status_badge = "⚡ Cached" if is_cached else "🚀 Live AI Call"
+            
+            # Inject the actual dynamic model name into the footer
             st.markdown(f"""
             <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
                 <strong style="color: #4c1d95; font-size: 0.98rem; display: block; margin-bottom: 4px;">✨ AI Insight</strong> 
                 {html_text}
                 <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #94a3b8;">
-                    <span>🕒 Summarized: {generated_timestamp_str}</span>
-                    <span>🤖 Model: <code style="font-size: 0.70rem; color: #64748b; background-color: #f8fafc; padding: 1px 4px; border-radius: 4px;">{model_name}</code></span>
+                    <span>🕒 {generated_timestamp_str} &bull; <strong>{status_badge}</strong></span>
+                    <span>🤖 Model: <code style="font-size: 0.70rem; color: #64748b; background-color: #f8fafc; padding: 1px 4px; border-radius: 4px;">{actual_model_used}</code></span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
