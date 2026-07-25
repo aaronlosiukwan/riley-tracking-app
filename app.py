@@ -261,19 +261,19 @@ use_ai_insights = st.sidebar.toggle("✨ Enable Gemini AI Insights", value=False
 # ---------------------------------------------------------
 # AUTHENTICATED GSHEETS CONNECTION
 # ---------------------------------------------------------
-    api_key = st.secrets.get("GEMINI_API_KEY", None)
-    if not api_key or api_key == "AIzaSy...":
-        return "⚠️ **Gemini API Key missing.** Set `GEMINI_API_KEY` in Streamlit Secrets."
-    
-    try:
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=prompt_text
-        )
-        return response.text
-    except Exception as e:
-        return f"⚠️ **AI Insight Error:** {str(e)}"
+api_key = st.secrets.get("GEMINI_API_KEY", None)
+if not api_key or api_key == "AIzaSy...":
+    return "⚠️ **Gemini API Key missing.** Set `GEMINI_API_KEY` in Streamlit Secrets."
+
+try:
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model='gemini-2.0-flash',
+        contents=prompt_text
+    )
+    return response.text
+except Exception as e:
+    return f"⚠️ **AI Insight Error:** {str(e)}"
 
 @st.cache_data(ttl=1)
 def load_sheet_data(url):
