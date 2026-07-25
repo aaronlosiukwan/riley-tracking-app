@@ -25,6 +25,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Inject Apple Touch Icon ONLY
 components.html(
     """
     <script>
@@ -50,6 +51,7 @@ components.html(
     width=0
 )
 
+# Responsive & Adaptive CSS overrides
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -72,7 +74,7 @@ st.markdown("""
     /* Generous bottom padding so switching tabs doesn't bounce the page */
     [data-testid="stMainBlockContainer"] {
         padding-top: calc(2.5rem + env(safe-area-inset-top)) !important;
-        padding-bottom: 25rem !important; 
+        padding-bottom: 10rem !important; 
     }
 
     /* Highly Compressed Vertical Spacing Between Blocks */
@@ -82,11 +84,11 @@ st.markdown("""
         --card-bg: #ffffff; --card-border: #e2e8f0; --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); --card-text: #1e293b;
     }
 
-    /* Title Styling */
+    /* Title Styling - Forces normal wrap natively */
     .app-main-title {
         font-size: clamp(2.0rem, 5vw + 0.8rem, 2.8rem) !important;
         font-weight: 700 !important;
-        line-height: 1.2 !important;
+        line-height: 1.5 !important;
         white-space: normal !important; 
         color: var(--card-text);
         margin: 0;
@@ -97,7 +99,7 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
         align-items: center !important;
         margin-top: 1rem !important;
-        margin-bottom: 2.0rem !important;
+        margin-bottom: 1.5rem !important;
     }
 
     /* Force Native Streamlit Buttons to adopt Custom UI styling perfectly */
@@ -119,33 +121,18 @@ st.markdown("""
         background-color: #f1f5f9 !important; transform: scale(0.98);
     }
 
-    /* Desktop Sizing (Title + Buttons max 100px) */
-    @media (min-width: 769px) {
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
-            flex-wrap: nowrap !important;
-            justify-content: space-between !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
-            flex: 1 1 auto !important; min-width: 0 !important; width: auto !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
-            flex: 0 0 100px !important; max-width: 100px !important; width: 100px !important; min-width: 100px !important; margin-right: 0.5rem !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(3) {
-            flex: 0 0 100px !important; max-width: 100px !important; width: 100px !important; min-width: 100px !important;
-        }
-    }
-
     /* Mobile 50/50 Split Sizing (Title 100%, Buttons 50/50 Below it) */
     @media (max-width: 768px) {
+        .app-main-title {
+            margin-bottom: 1.5rem !important; /* Added explicit gap below title on mobile */
+        }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
             flex-wrap: wrap !important; gap: 0.5rem !important;
-            flex-direction: row !important;
-            margin-bottom: 2.5rem !important;
+            flex-direction: row !important; /* Force row layout to stop stacking */
+            margin-bottom: 1.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
             flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
-            margin-bottom: 1.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(2) {
             flex: 0 0 calc(50% - 0.25rem) !important; width: calc(50% - 0.25rem) !important; min-width: calc(50% - 0.25rem) !important; margin-right: 0.5rem !important;
@@ -196,8 +183,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Main Title Anchor
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
+# ---------------------------------------------------------
+# 2. RESPONSIVE HEADER SECTION (NATIVE STREAMLIT)
+# ---------------------------------------------------------
 h_col1, h_col2, h_col3 = st.columns([6, 2, 2], vertical_alignment="center")
 
 with h_col1:
@@ -212,12 +203,13 @@ with h_col3:
         st.session_state.show_refresh_toast = True
         st.rerun()
 
+# Executes the native Streamlit toast on reload
 if st.session_state.get('show_refresh_toast', False):
     st.toast("Data successfully updated!", icon="✅")
     st.session_state.show_refresh_toast = False
 
 # ==========================================
-# 2. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
+# 3. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
 # ==========================================
 st.sidebar.markdown("""
     <div style="margin-bottom: 12px;">
@@ -233,12 +225,12 @@ DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkic
 
 st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; padding-top: 20px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
+
+# Toggle to turn AI on and off
+use_ai_insights = st.sidebar.toggle("✨ Enable AI Insights", value=False, help="Switches insights from rule-based formulas to LLM narrative analysis.")
+
 sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
 tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
-
-# Default is False (AI is off by default)
-use_ai_insights = st.sidebar.toggle("✨ Enable AI Insights", value=False, help="Switches cards from rule-based calculations to OpenRouter AI narrative insights.")
-
 if sheet_url_input: st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
 
 st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
@@ -257,13 +249,6 @@ def call_ai(prompt_text, api_key_param):
     if not api_key_param:
         return "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets."
     
-    free_models = [
-        "openrouter/free",
-        "openai/gpt-oss-20b:free",
-        "google/gemma-4-31b-it:free",
-        "nvidia/nemotron-3-nano-30b-a3b:free"
-    ]
-    
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
         api_key=api_key_param,
@@ -272,6 +257,14 @@ def call_ai(prompt_text, api_key_param):
             "X-Title": "Rileys Dash"
         }
     )
+    
+    # OpenRouter's universal free router automatically selects an online, available free model
+    free_models = [
+        "openrouter/free",
+        "openai/gpt-oss-20b:free",
+        "google/gemma-4-31b-it:free",
+        "nvidia/nemotron-3-nano-30b-a3b:free"
+    ]
     
     last_error = ""
     for model_id in free_models:
@@ -291,17 +284,20 @@ def call_ai(prompt_text, api_key_param):
             )
             return chat_completion.choices[0].message.content
         except Exception as e:
-            last_error = f"Model {model_id} failed: {str(e)}"
+            last_error = f"Error code: {e}"
             continue 
             
-    return f"⚠️ **AI Insight Error:** {last_error}"
+    return f"⚠️ **AI Insight Error (All free models failed):** {last_error}"
+
 
 @st.cache_data(ttl=1)
 def load_sheet_data(url):
     try:
+        # Establish secure connection
         conn = st.connection("gsheets", type=GSheetsConnection)
         df = conn.read(spreadsheet=url, ttl=0)
         
+        # Clean the data
         df.columns = df.columns.astype(str).str.strip()
         if 'DateTime' in df.columns: df['DateTime'] = pd.to_datetime(df['DateTime'], errors='coerce')
         elif 'EntryDateTime' in df.columns: df['DateTime'] = pd.to_datetime(df['EntryDateTime'], errors='coerce')
@@ -405,9 +401,9 @@ def get_unit_from_name(name):
 def render_insight_card(hardcoded_text, ai_prompt_context=None):
     api_key_param = st.secrets.get("OPENROUTER_API_KEY", None)
     
-    # If the user toggled AI insights ON, it will strictly lock into this block
+    # AI Mode Render
     if use_ai_insights:
-        with st.spinner("🤖 Summarizing..."):
+        with st.spinner("🤖 Summarizing Riley's trends..."):
             if not OPENAI_AVAILABLE:
                 output_text = "⚠️ **OpenAI package missing.**"
             elif not api_key_param:
@@ -415,30 +411,46 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None):
             elif not ai_prompt_context:
                 output_text = "⚠️ **No context provided for AI to analyze.**"
             else:
-                prompt = f"DATA: {ai_prompt_context}\n\nTASK: Write exactly 1-2 encouraging sentences summarizing these exact numbers. DO NOT ask for more data or logs. No introductory filler."
+                prompt = f"""DATA CONTEXT FOR RILEY:
+{ai_prompt_context}
+
+TASK:
+Write an analytical summary of Riley's data based strictly on the provided context. 
+Format your response EXACTLY using these HTML tags (do not use markdown ** or *):
+
+<b>High-Level Summary</b><br>
+&bull; [Bullet point 1 highlighting a key metric or ratio]<br>
+&bull; [Bullet point 2 highlighting a key metric or ratio]<br><br>
+<b>Trend Analysis</b><br>
+[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. the Selected Range. Highlight any positive trends, stability, or areas to watch. Always refer to the baby as Riley.]
+
+DO NOT ask for more data. DO NOT include any introductory or concluding conversational filler.
+"""
                 output_text = call_ai(prompt, api_key_param)
             
-            border_color = "#8b5cf6"
-            badge_title = "✨ AI Insight"
-            text_color = "#4c1d95"
+            # Sanitize the markdown just in case the AI ignores the HTML instruction
+            html_text = output_text.replace('\n', '<br>')
+            html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', html_text)
             
-    # If the user toggled AI insights OFF (default), it strictly renders the hardcoded math summary
+            st.markdown(f"""
+            <div style="background-color: #f8fafc; border-left: 4px solid #8b5cf6; padding: 12px 16px; border-radius: 8px; margin: 12px 0 24px 0; font-size: 0.88rem; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05); line-height: 1.5;">
+                <strong style="color: #4c1d95; font-size: 0.95rem; display: block; margin-bottom: 8px;">✨ Gemini AI Insight</strong> 
+                {html_text}
+            </div>
+            """, unsafe_allow_html=True)
+            
+    # Hardcoded/Rule-Based Mode Render
     else:
-        output_text = hardcoded_text
-        border_color = "#0284c7"
-        badge_title = "💡 Insight"
-        text_color = "#0369a1"
-
-    html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', output_text)
-    st.markdown(f"""
-    <div style="background-color: #f8fafc; border-left: 4px solid {border_color}; padding: 12px 16px; border-radius: 8px; margin: 12px 0 24px 0; font-size: 0.88rem; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-        <strong style="color: {text_color};">{badge_title}</strong> {html_text}
-    </div>
-    """, unsafe_allow_html=True)
+        html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', hardcoded_text)
+        st.markdown(f"""
+        <div style="background-color: #f8fafc; border-left: 4px solid #0ea5e9; padding: 12px 16px; border-radius: 8px; margin: 12px 0 24px 0; font-size: 0.88rem; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            <strong style="color: #0369a1;">💡 Insight:</strong> {html_text}
+        </div>
+        """, unsafe_allow_html=True)
 
 
 # ==========================================
-# 4. TODAY'S HIGHLIGHTS
+# 4. TODAY'S HIGHLIGHTS & GLOBAL TREND DATAFRAMES
 # ==========================================
 utc_now = datetime.utcnow()
 current_local_time = utc_now + timedelta(hours=tz_offset)
@@ -467,8 +479,12 @@ def render_empty_state(title="No Data Logged", subtitle="Try picking a wider dat
     st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 {title}</div><div class="empty-data-sub">{subtitle}</div></div>""", unsafe_allow_html=True)
 
 st.markdown('<div id="today"></div>', unsafe_allow_html=True)
+
+# Generate the global specific timeframes for AI Context Mapping
 today_date = max(current_local_time.date(), max_data_date)
 today_df = df[df['Date'] == today_date]
+cutoff_7d = today_date - timedelta(days=7)
+recent_7d_df = df[(df['Date'] > cutoff_7d) & (df['Date'] <= today_date)]
 
 st.subheader("✨ Today")
 
@@ -526,7 +542,7 @@ if 'ed' not in st.session_state:
     st.session_state.ed = max_data_date
 
 st.markdown('<div id="filters" style="margin-top: 4rem; padding-top: 1rem;"></div>', unsafe_allow_html=True)
-st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;'>⚙️ Date Range & Grouping Filters</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;'>⚙️ Date Range & Grouping Filters</div>", unsafe_allow_html=True)
 
 # Compact 4-Column Layout (Wrapped neatly into 2x2 grid on mobile via CSS)
 f_col1, f_col2, f_col3, f_col4 = st.columns([1.2, 1, 1, 0.8], vertical_alignment="bottom")
@@ -605,11 +621,15 @@ with tab1:
 
         feed_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Formula|Breast Milk")])
         diaper_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Diaper|Poop")])
+        
+        feed_cnt_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Formula|Breast Milk")]) / 7
+        diaper_cnt_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Diaper|Poop")]) / 7
+        
         analysis = f"Riley has had **{feed_cnt} feeds** and **{diaper_cnt} diaper changes** in the past 24 hours. "
         if feed_cnt >= 7: analysis += "Her feeding frequency is robust, which is excellent for hydration and growth!"
         elif feed_cnt > 0: analysis += "Her routine appears well-spaced and stable."
         
-        ai_context = f"Riley 24h Summary: {feed_cnt} feeds, {diaper_cnt} diaper changes. Date: {today_date}."
+        ai_context = f"Category: 24h Overview. Today: {feed_cnt} feeds, {diaper_cnt} diaper changes. Recent 7-Day Avg: {feed_cnt_7d:.1f} feeds/day, {diaper_cnt_7d:.1f} diapers/day."
         render_insight_card(analysis, ai_prompt_context=ai_context)
     else: render_empty_state("No Events Logged in the Last 24 Hours")
 
@@ -663,9 +683,11 @@ with tab2:
              if recent_avg > avg_vol * 1.05: trend_word = "trending upwards 📈, a great sign of healthy appetite growth"
              elif recent_avg < avg_vol * 0.95: trend_word = "trending slightly downwards 📉 (keep an eye on hydration)"
         
-        hardcoded_milk = f"Riley's intake averages **{avg_vol:.0f} mL** per {granularity.lower().replace('ly','').replace('all time','period')}. Based on recent logs, her volume is **{trend_word}**."
-        ai_milk_context = f"Milk Intake Data ({granularity}): Average Volume={avg_vol:.0f} mL, Total Feeds={len(milk_df)}, Date Range: {start_date} to {end_date}."
-        render_insight_card(hardcoded_milk, ai_prompt_context=ai_milk_context)
+        t_milk = today_df[today_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
+        milk_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]['Value (Optional)'].sum() / 7
+        ai_milk_context = f"Category: Milk Intake. Today: {t_milk:.0f} mL. Recent 7-Day Avg: {milk_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}) Avg: {avg_vol:.0f} mL per {granularity.lower()}."
+        
+        render_insight_card(f"Riley's intake averages **{avg_vol:.0f} mL** per {granularity.lower().replace('ly','').replace('all time','period')}. Based on recent logs, her volume is **{trend_word}**.", ai_prompt_context=ai_milk_context)
     else: render_empty_state("No Feeding Data Logged in this period")
 
 # TAB 3: Diaper Output
@@ -688,9 +710,11 @@ with tab3:
         wets = len(diaper_df[diaper_df['Category'] == '💧 Wet Diaper (Cnt)'])
         poops = len(diaper_df[diaper_df['Category'] == '🚽 Poop (Cnt)'])
         
-        hardcoded_diaper = f"You've tracked **{wets}** wet and **{poops}** soiled diapers, averaging **{avg_diapers:.1f}** changes per day. Consistent output is an excellent indicator that Riley is digesting properly!"
-        ai_diaper_context = f"Diaper Output: {wets} wet, {poops} poops. Avg changes/day: {avg_diapers:.1f}. From {start_date} to {end_date}."
-        render_insight_card(hardcoded_diaper, ai_prompt_context=ai_diaper_context)
+        t_diaper = len(today_df[today_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)])
+        diaper_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)]) / 7
+        ai_diaper_context = f"Category: Diaper Output. Today: {t_diaper} changes. Recent 7-Day Avg: {diaper_7d:.1f} changes/day. Selected Range ({start_date} to {end_date}) Avg: {avg_diapers:.1f} changes/day. (Selected total: {wets} wet, {poops} poops)."
+        
+        render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diapers, averaging **{avg_diapers:.1f}** changes per day. Consistent output is an excellent indicator that Riley is digesting properly!", ai_prompt_context=ai_diaper_context)
     else: render_empty_state("No Diaper Data Logged in this period")
 
 # TAB 4: Dedicated Pumping Chart
@@ -709,9 +733,12 @@ with tab4:
         st.caption(f"ℹ️ *Displays recorded pumping volume (mL) grouped {granularity.lower()} from {start_date} to {end_date}.*")
 
         avg_pump = pump_df['Value (Optional)'].sum() / max(1, len(pump_df))
-        hardcoded_pump = f"Across **{len(pump_df)}** sessions, the average yield is **{avg_pump:.0f} mL** per session. Maintaining regular pumping intervals is key to sustaining supply."
-        ai_pump_context = f"Pumping: {len(pump_df)} sessions, average {avg_pump:.0f} mL/session."
-        render_insight_card(hardcoded_pump, ai_prompt_context=ai_pump_context)
+        
+        t_pump = today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
+        pump_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum() / 7
+        ai_pump_context = f"Category: Pumping. Today: {t_pump:.0f} mL. Recent 7-Day Avg: {pump_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}): {len(pump_df)} sessions, avg {avg_pump:.0f} mL/session."
+        
+        render_insight_card(f"Across **{len(pump_df)}** sessions, the average yield is **{avg_pump:.0f} mL** per session. Maintaining regular pumping intervals is key to sustaining supply.", ai_prompt_context=ai_pump_context)
     else: render_empty_state("No Pumping Data Logged in this period")
 
 # TAB 5: Dedicated Tummy Time Chart
@@ -731,9 +758,12 @@ with tab5:
 
         total_tummy = tummy_df['Value (Optional)'].sum()
         avg_tummy = total_tummy / max(1, len(tummy_df))
-        hardcoded_tummy = f"Riley achieved **{total_tummy:.0f} total minutes** of tummy time (averaging **{avg_tummy:.0f}m** per session). Regular sessions are actively building her core and neck strength!"
-        ai_tummy_context = f"Tummy Time: Total {total_tummy:.0f} mins across {len(tummy_df)} sessions, average {avg_tummy:.0f} mins/session."
-        render_insight_card(hardcoded_tummy, ai_prompt_context=ai_tummy_context)
+        
+        t_tummy = today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
+        tummy_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum() / 7
+        ai_tummy_context = f"Category: Tummy Time. Today: {t_tummy:.0f} mins. Recent 7-Day Avg: {tummy_7d:.0f} mins/day. Selected Range ({start_date} to {end_date}): {total_tummy:.0f} total mins, avg {avg_tummy:.0f} mins/session."
+        
+        render_insight_card(f"Riley achieved **{total_tummy:.0f} total minutes** of tummy time (averaging **{avg_tummy:.0f}m** per session). Regular sessions are actively building her core and neck strength!", ai_prompt_context=ai_tummy_context)
     else: render_empty_state("No Tummy Time Data Logged in this period")
 
 # ==============================================================================
@@ -867,9 +897,8 @@ with tab6:
         elif latest_pct < 15: pct_text = "tracking in the lower percentiles 📉"
         else: pct_text = "tracking beautifully near the median ⚖️"
             
-        hardcoded_growth = f"At **{latest_data['Age_Months']:.1f} months**, Riley's {who_option.split(' ')[1].lower()} is **{latest_val:.1f} {unit_str}** (~**{latest_pct:.0f}th** percentile). She is {pct_text} compared to HK standard guidelines."
-        ai_growth_context = f"Growth: {who_option} is {latest_val:.1f} {unit_str} at age {latest_data['Age_Months']:.1f} months (~{latest_pct:.0f}th percentile)."
-        render_insight_card(hardcoded_growth, ai_prompt_context=ai_growth_context)
+        ai_growth_context = f"Category: Growth ({who_option}). Latest {who_option.split(' ')[1]}: {latest_val:.1f} {unit_str} at age {latest_data['Age_Months']:.1f} months (~{latest_pct:.0f}th percentile)."
+        render_insight_card(f"At **{latest_data['Age_Months']:.1f} months**, Riley's {who_option.split(' ')[1].lower()} is **{latest_val:.1f} {unit_str}** (~**{latest_pct:.0f}th** percentile). She is {pct_text} compared to HK standard guidelines.", ai_prompt_context=ai_growth_context)
         
     else:
         render_empty_state(f"No {who_option} Data Logged")
@@ -914,14 +943,27 @@ with tab7:
         st.caption(f"ℹ️ *Displays recorded {act_option} data grouped {granularity.lower()} from {start_date} to {end_date}.*")
 
         avg_act = act_df['Value (Optional)'].mean()
-        if keyword == "Meds":
-             hardcoded_health = f"Riley has logged **{len(act_df)}** medication doses in this period. Tracking these logs carefully prevents missed or double doses."
+        
+        # Calculate Health Timeframes Safely
+        t_health_df = today_df[today_df['Event Type'].str.contains(keyword, case=False, na=False)]
+        r_health_df = recent_7d_df[recent_7d_df['Event Type'].str.contains(keyword, case=False, na=False)]
+        
+        if keyword == "Temp":
+            t_val = t_health_df['Value (Optional)'].mean() if not t_health_df.empty else 0
+            r_val = r_health_df['Value (Optional)'].mean() if not r_health_df.empty else 0
+            ai_health_context = f"Category: Body Temperature. Today's Avg: {t_val:.1f}°C. Recent 7-Day Avg: {r_val:.1f}°C. Selected Range Avg: {avg_act:.1f}°C across {len(act_df)} records."
+            render_insight_card(f"Across **{len(act_df)}** records, Riley averages **{avg_act:.1f} {unit}**. Stable patterns in {act_option.split(' ')[1].lower()} are strong indicators of general wellbeing.", ai_prompt_context=ai_health_context)
+        elif keyword == "Sleep":
+            t_val = t_health_df['Value (Optional)'].sum() if not t_health_df.empty else 0
+            r_val = r_health_df['Value (Optional)'].sum() / 7 if not r_health_df.empty else 0
+            ai_health_context = f"Category: Sleep. Today: {t_val:.1f} hrs. Recent 7-Day Avg: {r_val:.1f} hrs/day. Selected Range Avg: {avg_act:.1f} hrs/record across {len(act_df)} records."
+            render_insight_card(f"Across **{len(act_df)}** records, Riley averages **{avg_act:.1f} {unit}**. Stable patterns in {act_option.split(' ')[1].lower()} are strong indicators of general wellbeing.", ai_prompt_context=ai_health_context)
         else:
-             hardcoded_health = f"Across **{len(act_df)}** records, Riley averages **{avg_act:.1f} {unit}**. Stable patterns in {act_option.split(' ')[1].lower()} are strong indicators of general wellbeing."
-        
-        ai_health_context = f"Health Category ({act_option}): {len(act_df)} records logged, average {avg_act:.1f} {unit}."
-        render_insight_card(hardcoded_health, ai_prompt_context=ai_health_context)
-        
+            t_val = len(t_health_df)
+            r_val = len(r_health_df) / 7
+            ai_health_context = f"Category: Medication. Today: {t_val} doses. Recent 7-Day Avg: {r_val:.1f} doses/day. Selected Range Total: {len(act_df)} doses."
+            render_insight_card(f"Riley has logged **{len(act_df)}** medication doses in this period. Tracking these logs carefully prevents missed or double doses.", ai_prompt_context=ai_health_context)
+            
     else: render_empty_state(f"No {act_option.split(' ')[1]} Data Logged in this period")
 
 
@@ -1047,7 +1089,7 @@ with tab8:
     else: render_empty_state("No Vaccine Data Logged")
 
 # ==========================================
-# 7. EXPANDED DATABASE TABLE 
+# 6. EXPANDED DATABASE TABLE (MOVED TO BOTTOM)
 # ==========================================
 st.markdown('<div id="database" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
 st.subheader("📋 Database")
@@ -1095,7 +1137,9 @@ if not display_df.empty:
     with st.expander("✏️ Edit Master Database (Advanced)"):
         st.caption("⚠️ **Warning:** This editor contains your *entire, unfiltered* dataset. Editing cells or deleting rows here and clicking 'Save' will permanently overwrite your Google Sheet data. Event Types cannot be modified.")
         
+        # Ensure we are passing standard strings back to the editor, not the parsed dates
         raw_edit_df = df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
+        # Convert datetime objects back to string formatting for the editor so they don't break when saving
         raw_edit_df['DateTime'] = raw_edit_df['DateTime'].dt.strftime('%Y-%m-%d %H:%M:%S')
         
         with st.form("database_editor_form"):
@@ -1103,10 +1147,10 @@ if not display_df.empty:
                 raw_edit_df, 
                 use_container_width=True, 
                 height=400,
-                num_rows="dynamic",
+                num_rows="dynamic", # Enables Row Deletion (Click left gray box -> Press Delete)
                 column_config={
                     "DateTime": st.column_config.TextColumn("DateTime (YYYY-MM-DD HH:MM:SS)", width="medium"),
-                    "Event Type": st.column_config.TextColumn("Event Type", disabled=True, width="medium"), 
+                    "Event Type": st.column_config.TextColumn("Event Type", disabled=True, width="medium"), # DISABLED
                     "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
                     "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
                 }
@@ -1117,7 +1161,11 @@ if not display_df.empty:
             if submit_button:
                 try:
                     conn = st.connection("gsheets", type=GSheetsConnection)
+                    
+                    # Convert the string dates back to pure strings to ensure Google Sheets understands them
                     push_df = edited_df.copy()
+                    
+                    # You MUST specify the exact worksheet name your data lives in! Defaults to Sheet1
                     conn.update(worksheet="Sheet1", data=push_df)
                     st.success("✅ Changes successfully pushed to Google Sheets! Refreshing...")
                     st.cache_data.clear()
