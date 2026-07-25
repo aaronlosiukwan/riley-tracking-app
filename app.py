@@ -9,17 +9,19 @@ from datetime import datetime, timedelta
 import re
 from streamlit_gsheets import GSheetsConnection
 
+try:
+    from google import genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+
 # ==========================================
 # 1. APP CONFIGURATION & STYLING
 # ==========================================
-st.set_page_config(
-    page_title="Riley's Dash",
-    page_icon="🍼",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Inject Apple Touch Icon ONLY
 components.html(
     """
     <script>
@@ -45,7 +47,6 @@ components.html(
     width=0
 )
 
-# Responsive & Adaptive CSS overrides
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -55,7 +56,6 @@ st.markdown("""
     html { scroll-behavior: smooth; }
     [id] { scroll-margin-top: 70px; }
 
-    /* Standard Streamlit scrolling for stable UI and native iOS compatibility */
     body, .stApp {
         color: var(--card-text) !important;
         background-color: #f8fafc !important;
@@ -65,20 +65,17 @@ st.markdown("""
         background-color: #f8fafc !important; 
     }
     
-    /* Generous bottom padding so switching tabs doesn't bounce the page */
     [data-testid="stMainBlockContainer"] {
         padding-top: calc(2.5rem + env(safe-area-inset-top)) !important;
         padding-bottom: 10rem !important; 
     }
 
-    /* Highly Compressed Vertical Spacing Between Blocks */
     div[data-testid="stVerticalBlock"] { gap: 0.15rem !important; }
 
     :root {
         --card-bg: #ffffff; --card-border: #e2e8f0; --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); --card-text: #1e293b;
     }
 
-    /* Title Styling - Forces normal wrap natively */
     .app-main-title {
         font-size: clamp(2.0rem, 5vw + 0.8rem, 2.8rem) !important;
         font-weight: 700 !important;
@@ -89,14 +86,12 @@ st.markdown("""
         padding: 0;
     }
 
-    /* --- NATIVE STREAMLIT HEADER RESTRUCTURING --- */
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
         align-items: center !important;
         margin-top: 1rem !important;
         margin-bottom: 1.5rem !important;
     }
 
-    /* Force Native Streamlit Buttons to adopt Custom UI styling perfectly */
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseButton-secondary"],
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseLinkButton-secondary"] {
         height: 42px !important; min-height: 42px !important; 
@@ -115,14 +110,13 @@ st.markdown("""
         background-color: #f1f5f9 !important; transform: scale(0.98);
     }
 
-    /* Mobile 50/50 Split Sizing (Title 100%, Buttons 50/50 Below it) */
     @media (max-width: 768px) {
         .app-main-title {
-            margin-bottom: 1.5rem !important; /* Added explicit gap below title on mobile */
+            margin-bottom: 1.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
             flex-wrap: wrap !important; gap: 0.5rem !important;
-            flex-direction: row !important; /* Force row layout to stop stacking */
+            flex-direction: row !important;
             margin-bottom: 1.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
@@ -136,7 +130,6 @@ st.markdown("""
         }
     }
 
-    /* Mobile Compact 2x2 Grid for Filters */
     @media (max-width: 768px) {
         div[data-testid="stHorizontalBlock"]:has(> div > div[data-testid="stSelectbox"]) {
             flex-wrap: wrap !important;
@@ -149,6 +142,45 @@ st.markdown("""
             margin-bottom: 0.5rem !important;
             margin-top: 3rem !important;
         }
+    }
+
+    /* AI Floating Chat Widget Styles */
+    div[data-testid="stPopover"] {
+        position: fixed !important;
+        bottom: 2rem !important;
+        right: 2rem !important;
+        z-index: 99999 !important;
+    }
+    div[data-testid="stPopover"] > button {
+        border-radius: 50px !important;
+        width: 60px !important;
+        height: 60px !important;
+        background-color: #8b5cf6 !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: transform 0.2s ease;
+    }
+    div[data-testid="stPopover"] > button p {
+        font-size: 1.8rem !important;
+        margin: 0 !important;
+    }
+    div[data-testid="stPopover"] > button:hover {
+        transform: scale(1.05);
+        background-color: #7c3aed !important;
+    }
+    div[data-testid="stPopoverBody"] {
+        width: 360px !important;
+        max-width: 90vw !important;
+        border-radius: 16px !important;
+        padding: 1.2rem !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
+    }
+    @media (max-width: 768px) {
+        div[data-testid="stPopover"] { bottom: 1.5rem !important; right: 1.5rem !important; }
     }
 
     /* Standard Elements */
@@ -177,12 +209,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Main Title Anchor
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# 2. RESPONSIVE HEADER SECTION (NATIVE STREAMLIT)
-# ---------------------------------------------------------
 h_col1, h_col2, h_col3 = st.columns([6, 2, 2], vertical_alignment="center")
 
 with h_col1:
@@ -197,14 +225,10 @@ with h_col3:
         st.session_state.show_refresh_toast = True
         st.rerun()
 
-# Executes the native Streamlit toast on reload
 if st.session_state.get('show_refresh_toast', False):
     st.toast("Data successfully updated!", icon="✅")
     st.session_state.show_refresh_toast = False
 
-# ==========================================
-# 3. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
-# ==========================================
 st.sidebar.markdown("""
     <div style="margin-bottom: 12px;">
         <div style="font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;">📌 Quick Navigation</div>
@@ -221,6 +245,9 @@ st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; padding-top: 20px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
 sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
 tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
+
+use_ai_insights = st.sidebar.toggle("✨ Enable Gemini AI Insights", value=False, help="Switches cards from rule-based calculations to Google Gemini 2.0 Flash narrative insights.")
+
 if sheet_url_input: st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
 
 st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
@@ -228,17 +255,32 @@ st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bo
 baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
+st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+use_ai_insights = st.sidebar.toggle("✨ Enable Gemini AI Insights", value=False, help="Switches cards from rule-based calculations to Google Gemini 2.0 Flash narrative insights.")
+
 # ---------------------------------------------------------
 # AUTHENTICATED GSHEETS CONNECTION
 # ---------------------------------------------------------
+    api_key = st.secrets.get("GEMINI_API_KEY", None)
+    if not api_key or api_key == "AIzaSy...":
+        return "⚠️ **Gemini API Key missing.** Set `GEMINI_API_KEY` in Streamlit Secrets."
+    
+    try:
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt_text
+        )
+        return response.text
+    except Exception as e:
+        return f"⚠️ **AI Insight Error:** {str(e)}"
+
 @st.cache_data(ttl=1)
 def load_sheet_data(url):
     try:
-        # Establish secure connection
         conn = st.connection("gsheets", type=GSheetsConnection)
         df = conn.read(spreadsheet=url, ttl=0)
         
-        # Clean the data
         df.columns = df.columns.astype(str).str.strip()
         if 'DateTime' in df.columns: df['DateTime'] = pd.to_datetime(df['DateTime'], errors='coerce')
         elif 'EntryDateTime' in df.columns: df['DateTime'] = pd.to_datetime(df['EntryDateTime'], errors='coerce')
@@ -339,11 +381,49 @@ def get_unit_from_name(name):
     if "cm" in name: return " cm"
     return ""
 
-def render_insight_card(text):
-    html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+@st.cache_data(ttl=1800, show_spinner=False)
+def call_gemini_ai(prompt_text):
+    if not GEMINI_AVAILABLE:
+        return "⚠️ **google-genai package missing.** Please install `google-genai` in `requirements.txt`."
+    api_key = st.secrets.get("GEMINI_API_KEY", None)
+    if not api_key:
+        return "⚠️ **Gemini API Key missing.** Set `GEMINI_API_KEY` in Streamlit Secrets."
+    try:
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(model='gemini-2.0-flash', contents=prompt_text)
+        return response.text
+    except Exception as e:
+        return f"⚠️ **AI Insight Error:** {str(e)}"
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_suggested_questions(context_str):
+    if not GEMINI_AVAILABLE or not st.secrets.get("GEMINI_API_KEY"):
+        return ["How is Riley's sleep pattern?", "Is her milk intake normal?", "Any upcoming vaccines?"]
+    prompt = f"Based on these recent logs:\n{context_str}\n\nSuggest exactly 3 short, highly relevant questions the parents could ask an AI pediatrician about this data. Return ONLY the 3 questions, one per line, without bullet points or numbers."
+    try:
+        res = call_gemini_ai(prompt)
+        return [q.strip().replace('- ', '').replace('*', '') for q in res.split('\n') if q.strip()][:3]
+    except:
+        return ["How is Riley's sleep pattern?", "Is her milk intake normal?", "Any upcoming vaccines?"]
+
+def render_insight_card(hardcoded_text, ai_prompt_context=None):
+    if use_ai_insights and ai_prompt_context and GEMINI_AVAILABLE:
+        with st.spinner("🤖 Generating Gemini AI insight..."):
+            prompt = f"You are a supportive pediatric assistant evaluating baby Riley's logs. Context: {ai_prompt_context}. Write a 1-2 sentence encouraging insight highlighting key trends. Keep formatting simple with bold key metrics. Do not include introductory filler."
+            output_text = call_gemini_ai(prompt)
+            border_color = "#8b5cf6"
+            badge_title = "✨ Gemini AI Insight"
+            text_color = "#4c1d95"
+    else:
+        output_text = hardcoded_text
+        border_color = "#0284c7"
+        badge_title = "📊 Insight."
+        text_color = "#0369a1"
+
+    html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', output_text)
     st.markdown(f"""
-    <div style="background-color: #f8fafc; border-left: 4px solid #8b5cf6; padding: 12px 16px; border-radius: 8px; margin: 12px 0 24px 0; font-size: 0.88rem; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-        <strong style="color: #6d28d9;">✨ AI Insight:</strong> {html_text}
+    <div style="background-color: #f8fafc; border-left: 4px solid {border_color}; padding: 12px 16px; border-radius: 8px; margin: 12px 0 24px 0; font-size: 0.88rem; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+        <strong style="color: {text_color};">{badge_title}</strong> {html_text}
     </div>
     """, unsafe_allow_html=True)
 
@@ -351,26 +431,6 @@ def render_insight_card(text):
 # ==========================================
 # 4. TODAY'S HIGHLIGHTS
 # ==========================================
-utc_now = datetime.utcnow()
-current_local_time = utc_now + timedelta(hours=tz_offset)
-
-all_feed_events = df[df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]
-if not all_feed_events.empty:
-    last_feed_row = all_feed_events.iloc[0]
-    last_feed_dt = last_feed_row['DateTime']
-    total_seconds = int((current_local_time - last_feed_dt).total_seconds())
-    if total_seconds < 0: total_seconds = 0
-    hrs_since, mins_since = total_seconds // 3600, (total_seconds % 3600) // 60
-    last_feed_time_str = last_feed_dt.strftime('%b %d, %H:%M')
-    if hrs_since >= 24: last_feed_delta = f"{hrs_since // 24}d {hrs_since % 24}h ago"
-    elif hrs_since > 0: last_feed_delta = f"{hrs_since}h {mins_since}m ago"
-    else: last_feed_delta = f"{mins_since}m ago"
-    
-    last_f_df = df[df['Event Type'].str.contains("Formula", case=False, na=False)]
-    last_bm_df = df[df['Event Type'].str.contains("Breast Milk", case=False, na=False)]
-    f_str = f"{int(last_f_df.iloc[0]['Value (Optional)'])} mL" if not last_f_df.empty else "-"
-    bm_str = f"{int(last_bm_df.iloc[0]['Value (Optional)'])} mL" if not last_bm_df.empty else "-"
-    last_feed_sub = f"Recorded: {last_feed_time_str}<br>🍼 Form: {f_str} | 🤱 BM: {bm_str}"
 else:
     last_feed_delta, last_feed_sub = "N/A", "No feed events"
 
@@ -425,9 +485,6 @@ else:
     st.markdown(f'<div class="cards-container">{"".join(formatted_today_cards)}</div>', unsafe_allow_html=True)
 
 
-# ==========================================
-# 5. COMPACT QUICK FILTERS (MOVED BELOW TODAY)
-# ==========================================
 min_str = min_data_date.strftime('%m.%d')
 max_str = max_data_date.strftime('%m.%d')
 
@@ -439,7 +496,6 @@ if 'ed' not in st.session_state:
 st.markdown('<div id="filters" style="margin-top: 4rem; padding-top: 1rem;"></div>', unsafe_allow_html=True)
 st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;'>⚙️ Date Range & Grouping Filters</div>", unsafe_allow_html=True)
 
-# Compact 4-Column Layout (Wrapped neatly into 2x2 grid on mobile via CSS)
 f_col1, f_col2, f_col3, f_col4 = st.columns([1.2, 1, 1, 0.8], vertical_alignment="bottom")
 
 with f_col1:
@@ -462,14 +518,11 @@ filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
 st.markdown("<div style='margin-top: 1.5rem; margin-bottom: 2.5rem; border-bottom: 1px solid rgba(128,128,128,0.15);'></div>", unsafe_allow_html=True)
 
 
-# ==========================================
-# 6. CHARTS & ANALYTICS
-# ==========================================
 st.markdown('<div id="insights"></div>', unsafe_allow_html=True)
 st.subheader("📊 Insights")
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
-    "⏰ Today", "🍼 Milk", "🚽 Diapers", "🧴 Pumping", "🛟 Tummy", "📈 Growth", "🩺 Health", "💉 Vaccine"
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+    "⏰ Today", "🍼 Milk", "🚽 Diapers", "🧴 Pumping", "🛟 Tummy", "📈 Growth", "🩺 Health", "💉 Vaccine", "🤖 AI Assistant"
 ])
 
 # TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart
@@ -511,7 +564,6 @@ with tab1:
         fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=450, is_scatter=True, x_tickformat="%d-%H", x_dtick=10800000, y_tickangle=-45)
         fig_today_timeline.update_layout(showlegend=False, yaxis=dict(title=dict(text=""), showgrid=True, gridcolor="rgba(128,128,128,0.15)", tickfont=dict(size=10.5), automargin=True))
         st.plotly_chart(fig_today_timeline, use_container_width=True)
-        
         st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours. Markers size and label text correspond to the recorded volume/duration.*")
 
         feed_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Formula|Breast Milk")])
@@ -519,7 +571,9 @@ with tab1:
         analysis = f"Riley has had **{feed_cnt} feeds** and **{diaper_cnt} diaper changes** in the past 24 hours. "
         if feed_cnt >= 7: analysis += "Her feeding frequency is robust, which is excellent for hydration and growth!"
         elif feed_cnt > 0: analysis += "Her routine appears well-spaced and stable."
-        render_insight_card(analysis)
+        
+        ai_context = f"Riley 24h Summary: {feed_cnt} feeds, {diaper_cnt} diaper changes. Date: {today_date}."
+        render_insight_card(analysis, ai_prompt_context=ai_context)
     else: render_empty_state("No Events Logged in the Last 24 Hours")
 
 # TAB 2: Milk Intake
@@ -571,7 +625,10 @@ with tab2:
              recent_avg = total_per_x['Value (Optional)'].iloc[-3:].mean()
              if recent_avg > avg_vol * 1.05: trend_word = "trending upwards 📈, a great sign of healthy appetite growth"
              elif recent_avg < avg_vol * 0.95: trend_word = "trending slightly downwards 📉 (keep an eye on hydration)"
-        render_insight_card(f"Riley's intake averages **{avg_vol:.0f} mL** per {granularity.lower().replace('ly','').replace('all time','period')}. Based on recent logs, her volume is **{trend_word}**.")
+        
+        hardcoded_milk = f"Riley's intake averages **{avg_vol:.0f} mL** per {granularity.lower().replace('ly','').replace('all time','period')}. Based on recent logs, her volume is **{trend_word}**."
+        ai_milk_context = f"Milk Intake Data ({granularity}): Average Volume={avg_vol:.0f} mL, Total Feeds={len(milk_df)}, Date Range: {start_date} to {end_date}."
+        render_insight_card(hardcoded_milk, ai_prompt_context=ai_milk_context)
     else: render_empty_state("No Feeding Data Logged in this period")
 
 # TAB 3: Diaper Output
@@ -593,7 +650,10 @@ with tab3:
         avg_diapers = len(diaper_df) / max(1, (end_date - start_date).days + 1)
         wets = len(diaper_df[diaper_df['Category'] == '💧 Wet Diaper (Cnt)'])
         poops = len(diaper_df[diaper_df['Category'] == '🚽 Poop (Cnt)'])
-        render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diapers, averaging **{avg_diapers:.1f}** changes per day. Consistent output is an excellent indicator that Riley is digesting properly!")
+        
+        hardcoded_diaper = f"You've tracked **{wets}** wet and **{poops}** soiled diapers, averaging **{avg_diapers:.1f}** changes per day. Consistent output is an excellent indicator that Riley is digesting properly!"
+        ai_diaper_context = f"Diaper Output: {wets} wet, {poops} poops. Avg changes/day: {avg_diapers:.1f}. From {start_date} to {end_date}."
+        render_insight_card(hardcoded_diaper, ai_prompt_context=ai_diaper_context)
     else: render_empty_state("No Diaper Data Logged in this period")
 
 # TAB 4: Dedicated Pumping Chart
@@ -612,7 +672,9 @@ with tab4:
         st.caption(f"ℹ️ *Displays recorded pumping volume (mL) grouped {granularity.lower()} from {start_date} to {end_date}.*")
 
         avg_pump = pump_df['Value (Optional)'].sum() / max(1, len(pump_df))
-        render_insight_card(f"Across **{len(pump_df)}** sessions, the average yield is **{avg_pump:.0f} mL** per session. Maintaining regular pumping intervals is key to sustaining supply.")
+        hardcoded_pump = f"Across **{len(pump_df)}** sessions, the average yield is **{avg_pump:.0f} mL** per session. Maintaining regular pumping intervals is key to sustaining supply."
+        ai_pump_context = f"Pumping: {len(pump_df)} sessions, average {avg_pump:.0f} mL/session."
+        render_insight_card(hardcoded_pump, ai_prompt_context=ai_pump_context)
     else: render_empty_state("No Pumping Data Logged in this period")
 
 # TAB 5: Dedicated Tummy Time Chart
@@ -632,15 +694,14 @@ with tab5:
 
         total_tummy = tummy_df['Value (Optional)'].sum()
         avg_tummy = total_tummy / max(1, len(tummy_df))
-        render_insight_card(f"Riley achieved **{total_tummy:.0f} total minutes** of tummy time (averaging **{avg_tummy:.0f}m** per session). Regular sessions are actively building her core and neck strength!")
+        hardcoded_tummy = f"Riley achieved **{total_tummy:.0f} total minutes** of tummy time (averaging **{avg_tummy:.0f}m** per session). Regular sessions are actively building her core and neck strength!"
+        ai_tummy_context = f"Tummy Time: Total {total_tummy:.0f} mins across {len(tummy_df)} sessions, average {avg_tummy:.0f} mins/session."
+        render_insight_card(hardcoded_tummy, ai_prompt_context=ai_tummy_context)
     else: render_empty_state("No Tummy Time Data Logged in this period")
 
 # ==============================================================================
 # TAB 6: GROWTH CHARTS
 # ==============================================================================
-with tab6:
-    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size: 0.85rem; text-align: center; margin-bottom: 10px;'><a href='https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf' target='_blank' style='color: #64748b; text-decoration: none; opacity: 0.8;'>📄 Official HK Growth Charts Reference (PDF)</a></p>", unsafe_allow_html=True)
 
     who_option = st.radio("Select Growth Chart:", options=["⚖️ Weight", "🏔️ Height", "🐷 Head"], horizontal=True, label_visibility="collapsed")
     
@@ -660,7 +721,6 @@ with tab6:
         if "Height" in met: return (0.95, 0.975, 1.025, 1.05)
         return (0.96, 0.98, 1.02, 1.04)
 
-    # Use entire dataset for growth charting, bypassing the date filter
     db_keyword = "⚖️ Weight (kg)" if "Weight" in who_option else ("🏔️ Height (cm)" if "Height" in who_option else "🐷 Head Size (cm)")
     who_df = df[df['Event Type'] == db_keyword].copy()
     
@@ -754,8 +814,6 @@ with tab6:
             yaxis=dict(title="", showgrid=True, gridcolor="rgba(128,128,128,0.15)", range=[y_lower, y_upper]),
             showlegend=False, hovermode="x unified"
         )
-        st.plotly_chart(fig_who, use_container_width=True)
-        
         st.caption(f"ℹ️ *Interactive Growth Chart for {baby_gender}s based on standard HK lines. The shaded bands map the 3rd, 15th, 50th, 85th, and 97th percentiles.*")
         
         latest_data = who_df.iloc[-1]
@@ -766,7 +824,9 @@ with tab6:
         elif latest_pct < 15: pct_text = "tracking in the lower percentiles 📉"
         else: pct_text = "tracking beautifully near the median ⚖️"
             
-        render_insight_card(f"At **{latest_data['Age_Months']:.1f} months**, Riley's {who_option.split(' ')[1].lower()} is **{latest_val:.1f} {unit_str}** (~**{latest_pct:.0f}th** percentile). She is {pct_text} compared to HK standard guidelines.")
+        hardcoded_growth = f"At **{latest_data['Age_Months']:.1f} months**, Riley's {who_option.split(' ')[1].lower()} is **{latest_val:.1f} {unit_str}** (~**{latest_pct:.0f}th** percentile). She is {pct_text} compared to HK standard guidelines."
+        ai_growth_context = f"Growth: {who_option} is {latest_val:.1f} {unit_str} at age {latest_data['Age_Months']:.1f} months (~{latest_pct:.0f}th percentile)."
+        render_insight_card(hardcoded_growth, ai_prompt_context=ai_growth_context)
         
     else:
         render_empty_state(f"No {who_option} Data Logged")
@@ -812,9 +872,12 @@ with tab7:
 
         avg_act = act_df['Value (Optional)'].mean()
         if keyword == "Meds":
-             render_insight_card(f"Riley has logged **{len(act_df)}** medication doses in this period. Tracking these logs carefully prevents missed or double doses.")
+             hardcoded_health = f"Riley has logged **{len(act_df)}** medication doses in this period. Tracking these logs carefully prevents missed or double doses."
         else:
-             render_insight_card(f"Across **{len(act_df)}** records, Riley averages **{avg_act:.1f} {unit}**. Stable patterns in {act_option.split(' ')[1].lower()} are strong indicators of general wellbeing.")
+             hardcoded_health = f"Across **{len(act_df)}** records, Riley averages **{avg_act:.1f} {unit}**. Stable patterns in {act_option.split(' ')[1].lower()} are strong indicators of general wellbeing."
+        
+        ai_health_context = f"Health Category ({act_option}): {len(act_df)} records logged, average {avg_act:.1f} {unit}."
+        render_insight_card(hardcoded_health, ai_prompt_context=ai_health_context)
         
     else: render_empty_state(f"No {act_option.split(' ')[1]} Data Logged in this period")
 
@@ -852,7 +915,7 @@ with tab8:
         {"Age": "18 mo", "Days": 547, "Group": "MMR / MMRV", "Vaccine": "MMRV 第二劑 (MMRV 2nd)", "Disease": "麻疹, 流行性腮腺炎, 德國麻疹, 水痘 (Measles, Mumps, Rubella, Chickenpox)", "Provider": "🏥 母嬰", "Desc": "歲半加強劑 (含水痘)", "Optional": False, "Match": get_date("mmrv|mmr|麻疹", 1)},
         {"Age": "18 mo", "Days": 547, "Group": "Hepatitis A", "Vaccine": "甲型肝炎 第二劑 (Hep A 2nd)", "Disease": "甲型肝炎 (Hepatitis A)", "Provider": "💰 私家", "Desc": "隔半年打第二針", "Optional": True, "Match": get_date("hepa|hep a|甲型", 1)},
         {"Age": "3 Years", "Days": 1095, "Group": "Influenza", "Vaccine": "流感疫苗 (Flu Vaccine)", "Disease": "流行性感冒 (Flu)", "Provider": "💰 私家 / 🏥 幼稚園", "Desc": "入學前防護", "Optional": True, "Match": get_date("flu|流感", 1)},
-        {"Age": "5-6 Years", "Days": 1825, "Group": "DTaP / 6-in-1", "Vaccine": "白喉,破傷風,百日咳,小兒麻痺 加強劑 (Booster)", "Disease": "白喉, 破傷風, 百日咳, 小兒麻痺 (DTaP-IPV)", "Provider": "🏥 學校", "Desc": "小一學童接種", "Optional": False, "Match": get_date("dtap|ipv|小一|小兒麻痺", 4)},
+        {"Age": "5-6 Years", "Days": 1825, "Group": "DTaP / 6-in-1", "Vaccine": "白喉,破傷風,百日咳,小兒麻痺 加強劑 (Booster)", "Disease": "白喉, 破傷風, 百日咳 (DTaP-IPV)", "Provider": "🏥 學校", "Desc": "小一學童接種", "Optional": False, "Match": get_date("dtap|ipv|小一|小兒麻痺", 4)},
         {"Age": "5-6 Years", "Days": 1825, "Group": "MMR / MMRV", "Vaccine": "MMRV 加強劑 (MMRV Booster)", "Disease": "麻疹, 流行性腮腺炎, 德國麻疹, 水痘 (MMRV)", "Provider": "🏥 學校", "Desc": "小一學童接種", "Optional": False, "Match": get_date("mmrv|mmr|麻疹", 2)},
         {"Age": "11-12 Years", "Days": 4015, "Group": "DTaP / 6-in-1", "Vaccine": "白喉,破傷風,百日咳 加強劑 (dTap Booster)", "Disease": "白喉, 破傷風, 百日咳 (dTap)", "Provider": "🏥 學校", "Desc": "小六學童接種", "Optional": False, "Match": get_date("dtap|小六|百日咳", 5)},
         {"Age": "11-12 Years", "Days": 4015, "Group": "HPV", "Vaccine": "子宮頸癌疫苗 第一劑 (HPV 1st)", "Disease": "子宮頸癌 (HPV)", "Provider": "🏥 學校", "Desc": "小五/小六女童接種", "Optional": False, "Match": get_date("hpv|子宮", 0)},
@@ -915,7 +978,7 @@ with tab8:
         }
     )
     
-    st.caption("ℹ️ *Auto-matches your logged vaccines by scanning your 'Notes / Details' column for keywords (e.g. 6-in-1, PCV, Rota, BCG).*")
+    st.caption("ℹ️ *Auto-matches your logged vaccines by scanning your 'Notes / Details' column for keywords.*")
     
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     st.markdown("##### 📋 Riley's Vaccination History Log")
@@ -940,9 +1003,42 @@ with tab8:
         )
     else: render_empty_state("No Vaccine Data Logged")
 
-# ==========================================
-# 6. EXPANDED DATABASE TABLE (MOVED TO BOTTOM)
-# ==========================================
+with tab9:
+    st.markdown("<div style='height: 0.5rem;'></div>", unsafe_allow_html=True)
+    st.markdown("##### 🤖 Ask Riley's AI Pediatric Assistant")
+    st.caption("Ask questions about feeding trends, diaper ratios, nap schedules, or health milestones based on recent Google Sheet logs.")
+
+    user_query = st.text_input("Type your question here:", placeholder="e.g., Is Riley's milk intake normal for her age? How is her sleep pattern looking?")
+
+    if st.button("✨ Analyze with Gemini AI", use_container_width=True, type="primary"):
+        if user_query.strip():
+            with st.spinner("🤖 Analyzing Riley's recent log data with Gemini AI..."):
+                recent_logs = df.head(30)[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].to_string(index=False)
+                
+                prompt = f"""
+                You are a supportive, knowledgeable pediatric nurse assistant helping Riley's parents.
+                Here are the 30 most recent activity logs recorded for baby Riley:
+                
+                {recent_logs}
+                
+                Baby's Birth Date: {baby_dob}
+                Baby's Gender: {baby_gender}
+                
+                Parent's Question: {user_query}
+                
+                Please give a clear, encouraging, well-formatted response using bullet points where helpful. 
+                Focus on practical pediatric insights based on the provided logs. Keep the tone warm and reassure the parents.
+                """
+                
+                ai_response = call_gemini_ai(prompt)
+                st.markdown(f"""
+                <div style="background-color: #f8fafc; border-left: 4px solid #8b5cf6; padding: 16px; border-radius: 8px; margin-top: 1rem; color: #1e293b;">
+                    {ai_response}
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.warning("Please enter a question first!")
+
 st.markdown('<div id="database" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
 st.subheader("📋 Database")
 
@@ -989,9 +1085,7 @@ if not display_df.empty:
     with st.expander("✏️ Edit Master Database (Advanced)"):
         st.caption("⚠️ **Warning:** This editor contains your *entire, unfiltered* dataset. Editing cells or deleting rows here and clicking 'Save' will permanently overwrite your Google Sheet data. Event Types cannot be modified.")
         
-        # Ensure we are passing standard strings back to the editor, not the parsed dates
         raw_edit_df = df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
-        # Convert datetime objects back to string formatting for the editor so they don't break when saving
         raw_edit_df['DateTime'] = raw_edit_df['DateTime'].dt.strftime('%Y-%m-%d %H:%M:%S')
         
         with st.form("database_editor_form"):
@@ -999,10 +1093,10 @@ if not display_df.empty:
                 raw_edit_df, 
                 use_container_width=True, 
                 height=400,
-                num_rows="dynamic", # Enables Row Deletion (Click left gray box -> Press Delete)
+                num_rows="dynamic",
                 column_config={
                     "DateTime": st.column_config.TextColumn("DateTime (YYYY-MM-DD HH:MM:SS)", width="medium"),
-                    "Event Type": st.column_config.TextColumn("Event Type", disabled=True, width="medium"), # DISABLED
+                    "Event Type": st.column_config.TextColumn("Event Type", disabled=True, width="medium"),
                     "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
                     "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
                 }
@@ -1013,11 +1107,7 @@ if not display_df.empty:
             if submit_button:
                 try:
                     conn = st.connection("gsheets", type=GSheetsConnection)
-                    
-                    # Convert the string dates back to pure strings to ensure Google Sheets understands them
                     push_df = edited_df.copy()
-                    
-                    # You MUST specify the exact worksheet name your data lives in! Defaults to Sheet1
                     conn.update(worksheet="Sheet1", data=push_df)
                     st.success("✅ Changes successfully pushed to Google Sheets! Refreshing...")
                     st.cache_data.clear()
@@ -1030,3 +1120,58 @@ else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
 
 st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
+
+# ==========================================
+# 7. FLOATING AI CHAT WIDGET
+# ==========================================
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+
+with st.popover("💬"):
+    st.markdown("<h4 style='margin-bottom:0;'>🤖 Riley's AI Assistant</h4>", unsafe_allow_html=True)
+    st.caption("Ask anything about Riley's recent logs!")
+    
+    # Context prepared from top 40 recent logs
+    recent_logs_str = df.head(40)[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].to_string(index=False)
+    
+    chat_container = st.container(height=320)
+    for msg in st.session_state.chat_history:
+        chat_container.chat_message(msg['role']).write(msg['content'])
+        
+    # Top 3 Pre-Generated Questions (Only shown if chat is empty)
+    if not st.session_state.chat_history:
+        st.markdown("<div style='margin-top: 10px; font-size: 0.85rem; font-weight: 600; color: #64748b;'>Suggested Questions:</div>", unsafe_allow_html=True)
+        suggested_qs = get_suggested_questions(recent_logs_str)
+        for q in suggested_qs:
+            if st.button(q, use_container_width=True):
+                st.session_state.chat_history.append({"role": "user", "content": q})
+                
+                with chat_container.chat_message("user"):
+                    st.write(q)
+                with chat_container.chat_message("assistant"):
+                    with st.spinner("Thinking..."):
+                        prompt = f"You are a helpful pediatric nurse assistant analyzing Riley's data (Born {baby_dob}, {baby_gender}). Logs:\n{recent_logs_str}\n\nParent asks: {q}"
+                        resp = call_gemini_ai(prompt)
+                        st.write(resp)
+                st.session_state.chat_history.append({"role": "assistant", "content": resp})
+                st.rerun()
+
+    # Chat Input Form
+    with st.form("ai_chat_form", clear_on_submit=True):
+        cols = st.columns([4, 1], vertical_alignment="bottom")
+        user_msg = cols[0].text_input("Message...", label_visibility="collapsed", placeholder="Type your question here...")
+        submitted = cols[1].form_submit_button("Send", use_container_width=True)
+        
+    if submitted and user_msg:
+        st.session_state.chat_history.append({"role": "user", "content": user_msg})
+        
+        with chat_container.chat_message("user"):
+            st.write(user_msg)
+        with chat_container.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                chat_context = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.chat_history[-4:]])
+                prompt = f"You are a helpful pediatric nurse assistant analyzing Riley's data (Born {baby_dob}, {baby_gender}). Logs:\n{recent_logs_str}\n\nConversation:\n{chat_context}\n\nRespond clearly and encouragingly."
+                resp = call_gemini_ai(prompt)
+                st.write(resp)
+        st.session_state.chat_history.append({"role": "assistant", "content": resp})
+        st.rerun()
