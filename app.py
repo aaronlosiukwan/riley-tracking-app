@@ -1186,6 +1186,7 @@ with tab8:
         )
     else: render_empty_state("No Vaccine Data Logged")
 
+# ==========================================
 # 7. UNIFIED MASTER DATABASE & EDITOR
 # ==========================================
 if 'edit_mode' not in st.session_state:
@@ -1201,10 +1202,6 @@ with db_c2:
         if st.button("🔓 Enable Edit Mode", use_container_width=True):
             st.cache_data.clear()
             st.session_state.edit_mode = True
-            st.rerun()
-    else:
-        if st.button("🔒 Cancel Editing", use_container_width=True):
-            st.session_state.edit_mode = False
             st.rerun()
 
 # Capture the exact Google Sheet Row ID in the master dataframe
@@ -1235,19 +1232,25 @@ col_config = {
     "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
 }
 
-# Strip out SheetRow for UI display and convert DateTime to datetime object for clean date picker UI
 display_df = table_df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
 display_df['DateTime'] = pd.to_datetime(display_df['DateTime'], errors='coerce')
 
 if st.session_state.edit_mode:
-    st.markdown("""
-    <div style="background-color: #fef2f2; border: 1px solid #f87171; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-        <strong style="color: #991b1b;">⚠️ Edit Mode Active (Surgical Sync)</strong><br>
-        <span style="color: #7f1d1d; font-size: 0.85rem;">Your edits will target <b>Columns D through H</b> only, safely preserving all your ArrayFormulas in Columns A, B, and C.</span>
-    </div>
-    """, unsafe_allow_html=True)
-    
     with st.form("database_editor_form"):
+        st.markdown("""
+        <div style="background-color: #fef2f2; border: 1px solid #f87171; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+            <strong style="color: #991b1b;">⚠️ Edit Mode Active (Surgical Sync)</strong><br>
+            <span style="color: #7f1d1d; font-size: 0.85rem;">Your edits will target <b>Columns D through I</b> only, safely preserving all your ArrayFormulas in Columns A, B, and C.</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Positioned below Edit Mode banner: "Save Changes" on left, "Cancel Editing" on right (stacks vertically on mobile)
+        btn_col1, btn_col2 = st.columns([1, 1])
+        with btn_col1:
+            submit_button = st.form_submit_button("💾 Save Changes", type="primary", use_container_width=True)
+        with btn_col2:
+            cancel_button = st.form_submit_button("🔒 Cancel Editing", use_container_width=True)
+
         edited_df = st.data_editor(
             display_df, 
             use_container_width=True, 
@@ -1256,8 +1259,10 @@ if st.session_state.edit_mode:
             column_config=col_config
         )
         
-        submit_button = st.form_submit_button("💾 Save Changes to Google Sheets", type="primary", use_container_width=True)
-        
+        if cancel_button:
+            st.session_state.edit_mode = False
+            st.rerun()
+
         if submit_button:
             with st.spinner("Executing surgical cell updates..."):
                 try:
@@ -1324,23 +1329,22 @@ if st.session_state.edit_mode:
                                 edits_to_push.append(gspread.Cell(row=sheet_row, col=8, value=new_note))
                                 row_changed = True
                             
-                            # If any field in the row was edited, record UpdateDateTime in Column I (Col 9)
                             if row_changed:
                                 edits_to_push.append(gspread.Cell(row=sheet_row, col=9, value=now_timestamp))
                         
-                        # EXECUTE BATCH UPDATES
+                        # EXECUTE BATCH UPDATES WITH USER_ENTERED VALUE PARSING
                         if edits_to_push:
-                            sheet.update_cells(edits_to_push)
+                            sheet.update_cells(edits_to_push, value_input_option='USER_ENTERED')
                             
-                        # EXECUTE DELETIONS (Must be done in reverse order to prevent shifting rows)
+                        # EXECUTE DELETIONS
                         if deleted_sheet_rows:
                             for r in sorted(deleted_sheet_rows, reverse=True):
                                 sheet.delete_rows(r)
                                 
-                        # EXECUTE ADDITIONS (Inject into D:I, skipping A:C formulas)
+                        # EXECUTE ADDITIONS WITH USER_ENTERED VALUE PARSING
                         if not new_rows_df.empty:
-                            dt_col = sheet.col_values(5) # Get all values in Col E (DateTime)
-                            next_row = len(dt_col) + 1   # Find bottom
+                            dt_col = sheet.col_values(5)
+                            next_row = len(dt_col) + 1
                             
                             new_data = []
                             for _, r in new_rows_df.iterrows():
@@ -1351,7 +1355,7 @@ if st.session_state.edit_mode:
                                 notes = str(r['Notes / Details (Optional)']) if pd.notna(r['Notes / Details (Optional)']) else ""
                                 new_data.append([entry_dt, dt_str, ev, val, notes, now_timestamp])
                                 
-                            sheet.update(values=new_data, range_name=f"D{next_row}:I{next_row + len(new_data) - 1}")
+                            sheet.update(values=new_data, range_name=f"D{next_row}:I{next_row + len(new_data) - 1}", value_input_option='USER_ENTERED')
                             
                         st.success("✅ Surgical updates & UpdateDateTime successfully pushed to Google Sheets! Refreshing...")
                         st.session_state.edit_mode = False
