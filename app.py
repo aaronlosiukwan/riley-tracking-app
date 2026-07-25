@@ -228,10 +228,13 @@ def load_sheet_data(url):
         return pd.DataFrame()
 
 # Initialize session states for AI refresh tracking
+# Initialize session states for AI refresh tracking
 if "last_ai_data_datetime" not in st.session_state:
     st.session_state.last_ai_data_datetime = None
 if "ai_refresh_key" not in st.session_state:
     st.session_state.ai_refresh_key = "default_key"
+if "ai_retry_count" not in st.session_state:
+    st.session_state.ai_retry_count = 0
 
 with h_col3:
     if st.button("🔄 Refresh", use_container_width=True):
@@ -320,11 +323,15 @@ def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
     
     if not api_key_param:
         return "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets."
+        
+    # Prevent infinite loops: Stop trying if we failed 3 times
+    if st.session_state.get('ai_retry_count', 0) >= 3:
+        return "⚠️ **API Limit Reached.** OpenRouter is overloaded. Please check back later."
     
     client = OpenAI(
-        base_url="[https://openrouter.ai/api/v1](https://openrouter.ai/api/v1)",
+        base_url="https://openrouter.ai/api/v1",
         api_key=api_key_param,
-        default_headers={"HTTP-Referer": "[https://streamlit.app](https://streamlit.app)", "X-Title": "Rileys Dash"}
+        default_headers={"HTTP-Referer": "https://streamlit.app", "X-Title": "Rileys Dash"}
     )
     
     try:
@@ -342,14 +349,24 @@ def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
         
         if "User Safety" in content or "Unauthorized Advice" in content or not content:
             st.session_state.needs_auto_retry = True
-            return "⚠️ API Safety Filter tripped. Auto-retrying in background..."
+            return "⚠️ API Safety Filter tripped. Auto-retrying..."
             
         global_ai_cache[cache_key] = content
+        
+        # Success! Reset the retry counter.
+        st.session_state.ai_retry_count = 0
         return content
         
     except Exception as e:
-        st.session_state.needs_auto_retry = True
-        return "⚠️ API Busy. Auto-retrying in background..."
+        err_msg = str(e)
+        # Expose the REAL error so you aren't left guessing
+        if "429" in err_msg or "Rate limit" in err_msg or "busy" in err_msg.lower():
+            st.session_state.needs_auto_retry = True
+            return f"⚠️ **Rate Limit (429):** Free API is busy. Retrying..."
+        elif "401" in err_msg or "Authentication" in err_msg:
+            return f"⚠️ **Auth Error (401):** Your OpenRouter API key is invalid or missing."
+        else:
+            return f"⚠️ **API Error:** {err_msg}"
 
 def standardize_event_name(event_str):
     s = str(event_str).strip()
@@ -1253,9 +1270,13 @@ st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
 if st.session_state.get('needs_auto_retry', False):
     st.session_state.needs_auto_retry = False
     
-    import time
-    time.sleep(2.5) # Wait a moment for the AI API rate limit to clear
+    # Increment the retry counter
+    st.session_state.ai_retry_count = st.session_state.get('ai_retry_count', 0) + 1
     
-    # st.rerun() performs a soft-reload. It re-triggers the app while 
-    # perfectly preserving all your buttons, toggles, and session states!
-    st.rerun()
+    # Only retry if we haven't hit the limit
+    if st.session_state.ai_retry_count < 3:
+        import time
+        time.sleep(3.5) # Wait 3.5 seconds to let the rate limit clear
+        st.rerun()
+    else:
+        st.error("🛑 **Auto-Retry Paused:** OpenRouter's free tier is currently rate-limiting your requests. Please wait a few minutes and click '🔄 Force Refresh AI Summaries' in the sidebar.")
