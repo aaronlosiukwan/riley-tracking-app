@@ -981,7 +981,9 @@ with tab1:
     else: 
         render_empty_state("No Events Logged in the Last 24 Hours")
 
+# ==========================================
 # TAB 2: MILK
+# ==========================================
 with tab2:
     milk_df = filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)].copy()
     if not milk_df.empty:
@@ -1015,15 +1017,26 @@ with tab2:
         
         st.caption("ℹ️ *Combines stacked Formula and Breast Milk volume (mL) with Feed Count(s).*")
 
+        # --- LOCAL METRICS COMPUTATION ---
         avg_vol = total_per_x['Value (Optional)'].mean()
         t_milk = today_df[today_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
         milk_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]['Value (Optional)'].sum() / 7
-        ai_milk_context = f"Category: Milk Intake. Today: {t_milk:.0f} mL. Recent 7-Day Avg: {milk_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}) Avg: {avg_vol:.0f} mL per {granularity.lower()}."
-        
-        render_insight_card(f"Riley's intake averages **{avg_vol:.0f} mL** per {granularity.lower()}.", ai_prompt_context=ai_milk_context, category_df=milk_df)
-    else: render_empty_state("No Feeding Data Logged in this period")
+        f_vol = milk_df[milk_df['Category'] == '🍼 Formula (mL)']['Value (Optional)'].sum()
+        bm_vol = milk_df[milk_df['Category'] == '🤱 Breast Milk (mL)']['Value (Optional)'].sum()
 
+        hardcoded_milk = f"""• **Intake Overview:** Total **{int(grouped_vol['Value (Optional)'].sum()):,} mL** across **{len(milk_df)}** feeds ({granularity.lower()} avg: **{avg_vol:.0f} mL**).
+• **Formula vs. BM:** Formula **{int(f_vol):,} mL** | BM **{int(bm_vol):,} mL**.
+• **Today's Status:** **{int(t_milk):,} mL** logged today (7-day baseline avg: ~{int(milk_7d):,} mL/day)."""
+
+        ai_milk_context = f"Category: Milk Intake. Today: {t_milk:.0f} mL. Recent 7-Day Avg (excluding today): {milk_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}) Avg: {avg_vol:.0f} mL per {granularity.lower()}."
+        render_insight_card(hardcoded_milk, ai_prompt_context=ai_milk_context, category_df=milk_df)
+    else: 
+        render_empty_state("No Feeding Data Logged in this period")
+
+
+# ==========================================
 # TAB 3: DIAPERS
+# ==========================================
 with tab3:
     diaper_df = filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)].copy()
     if not diaper_df.empty:
@@ -1031,6 +1044,7 @@ with tab3:
         grouped_diaper = diaper_df.groupby([group_col, 'Category']).size().reset_index(name='Count')
         grouped_diaper[group_col] = grouped_diaper[group_col].apply(format_x_label)
         is_single = len(grouped_diaper[group_col].unique()) == 1
+        
         fig_diaper = px.bar(grouped_diaper, x=group_col, y="Count", color="Category", barmode="group", color_discrete_map=COLOR_MAP)
         if is_single: fig_diaper.update_traces(width=0.25)
         fig_diaper.update_traces(hovertemplate='%{y}<extra></extra>')
@@ -1039,7 +1053,7 @@ with tab3:
         
         st.caption("ℹ️ *Compares Wet Diapers and Poop counts.*")
 
-        # Deduplicated Diaper Change Calculations
+        # --- DEDUPLICATED DIAPER METRICS COMPUTATION ---
         avg_diapers = diaper_df.groupby('Date')['DateTime'].nunique().mean()
         wets = len(diaper_df[diaper_df['Category'] == '💧 Wet Diaper (Cnt)'])
         poops = len(diaper_df[diaper_df['Category'] == '🚽 Poop (Cnt)'])
@@ -1050,17 +1064,26 @@ with tab3:
         r_diaper_events = recent_7d_df[recent_7d_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)]
         diaper_7d = (r_diaper_events.groupby('Date')['DateTime'].nunique().sum() / 7) if not r_diaper_events.empty else 0
         
-        ai_diaper_context = f"Category: Diaper Output. Target Date ({today_date}): {t_diaper} diaper changes. Recent 7-Day Avg (excluding target day): {diaper_7d:.1f} changes/day. Selected Range ({start_date} to {end_date}) Avg: {avg_diapers:.1f} changes/day. (Total events in range: {wets} wet, {poops} poops)."
-        
-        render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diaper events...", ai_prompt_context=ai_diaper_context, category_df=diaper_df)
+        hardcoded_diaper = f"""• **Output Breakdown:** **{wets}** wet diapers and **{poops}** poop diapers recorded across **{len(diaper_df)}** total events.
+• **Daily Pace:** Averaging **{avg_diapers:.1f}** diaper changes/day over selected range.
+• **Today's Status:** **{t_diaper}** change(s) today (7-day baseline avg: ~{diaper_7d:.1f} changes/day)."""
 
+        ai_diaper_context = f"Category: Diaper Output. Today: {t_diaper} diaper changes. Recent 7-Day Avg (excluding today): {diaper_7d:.1f} changes/day. Selected Range ({start_date} to {end_date}) Avg: {avg_diapers:.1f} changes/day. (Total events in range: {wets} wet, {poops} poops)."
+        render_insight_card(hardcoded_diaper, ai_prompt_context=ai_diaper_context, category_df=diaper_df)
+    else: 
+        render_empty_state("No Diaper Data Logged in this period")
+
+
+# ==========================================
 # TAB 4: PUMPING
+# ==========================================
 with tab4:
     pump_df = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)].copy()
     if not pump_df.empty:
         grouped_pump = pump_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
         grouped_pump[group_col] = grouped_pump[group_col].apply(format_x_label)
         is_single = len(grouped_pump[group_col].unique()) == 1
+        
         fig_pump = px.bar(grouped_pump, x=group_col, y="Value (Optional)", color_discrete_sequence=[COLOR_MAP["🧴 Pumping (mL)"]])
         if is_single: fig_pump.update_traces(width=0.25)
         fig_pump.update_traces(hovertemplate='%{y} mL<extra></extra>')
@@ -1069,21 +1092,32 @@ with tab4:
         
         st.caption("ℹ️ *Displays recorded pumping volume (mL).*")
 
+        # --- LOCAL METRICS COMPUTATION ---
         avg_pump = pump_df['Value (Optional)'].sum() / max(1, len(pump_df))
         t_pump = today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
+        p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
         pump_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum() / 7
-        ai_pump_context = f"Category: Pumping. Today: {t_pump:.0f} mL. Recent 7-Day Avg: {pump_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}): {len(pump_df)} sessions, avg {avg_pump:.0f} mL/session."
-        
-        render_insight_card(f"Across **{len(pump_df)}** sessions...", ai_prompt_context=ai_pump_context, category_df=pump_df, subject="Yanyi")
-    else: render_empty_state("No Pumping Data Logged in this period")
 
-# TAB 5: TUMMY
+        hardcoded_pump = f"""• **Pumping Yield:** Total **{int(pump_df['Value (Optional)'].sum()):,} mL** produced across **{len(pump_df)}** sessions.
+• **Session Average:** Yielding **{avg_pump:.0f} mL** per pumping session.
+• **Today's Output:** **{int(t_pump):,} mL** pumped today across {p_cnt_today} session(s)."""
+
+        ai_pump_context = f"Category: Pumping. Today: {t_pump:.0f} mL. Recent 7-Day Avg (excluding today): {pump_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}): {len(pump_df)} sessions, avg {avg_pump:.0f} mL/session."
+        render_insight_card(hardcoded_pump, ai_prompt_context=ai_pump_context, category_df=pump_df, subject="Yanyi")
+    else: 
+        render_empty_state("No Pumping Data Logged in this period")
+
+
+# ==========================================
+# TAB 5: TUMMY TIME
+# ==========================================
 with tab5:
     tummy_df = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)].copy()
     if not tummy_df.empty:
         grouped_tummy = tummy_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
         grouped_tummy[group_col] = grouped_tummy[group_col].apply(format_x_label)
         is_single = len(grouped_tummy[group_col].unique()) == 1
+        
         fig_tummy = px.bar(grouped_tummy, x=group_col, y="Value (Optional)", color_discrete_sequence=[COLOR_MAP["🛟 Tummy Time (Mins)"]])
         if is_single: fig_tummy.update_traces(width=0.25)
         fig_tummy.update_traces(hovertemplate='%{y} Mins<extra></extra>')
@@ -1092,19 +1126,29 @@ with tab5:
         
         st.caption("ℹ️ *Displays recorded tummy time duration (Mins).*")
 
+        # --- LOCAL METRICS COMPUTATION ---
         total_tummy = tummy_df['Value (Optional)'].sum()
         avg_tummy = total_tummy / max(1, len(tummy_df))
         t_tummy = today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
+        tummy_cnt_today = len(today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
         tummy_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum() / 7
-        ai_tummy_context = f"Category: Tummy Time. Today: {t_tummy:.0f} mins. Recent 7-Day Avg: {tummy_7d:.0f} mins/day. Selected Range ({start_date} to {end_date}): {total_tummy:.0f} total mins, avg {avg_tummy:.0f} mins/session."
-        
-        render_insight_card(f"Riley achieved **{total_tummy:.0f} total minutes**...", ai_prompt_context=ai_tummy_context, category_df=tummy_df)
-    else: render_empty_state("No Tummy Time Data Logged in this period")
 
+        hardcoded_tummy = f"""• **Total Activity:** **{total_tummy:.0f} total minutes** logged across **{len(tummy_df)}** session(s).
+• **Session Average:** Averaging **{avg_tummy:.1f} minutes** per tummy time session.
+• **Today's Progress:** **{int(t_tummy)} min(s)** completed today ({tummy_cnt_today} session(s))."""
+
+        ai_tummy_context = f"Category: Tummy Time. Today: {t_tummy:.0f} mins. Recent 7-Day Avg (excluding today): {tummy_7d:.0f} mins/day. Selected Range ({start_date} to {end_date}): {total_tummy:.0f} total mins, avg {avg_tummy:.0f} mins/session."
+        render_insight_card(hardcoded_tummy, ai_prompt_context=ai_tummy_context, category_df=tummy_df)
+    else: 
+        render_empty_state("No Tummy Time Data Logged in this period")
+
+
+# ==========================================
 # TAB 6: GROWTH
+# ==========================================
 with tab6:
     st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size: 0.85rem; text-align: center; margin-bottom: 10px;'><a href='[https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf](https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf)' target='_blank' style='color: #64748b; text-decoration: none; opacity: 0.8;'>📄 Official HK Growth Charts Reference (PDF)</a></p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 0.85rem; text-align: center; margin-bottom: 10px;'><a href='https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf' target='_blank' style='color: #64748b; text-decoration: none; opacity: 0.8;'>📄 Official HK Growth Charts Reference (PDF)</a></p>", unsafe_allow_html=True)
 
     who_option = st.radio("Select Growth Chart:", options=["⚖️ Weight", "🏔️ Height", "🐷 Head"], horizontal=True, label_visibility="collapsed")
     
@@ -1114,7 +1158,8 @@ with tab6:
             if prefetch_opt != who_option:
                 p_keyword = "⚖️ Weight (kg)" if "Weight" in prefetch_opt else ("🏔️ Height (cm)" if "Height" in prefetch_opt else "🐷 Head Size (cm)")
                 p_context = build_growth_ai_context(p_keyword, prefetch_opt)
-                render_insight_card("", ai_prompt_context=p_context, hidden_prefetch=True)
+                p_df = df[df['Event Type'] == p_keyword]
+                render_insight_card("", ai_prompt_context=p_context, category_df=p_df, hidden_prefetch=True)
     
     db_keyword = "⚖️ Weight (kg)" if "Weight" in who_option else ("🏔️ Height (cm)" if "Height" in who_option else "🐷 Head Size (cm)")
     who_df = df[df['Event Type'] == db_keyword].copy()
@@ -1214,11 +1259,24 @@ with tab6:
         latest_pct = latest_data['Est_Pct']
         latest_val = latest_data['Value (Optional)']
         
-        ai_growth_context = build_growth_ai_context(db_keyword, who_option)
-        render_insight_card(f"At **{latest_data['Age_Months']:.1f} months**...", ai_prompt_context=ai_growth_context, category_df=who_df)
-    else: render_empty_state(f"No {who_option} Data Logged")
+        # --- RICH HARDCODED SUMMARY WITH VARIANCE FROM 50th PERCENTILE ---
+        p50_val = np.interp(latest_data['Age_Months'], m_x, p50)
+        diff_p50 = latest_val - p50_val
+        diff_str = f"+{diff_p50:.1f}" if diff_p50 >= 0 else f"{diff_p50:.1f}"
+        
+        hardcoded_growth = f"""• **Latest Measurement ({latest_data['Date']}):** **{latest_val:.1f} {unit_str}** at **{latest_data['Age_Months']:.1f} months** old.
+• **HK Percentile Rank:** ~**{latest_pct:.0f}th percentile** (Benchmark 50th percentile for exact age: **{p50_val:.1f} {unit_str}** | Variance: **{diff_str} {unit_str}**).
+• **Growth Trajectory:** **{len(who_df)}** total data point(s) recorded in database."""
 
+        ai_growth_context = build_growth_ai_context(db_keyword, who_option)
+        render_insight_card(hardcoded_growth, ai_prompt_context=ai_growth_context, category_df=who_df)
+    else: 
+        render_empty_state(f"No {who_option} Data Logged")
+
+
+# ==========================================
 # TAB 7: HEALTH
+# ==========================================
 with tab7:
     act_option = st.radio("Select Category:", options=["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"], index=0, horizontal=True, label_visibility="collapsed")
     
@@ -1227,7 +1285,9 @@ with tab7:
         for prefetch_opt in ["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"]:
             if prefetch_opt != act_option:
                 p_context = build_health_ai_context(prefetch_opt)
-                render_insight_card("", ai_prompt_context=p_context, hidden_prefetch=True)
+                p_kw = act_mapping[prefetch_opt][0]
+                p_df = filtered_df[filtered_df['Event Type'].str.contains(p_kw, case=False, na=False)]
+                render_insight_card("", ai_prompt_context=p_context, category_df=p_df, hidden_prefetch=True)
     
     keyword, y_title, act_color, unit = act_mapping[act_option]
     act_df = filtered_df[filtered_df['Event Type'].str.contains(keyword, case=False, na=False)].copy()
@@ -1259,12 +1319,41 @@ with tab7:
         
         st.caption(f"ℹ️ *Displays recorded {act_option} data.*")
 
+        # --- LOCAL METRICS COMPUTATION ---
         avg_act = act_df['Value (Optional)'].mean()
-        ai_health_context = build_health_ai_context(act_option)
-        render_insight_card(f"Across **{len(act_df)}** records...", ai_prompt_context=ai_health_context, category_df=act_df)
-    else: render_empty_state(f"No {act_option.split(' ')[1]} Data Logged in this period")
+        t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
+        t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
+        t_sleep = today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
+        t_meds = len(today_df[today_df['Event Type'].str.contains("Meds", case=False, na=False)])
 
+        if keyword == "Temp":
+            max_temp = act_df['Value (Optional)'].max()
+            min_temp = act_df['Value (Optional)'].min()
+            fever_status = "⚠️ Fever detected in history (>37.5°C)" if max_temp >= 37.5 else "✅ Normal limits (36.5–37.5°C)"
+            hardcoded_health = f"""• **Temperature Range:** Selected range avg **{avg_act:.1f} °C** (Min: {min_temp:.1f} °C | Max: {max_temp:.1f} °C across {len(act_df)} readings).
+• **Clinical Status:** {fever_status}.
+• **Today's Reading:** {f"{t_latest_temp:.1f} °C" if t_latest_temp is not None else "No readings today"}."""
+
+        elif keyword == "Sleep":
+            total_sleep_hrs = act_df['Value (Optional)'].sum()
+            hardcoded_health = f"""• **Sleep Duration:** Total **{total_sleep_hrs:.1f} hrs** across **{len(act_df)}** sleep period(s) (Avg: **{avg_act:.1f} hrs** per period).
+• **Daily Pace:** Averaging ~**{total_sleep_hrs / max(1, (end_date - start_date).days + 1):.1f} hrs/day** over selected date range.
+• **Today's Rest:** **{int(t_sleep)} hr(s)** logged today."""
+
+        else: # Meds
+            hardcoded_health = f"""• **Medication Tracking:** Total **{len(act_df)}** dose(s) administered in selected date range.
+• **Daily Pace:** Averaging ~**{len(act_df) / max(1, (end_date - start_date).days + 1):.1f} dose(s)/day**.
+• **Today's Status:** **{t_meds}** dose(s) recorded today."""
+
+        ai_health_context = build_health_ai_context(act_option)
+        render_insight_card(hardcoded_health, ai_prompt_context=ai_health_context, category_df=act_df)
+    else: 
+        render_empty_state(f"No {act_option.split(' ')[1]} Data Logged in this period")
+
+
+# ==========================================
 # TAB 8: VACCINE
+# ==========================================
 with tab8:
     vac_df = df[df['Event Type'] == "💉 Vaccine (Cnt)"].copy()
     
@@ -1311,16 +1400,25 @@ with tab8:
         })
         
     styled_df = pd.DataFrame(rows)
+    total_vacs = len(vac_df)
+    upcoming = [r for r in rows if r["Status"] == "🟡 Due Soon" or r["Status"] == "⚠️ Overdue"]
+    next_due = upcoming[0]["Vaccine / 疫苗"] if upcoming else "All caught up"
     
-    if not vac_df.empty:
-        total_vacs = len(vac_df)
-        upcoming = [r for r in rows if r["Status"] == "🟡 Due Soon" or r["Status"] == "⚠️ Overdue"]
-        next_due = upcoming[0]["Vaccine / 疫苗"] if upcoming else "All caught up"
-        
-        # ONLINE REFERENCE INSTRUCTION: Evaluates missing or additional recommended shots for HK standard
-        ai_vac_context = f"Category: Vaccines. Total administered so far: {total_vacs}. Next scheduled action required: {next_due}. Check HK standard pediatric guidelines for a {age_days}-day-old / {age_days/30.437:.1f}-month-old baby girl. Cross-reference all administered vaccines against standard HK requirements to identify any missing, upcoming, or additional recommended shots."
-        
-        render_insight_card(f"Riley has received **{total_vacs}** vaccine(s)...", ai_prompt_context=ai_vac_context, category_df=vac_df)
+    overdue_cnt = len([r for r in rows if r["Status"] == "⚠️ Overdue"])
+    due_soon_cnt = len([r for r in rows if r["Status"] == "🟡 Due Soon"])
+    
+    status_summary = []
+    if overdue_cnt > 0: status_summary.append(f"⚠️ {overdue_cnt} Overdue")
+    if due_soon_cnt > 0: status_summary.append(f"🟡 {due_soon_cnt} Due Soon")
+    status_str = " | ".join(status_summary) if status_summary else "✅ All current milestones up to date"
+
+    hardcoded_vac = f"""• **Vaccine Progress:** **{total_vacs}** dose(s) recorded in database.
+• **Immunization Status:** {status_str}.
+• **Next Scheduled Milestone:** **{next_due}**."""
+
+    ai_vac_context = f"Category: Vaccines. Total administered so far: {total_vacs}. Next scheduled action required: {next_due}. Check HK standard pediatric guidelines for a {age_days}-day-old / {age_days/30.437:.1f}-month-old baby girl. Cross-reference all administered vaccines against standard HK requirements to identify any missing, upcoming, or additional recommended shots."
+    
+    render_insight_card(hardcoded_vac, ai_prompt_context=ai_vac_context, category_df=vac_df)
 
     v_col1, v_col2 = st.columns([1, 1])
     with v_col1: grouping = st.radio("Sort View:", ["By Age Milestone", "By Vaccine Type"], horizontal=True, label_visibility="collapsed")
