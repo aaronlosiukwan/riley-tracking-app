@@ -948,8 +948,20 @@ with tab1:
             color_discrete_map=COLOR_MAP, text="Value (Optional)", hover_data={"Value (Optional)": True, "CategoryBubbleSize": False, "DateTime": False, "Event Type": False}, size_max=14
         )
         
+        # 90° Vertical Text Labels with Value ONLY (No Units)
         fig_today_timeline.for_each_trace(
-            lambda t: t.update(mode='markers+text', marker=dict(opacity=0.75, line=dict(width=1, color='white')), textposition='top center', textfont=dict(weight='bold'), texttemplate='%{text}' + get_unit_from_name(t.name)) if "(Cnt)" not in t.name else t.update(mode='markers', marker=dict(opacity=0.75, line=dict(width=1, color='white')), text=None)
+            lambda t: t.update(
+                mode='markers+text',
+                marker=dict(opacity=0.85, line=dict(width=1.5, color='white')),
+                textposition='top center',
+                textfont=dict(weight='bold', size=10),
+                textangle=-90,
+                texttemplate='%{text}'
+            ) if "(Cnt)" not in t.name else t.update(
+                mode='markers',
+                marker=dict(opacity=0.85, line=dict(width=1.5, color='white')),
+                text=None
+            )
         )
         
         fig_today_timeline.update_traces(hovertemplate='%{customdata[0]}<extra></extra>')
@@ -1007,23 +1019,36 @@ with tab2:
         total_per_x[group_col] = total_per_x[group_col].apply(format_x_label)
         is_single = len(grouped_count[group_col].unique()) == 1
         
-        fig_milk = make_subplots(specs=[[{"secondary_y": True}]])
+        # Faceted 2-Row Subplot Panel to eliminate dual Y-axis confusion on mobile
+        fig_milk = make_subplots(
+            rows=2, cols=1, 
+            shared_xaxes=True, 
+            row_heights=[0.7, 0.3], 
+            vertical_spacing=0.08,
+            subplot_titles=(f"🍼 Milk Intake Volume (mL) — {granularity}", "🔢 Feed Count(s)")
+        )
+        
         df_f = grouped_vol[grouped_vol['Category'] == '🍼 Formula (mL)']
         if not df_f.empty: 
-            fig_milk.add_trace(go.Bar(name='🍼 Formula (mL)', x=df_f[group_col].astype(str), y=df_f['Value (Optional)'], marker_color="#38bdf8", width=0.25 if is_single else None, text=df_f['Value (Optional)'], textposition='inside', textfont=dict(weight='bold', color='white'), hovertemplate='%{y} mL<extra></extra>'), secondary_y=False)
+            fig_milk.add_trace(go.Bar(name='🍼 Formula (mL)', x=df_f[group_col].astype(str), y=df_f['Value (Optional)'], marker_color="#38bdf8", width=0.35 if is_single else None, text=df_f['Value (Optional)'], textposition='inside', textfont=dict(weight='bold', color='white'), hovertemplate='%{y} mL<extra></extra>'), row=1, col=1)
             
         df_bm = grouped_vol[grouped_vol['Category'] == '🤱 Breast Milk (mL)']
         if not df_bm.empty: 
-            fig_milk.add_trace(go.Bar(name='🤱 Breast Milk (mL)', x=df_bm[group_col].astype(str), y=df_bm['Value (Optional)'], marker_color="#94a3b8", width=0.25 if is_single else None, hovertemplate='%{y} mL<extra></extra>'), secondary_y=False)
+            fig_milk.add_trace(go.Bar(name='🤱 Breast Milk (mL)', x=df_bm[group_col].astype(str), y=df_bm['Value (Optional)'], marker_color="#94a3b8", width=0.35 if is_single else None, hovertemplate='%{y} mL<extra></extra>'), row=1, col=1)
             
-        fig_milk.add_trace(go.Scatter(name='🔢 Feed Count(s)', x=grouped_count[group_col].astype(str), y=grouped_count['Total Feeds Count'], mode='lines+markers+text', text=grouped_count['Total Feeds Count'], textposition="top center", textfont=dict(size=10.5, weight='bold'), line=dict(color='#f97316', width=3, shape='spline', smoothing=1.3), marker=dict(size=10, symbol='circle', color='#f97316', line=dict(width=2, color='#ffffff')), hovertemplate='%{y} feeds<extra></extra>'), secondary_y=True)
-        fig_milk.add_trace(go.Scatter(name='📈 Vol Trend', x=total_per_x[group_col].astype(str), y=total_per_x['Trend'], mode='lines', line=dict(color='#64748b', width=2, shape='spline'), hovertemplate='Avg Trend: %{y:.0f} mL<extra></extra>'), secondary_y=False)
-        
-        fig_milk = style_plotly_figure(fig_milk, title_text=f"🍼 Milk Intake Volume & Feed Count — {granularity}", height=490, single_point=is_single)
-        fig_milk.update_layout(barmode='stack')
+        fig_milk.add_trace(go.Scatter(name='📈 Vol Trend', x=total_per_x[group_col].astype(str), y=total_per_x['Trend'], mode='lines', line=dict(color='#0f172a', width=2.5, shape='spline'), hovertemplate='Avg Trend: %{y:.0f} mL<extra></extra>'), row=1, col=1)
+        fig_milk.add_trace(go.Bar(name='🔢 Feed Count', x=grouped_count[group_col].astype(str), y=grouped_count['Total Feeds Count'], marker_color='#f97316', width=0.35 if is_single else None, text=grouped_count['Total Feeds Count'], textposition="outside", textfont=dict(size=10, weight='bold'), hovertemplate='%{y} feeds<extra></extra>'), row=2, col=1)
+
+        fig_milk.update_layout(
+            barmode='stack', height=520, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            margin=dict(l=2, r=2, t=40, b=20), showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+            font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", size=11),
+            xaxis2=dict(type="category", showgrid=True, gridcolor="#f1f5f9", tickfont=dict(size=9.5), automargin=True),
+            yaxis=dict(showgrid=True, gridcolor="#f1f5f9"), yaxis2=dict(showgrid=True, gridcolor="#f1f5f9")
+        )
         st.plotly_chart(fig_milk, use_container_width=True)
         
-        st.caption("ℹ️ *Combines stacked Formula and Breast Milk volume (mL) with Feed Count(s).*")
+        st.caption("ℹ️ *Subplot layout separating stacked Formula/Breast Milk volume (mL) and Feed Count(s).*")
 
         # --- LOCAL METRICS COMPUTATION ---
         avg_vol = total_per_x['Value (Optional)'].mean()
@@ -1048,23 +1073,38 @@ with tab2:
 with tab3:
     diaper_df = filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)].copy()
     if not diaper_df.empty:
-        diaper_df['Category'] = diaper_df['Event Type'].apply(lambda x: "🚽 Poop (Cnt)" if "poop" in x.lower() else "💧 Wet Diaper (Cnt)")
-        grouped_diaper = diaper_df.groupby([group_col, 'Category']).size().reset_index(name='Count')
+        # --- DEDUPLICATED DIAPER STACKING ENGINE ---
+        dt_group = diaper_df.groupby(['DateTime', group_col]).agg(
+            has_poop=('Event Type', lambda s: any('poop' in str(x).lower() for x in s)),
+            has_wet=('Event Type', lambda s: any('wet' in str(x).lower() for x in s))
+        ).reset_index()
+
+        def classify_diaper(row):
+            if row['has_poop']: return "🚽 Poop"
+            else: return "💧 Wet Diaper (Only)"
+
+        dt_group['Category'] = dt_group.apply(classify_diaper, axis=1)
+        grouped_diaper = dt_group.groupby([group_col, 'Category']).size().reset_index(name='Count')
         grouped_diaper[group_col] = grouped_diaper[group_col].apply(format_x_label)
         is_single = len(grouped_diaper[group_col].unique()) == 1
         
-        fig_diaper = px.bar(grouped_diaper, x=group_col, y="Count", color="Category", barmode="group", color_discrete_map=COLOR_MAP)
+        diaper_color_map = {
+            "💧 Wet Diaper (Only)": "#3b82f6",
+            "🚽 Poop": "#d97706"
+        }
+
+        fig_diaper = px.bar(grouped_diaper, x=group_col, y="Count", color="Category", barmode="stack", color_discrete_map=diaper_color_map)
         if is_single: fig_diaper.update_traces(width=0.25)
         fig_diaper.update_traces(hovertemplate='%{y}<extra></extra>')
-        fig_diaper = style_plotly_figure(fig_diaper, title_text=f"🚽 Diaper Changes Count — {granularity}", height=450, single_point=is_single)
+        fig_diaper = style_plotly_figure(fig_diaper, title_text=f"🚽 Total Diaper Changes Count — {granularity}", height=450, single_point=is_single)
         st.plotly_chart(fig_diaper, use_container_width=True)
         
-        st.caption("ℹ️ *Compares Wet Diapers and Poop counts.*")
+        st.caption("ℹ️ *Stacked deduplicated diaper changes (Poop changes stacked over Wet-only changes to strictly match total changes).*")
 
-        # --- DEDUPLICATED DIAPER METRICS COMPUTATION ---
+        # --- DEDUPLICATED METRICS COMPUTATION ---
         avg_diapers = diaper_df.groupby('Date')['DateTime'].nunique().mean()
-        wets = len(diaper_df[diaper_df['Category'] == '💧 Wet Diaper (Cnt)'])
-        poops = len(diaper_df[diaper_df['Category'] == '🚽 Poop (Cnt)'])
+        wets = len(diaper_df[diaper_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
+        poops = len(diaper_df[diaper_df['Event Type'].str.contains("Poop", case=False, na=False)])
         
         t_diaper_events = today_df[today_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)]
         t_diaper = t_diaper_events['DateTime'].nunique() if not t_diaper_events.empty else 0
@@ -1089,16 +1129,18 @@ with tab4:
     pump_df = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)].copy()
     if not pump_df.empty:
         grouped_pump = pump_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
+        grouped_pump['Trend'] = grouped_pump['Value (Optional)'].rolling(window=min(7, len(grouped_pump)), min_periods=1).mean()
         grouped_pump[group_col] = grouped_pump[group_col].apply(format_x_label)
         is_single = len(grouped_pump[group_col].unique()) == 1
         
-        fig_pump = px.bar(grouped_pump, x=group_col, y="Value (Optional)", color_discrete_sequence=[COLOR_MAP["🧴 Pumping (mL)"]])
-        if is_single: fig_pump.update_traces(width=0.25)
-        fig_pump.update_traces(hovertemplate='%{y} mL<extra></extra>')
-        fig_pump = style_plotly_figure(fig_pump, title_text=f"🧴 Pumping Volume (mL) — {granularity}", height=450, single_point=is_single)
+        fig_pump = go.Figure()
+        fig_pump.add_trace(go.Bar(name='Yield (mL)', x=grouped_pump[group_col].astype(str), y=grouped_pump['Value (Optional)'], marker_color=COLOR_MAP["🧴 Pumping (mL)"], width=0.25 if is_single else None, hovertemplate='%{y} mL<extra></extra>'))
+        fig_pump.add_trace(go.Scatter(name='7-Period Trend', x=grouped_pump[group_col].astype(str), y=grouped_pump['Trend'], mode='lines', line=dict(color='#475569', width=2.5, shape='spline'), hovertemplate='Trend: %{y:.0f} mL<extra></extra>'))
+        
+        fig_pump = style_plotly_figure(fig_pump, title_text=f"🧴 Pumping Volume (mL) & Trend — {granularity}", height=450, single_point=is_single)
         st.plotly_chart(fig_pump, use_container_width=True)
         
-        st.caption("ℹ️ *Displays recorded pumping volume (mL).*")
+        st.caption("ℹ️ *Displays recorded pumping volume (mL) with rolling trend line.*")
 
         # --- LOCAL METRICS COMPUTATION ---
         avg_pump = pump_df['Value (Optional)'].sum() / max(1, len(pump_df))
@@ -1123,16 +1165,18 @@ with tab5:
     tummy_df = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)].copy()
     if not tummy_df.empty:
         grouped_tummy = tummy_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
+        grouped_tummy['Trend'] = grouped_tummy['Value (Optional)'].rolling(window=min(7, len(grouped_tummy)), min_periods=1).mean()
         grouped_tummy[group_col] = grouped_tummy[group_col].apply(format_x_label)
         is_single = len(grouped_tummy[group_col].unique()) == 1
         
-        fig_tummy = px.bar(grouped_tummy, x=group_col, y="Value (Optional)", color_discrete_sequence=[COLOR_MAP["🛟 Tummy Time (Mins)"]])
-        if is_single: fig_tummy.update_traces(width=0.25)
-        fig_tummy.update_traces(hovertemplate='%{y} Mins<extra></extra>')
-        fig_tummy = style_plotly_figure(fig_tummy, title_text=f"🛟 Tummy Time — {granularity}", height=450, single_point=is_single)
+        fig_tummy = go.Figure()
+        fig_tummy.add_trace(go.Bar(name='Duration (Mins)', x=grouped_tummy[group_col].astype(str), y=grouped_tummy['Value (Optional)'], marker_color=COLOR_MAP["🛟 Tummy Time (Mins)"], width=0.25 if is_single else None, hovertemplate='%{y} Mins<extra></extra>'))
+        fig_tummy.add_trace(go.Scatter(name='7-Period Trend', x=grouped_tummy[group_col].astype(str), y=grouped_tummy['Trend'], mode='lines', line=dict(color='#047857', width=2.5, shape='spline'), hovertemplate='Trend: %{y:.0f} Mins<extra></extra>'))
+
+        fig_tummy = style_plotly_figure(fig_tummy, title_text=f"🛟 Tummy Time Duration & Trend — {granularity}", height=450, single_point=is_single)
         st.plotly_chart(fig_tummy, use_container_width=True)
         
-        st.caption("ℹ️ *Displays recorded tummy time duration (Mins).*")
+        st.caption("ℹ️ *Displays recorded tummy time duration (Mins) with rolling trend line.*")
 
         # --- LOCAL METRICS COMPUTATION ---
         total_tummy = tummy_df['Value (Optional)'].sum()
@@ -1202,12 +1246,13 @@ with tab6:
         fig_who = go.Figure()
         unit_str = db_keyword.split('(')[1].replace(')','')
         
+        # Background Percentile Bands (Retains All Hover Info)
         fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p97, line=dict(width=0), name='97th Pct', hoverinfo='x+y+name', hovertemplate='97th: %{y:.2f} ' + unit_str + '<extra></extra>'))
-        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p85, fill='tonexty', fillcolor='rgba(14,165,233,0.1)', line=dict(width=0), name='85th Pct', hoverinfo='x+y+name', hovertemplate='85th: %{y:.2f} ' + unit_str + '<extra></extra>'))
-        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p50, fill='tonexty', fillcolor='rgba(14,165,233,0.25)', line=dict(width=0), name='50th Pct', hoverinfo='x+y+name', hovertemplate='50th: %{y:.2f} ' + unit_str + '<extra></extra>'))
-        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p15, fill='tonexty', fillcolor='rgba(14,165,233,0.25)', line=dict(width=0), name='15th Pct', hoverinfo='x+y+name', hovertemplate='15th: %{y:.2f} ' + unit_str + '<extra></extra>'))
-        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p3, fill='tonexty', fillcolor='rgba(14,165,233,0.1)', line=dict(width=0), name='3rd Pct', hoverinfo='x+y+name', hovertemplate='3rd: %{y:.2f} ' + unit_str + '<extra></extra>'))
-        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p50, mode='lines', line=dict(color='rgba(2,132,199,0.5)', width=2, dash='dot'), showlegend=False, hoverinfo='skip'))
+        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p85, fill='tonexty', fillcolor='rgba(14,165,233,0.08)', line=dict(width=0), name='85th Pct', hoverinfo='x+y+name', hovertemplate='85th: %{y:.2f} ' + unit_str + '<extra></extra>'))
+        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p50, fill='tonexty', fillcolor='rgba(14,165,233,0.20)', line=dict(width=0), name='50th Pct', hoverinfo='x+y+name', hovertemplate='50th: %{y:.2f} ' + unit_str + '<extra></extra>'))
+        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p15, fill='tonexty', fillcolor='rgba(14,165,233,0.20)', line=dict(width=0), name='15th Pct', hoverinfo='x+y+name', hovertemplate='15th: %{y:.2f} ' + unit_str + '<extra></extra>'))
+        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p3, fill='tonexty', fillcolor='rgba(14,165,233,0.08)', line=dict(width=0), name='3rd Pct', hoverinfo='x+y+name', hovertemplate='3rd: %{y:.2f} ' + unit_str + '<extra></extra>'))
+        fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p50, mode='lines', line=dict(color='rgba(2,132,199,0.5)', width=1.5, dash='dot'), showlegend=False, hoverinfo='skip'))
         
         c_code = COLOR_MAP.get(db_keyword, '#38bdf8')
         
@@ -1224,9 +1269,10 @@ with tab6:
             ht = f"<b>{row['Date']}</b><br><b>Value: {v:.1f} {unit_str}</b><br>Estimated Bracket: ~{pct}<extra></extra>"
             hover_text.append(ht)
 
+        # Hero Curve Styling: Thick 3.5px spline with white-bordered markers
         fig_who.add_trace(go.Scatter(
             x=who_df['Age_Months'], y=who_df['Value (Optional)'], mode='lines+markers',
-            line=dict(color=c_code, width=3, shape='spline'),
+            line=dict(color=c_code, width=3.5, shape='spline'),
             marker=dict(size=10, color=c_code, line=dict(width=2, color='#ffffff')),
             name=who_option.split(' ')[1], text=hover_text, hovertemplate="%{text}"
         ))
@@ -1244,7 +1290,7 @@ with tab6:
         y_lower = min(min_p3_vis, u_min) * 0.99
 
         fig_who.update_layout(
-            title=dict(text=f"📈 {who_option.split(' ')[1]}", y=0.97, x=0.5, xanchor="center", font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", size=17, color="#0f172a")),
+            title=dict(text=f"📈 {who_option.split(' ')[1]} Growth Trajectory", y=0.97, x=0.5, xanchor="center", font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", size=17, color="#0f172a")),
             height=500, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(l=2, r=2, t=60, b=20),
             xaxis=dict(title="Age (Months)", showgrid=True, gridcolor="#f1f5f9", tickformat=".0f", range=[range_min, x_max_buffer]),
             yaxis=dict(title="", showgrid=True, gridcolor="#f1f5f9", range=[y_lower, y_upper]),
@@ -1288,8 +1334,14 @@ with tab7:
             grouped_act = act_df.groupby(group_col)['Value (Optional)'].mean().reset_index()
             grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
             is_single = len(grouped_act[group_col].unique()) == 1
+            
             fig_act = px.line(grouped_act, x=group_col, y="Value (Optional)", markers=True, color_discrete_sequence=[act_color], labels={"Value (Optional)": y_title, group_col: granularity})
             fig_act.update_traces(line=dict(width=3, shape='spline', smoothing=1.3), marker=dict(size=12 if is_single else 8, symbol='circle', line=dict(width=2, color='#ffffff')), hovertemplate=f'%{{y:.1f}} {unit}<extra></extra>')
+            
+            # Clinical Fever Line at 37.5°C with subtle background shading
+            fig_act.add_hline(y=37.5, line_dash="dash", line_color="#ef4444", annotation_text="Fever Baseline (37.5°C)", annotation_position="top right", annotation_font=dict(color="#ef4444", size=10))
+            fig_act.add_hrect(y0=37.5, y1=41.0, fillcolor="#fee2e2", opacity=0.25, line_width=0)
+
         elif keyword == "Sleep":
             grouped_act = act_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
             grouped_act[group_col] = grouped_act[group_col].apply(format_x_label)
