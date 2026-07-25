@@ -285,7 +285,7 @@ if st.session_state.get('show_refresh_toast', False):
     st.session_state.show_refresh_toast = False
 
 # ==========================================
-# 3. SIDEBAR TABLE OF CONTENTS & GSHEET SETTINGS
+# 3. SIDEBAR TABLE OF CONTENTS & SETTINGS
 # ==========================================
 st.sidebar.markdown("""
     <div style="margin-bottom: 12px;">
@@ -297,11 +297,12 @@ st.sidebar.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-st.sidebar.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
+# --- Sub-Category 1: AI Settings ---
+st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>🤖 AI & Insights</div>", unsafe_allow_html=True)
 
 if "ai_insights_enabled" not in st.session_state:
-    st.session_state.ai_insights_enabled = True # Always default to non-AI view on fresh reload
+    st.session_state.ai_insights_enabled = True
 
 use_ai_insights = st.sidebar.toggle(
     "✨ Enable AI Insights", 
@@ -314,12 +315,26 @@ if st.sidebar.button("🔄 Force Refresh AI Summaries", use_container_width=True
     global_ai_cache.clear()
     st.rerun()
 
-sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
-tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
-if sheet_url_input: st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
+# --- Sub-Category 2: Data Connection ---
+st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>🔌 Data Connection</div>", unsafe_allow_html=True)
 
-st.sidebar.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
+# Strip out weird formatting artifacts (brackets/quotes) from the URL
+DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
+clean_default_url = DEFAULT_SHEET_URL.strip("[]'\"")
+
+sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=clean_default_url)
+sheet_url_input = sheet_url_input.strip("[]'\"") # Ensure the active variable is also clean
+
+if sheet_url_input: 
+    st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
+
+tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
+
+# --- Sub-Category 3: Baby Settings ---
+st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
+
 baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
