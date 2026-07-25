@@ -430,9 +430,9 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None):
 
 # ==========================================
 # 4. TODAY'S HIGHLIGHTS
-# ==========================================
-else:
-    last_feed_delta, last_feed_sub = "N/A", "No feed events"
+    # ==========================================
+    else:
+        last_feed_delta, last_feed_sub = "N/A", "No feed events"
 
 def render_empty_state(title="No Data Logged", subtitle="Try picking a wider date range or logging new entries."):
     st.markdown(f"""<div class="empty-data-card"><div class="empty-data-title">📋 {title}</div><div class="empty-data-sub">{subtitle}</div></div>""", unsafe_allow_html=True)
