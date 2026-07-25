@@ -1252,4 +1252,10 @@ st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
 # ==========================================
 if st.session_state.get('needs_auto_retry', False):
     st.session_state.needs_auto_retry = False
-    components.html("<script>setTimeout(function() { window.parent.location.reload(); }, 3000);</script>", height=0, width=0)
+    
+    import time
+    time.sleep(2.5) # Wait a moment for the AI API rate limit to clear
+    
+    # st.rerun() performs a soft-reload. It re-triggers the app while 
+    # perfectly preserving all your buttons, toggles, and session states!
+    st.rerun()
