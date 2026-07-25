@@ -324,24 +324,11 @@ st.sidebar.markdown("""
     .pro-nav-item:hover {
         background-color: #f1f5f9;
         color: #0f172a !important;
-        transform: translateX(3px); /* Subtle slide effect */
+        transform: translateX(3px);
     }
     
-    /* Custom Primary Button Styling (Refresh AI) */
-    [data-testid="stSidebar"] button[kind="primary"] {
-        border: 1px solid #cbd5e1 !important;
-        background-color: transparent !important;
-        color: #334155 !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
-        transition: all 0.2s ease !important;
-    }
-    [data-testid="stSidebar"] button[kind="primary"]:hover {
-        background-color: #7c3aed !important;
-        box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.25), 0 2px 4px -1px rgba(139, 92, 246, 0.1) !important;
-    }
-    
-    /* Custom Secondary Button Styling (Open Sheet) */
+    /* Custom Unified Button Styling (For BOTH Action Buttons) */
+    [data-testid="stSidebar"] button[kind="secondary"],
     [data-testid="stSidebar"] a[data-testid="baseLinkButton-secondary"] {
         border: 1px solid #cbd5e1 !important;
         background-color: transparent !important;
@@ -350,6 +337,7 @@ st.sidebar.markdown("""
         border-radius: 8px !important;
         transition: all 0.2s ease !important;
     }
+    [data-testid="stSidebar"] button[kind="secondary"]:hover,
     [data-testid="stSidebar"] a[data-testid="baseLinkButton-secondary"]:hover {
         background-color: #f8fafc !important;
         border-color: #94a3b8 !important;
@@ -370,7 +358,8 @@ st.sidebar.markdown("""
 # --- SECTION 2: ACTIONS ---
 st.sidebar.markdown('<div class="pro-sidebar-header">Actions</div>', unsafe_allow_html=True)
 
-if st.sidebar.button("🔄 Refresh AI Summaries", type="primary", use_container_width=True, help="Forces the AI to completely re-generate insights based on the latest data."):
+# Removed type="primary" so it dynamically picks up our unified secondary CSS styling
+if st.sidebar.button("🔄 Refresh AI Summaries", use_container_width=True, help="Forces the AI to completely re-generate insights based on the latest data."):
     st.session_state.ai_refresh_key = str(datetime.utcnow())
     global_ai_cache.clear()
     st.rerun()
@@ -381,7 +370,6 @@ if active_url:
 # --- SECTION 3: SETTINGS ---
 st.sidebar.markdown('<div class="pro-sidebar-header">Settings</div>', unsafe_allow_html=True)
 
-# All settings are neatly tucked into expanders, closed by default (expanded=False)
 with st.sidebar.expander("🧠 AI Preferences", expanded=False):
     if "ai_insights_enabled" not in st.session_state:
         st.session_state.ai_insights_enabled = True
