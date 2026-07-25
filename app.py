@@ -297,15 +297,19 @@ def call_ai(prompt_text, api_key_param):
     
     # Fallback list of reliable, permanently free models to ensure the app never breaks
     free_models = [
-        "meta-llama/llama-3.1-8b-instruct:free",
-        "google/gemma-2-9b-it:free",
-        "mistralai/mistral-7b-instruct:free",
-        "huggingfaceh4/zephyr-7b-beta:free"
+        "openrouter/free",
+        "openai/gpt-oss-20b:free",
+        "google/gemma-4-31b-it:free",
+        "nvidia/nemotron-3-nano-30b-a3b:free"
     ]
     
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
         api_key=api_key_param,
+        default_headers={
+            "HTTP-Referer": "https://streamlit.app", # Required by OpenRouter for free models
+            "X-Title": "Rileys Dash"
+        }
     )
     
     last_error = ""
@@ -326,10 +330,10 @@ def call_ai(prompt_text, api_key_param):
             )
             return chat_completion.choices[0].message.content
         except Exception as e:
-            last_error = str(e)
+            last_error = f"Model {model_id} failed: {str(e)}"
             continue # If a model is down or becomes paid, seamlessly try the next one in the list
             
-    return f"⚠️ **AI Insight Error (All free models failed):** {last_error}"
+    return f"⚠️ **AI Insight Error:** {last_error}. Please check your OpenRouter API Key in Streamlit Secrets."
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_suggested_questions(context_str, api_key_param):
