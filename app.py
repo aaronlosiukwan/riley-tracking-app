@@ -10,10 +10,10 @@ import re
 from streamlit_gsheets import GSheetsConnection
 
 try:
-    from groq import Groq
-    GROQ_AVAILABLE = True
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
 except ImportError:
-    GROQ_AVAILABLE = False
+    OPENAI_AVAILABLE = False
 
 # ==========================================
 # 1. APP CONFIGURATION & STYLING
@@ -275,7 +275,7 @@ st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bo
 sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
 tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
 
-use_ai_insights = st.sidebar.toggle("✨ Enable Groq AI Insights", value=False, help="Switches cards from rule-based calculations to Groq Llama 3 narrative insights.")
+use_ai_insights = st.sidebar.toggle("✨ Enable AI Insights", value=False, help="Switches cards from rule-based calculations to OpenRouter AI narrative insights.")
 
 if sheet_url_input: st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
 
@@ -285,19 +285,23 @@ baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date(
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
 # ---------------------------------------------------------
-# AUTHENTICATED GSHEETS CONNECTION & GROQ HANDLERS
+# AUTHENTICATED GSHEETS CONNECTION & AI HANDLERS
 # ---------------------------------------------------------
 @st.cache_data(ttl=1800, show_spinner=False)
-def call_groq_ai(prompt_text, api_key_param):
-    if not GROQ_AVAILABLE:
-        return "⚠️ **Groq package missing.** Please install `groq` in `requirements.txt`."
+def call_ai(prompt_text, api_key_param):
+    if not OPENAI_AVAILABLE:
+        return "⚠️ **OpenAI package missing.** Please install `openai` in `requirements.txt`."
     
     if not api_key_param:
-        return "⚠️ **Groq API Key missing.** Set `GROQ_API_KEY` in Streamlit Secrets."
+        return "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets."
     
     try:
-        client = Groq(api_key=api_key_param)
+        client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key_param,
+        )
         chat_completion = client.chat.completions.create(
+            model="meta-llama/llama-3.1-8b-instruct:free",
             messages=[
                 {
                     "role": "system",
@@ -308,7 +312,6 @@ def call_groq_ai(prompt_text, api_key_param):
                     "content": prompt_text,
                 }
             ],
-            model="llama-3.1-8b-instant",
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
@@ -316,12 +319,12 @@ def call_groq_ai(prompt_text, api_key_param):
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_suggested_questions(context_str, api_key_param):
-    if not GROQ_AVAILABLE or not api_key_param:
+    if not OPENAI_AVAILABLE or not api_key_param:
         return ["How is Riley's sleep pattern?", "Is her milk intake normal?", "Any upcoming vaccines?"]
     
     prompt = f"Based on these recent logs:\n{context_str}\n\nSuggest exactly 3 short, highly relevant questions the parents could ask an AI pediatrician about this data. Return ONLY the 3 questions, one per line, without bullet points or numbers."
     try:
-        res = call_groq_ai(prompt, api_key_param)
+        res = call_ai(prompt, api_key_param)
         return [q.strip().replace('- ', '').replace('*', '') for q in res.split('\n') if q.strip()][:3]
     except:
         return ["How is Riley's sleep pattern?", "Is her milk intake normal?", "Any upcoming vaccines?"]
@@ -433,13 +436,13 @@ def get_unit_from_name(name):
     return ""
 
 def render_insight_card(hardcoded_text, ai_prompt_context=None):
-    api_key_param = st.secrets.get("GROQ_API_KEY", None)
-    if use_ai_insights and ai_prompt_context and GROQ_AVAILABLE:
-        with st.spinner("🤖 Generating Groq AI insight..."):
+    api_key_param = st.secrets.get("OPENROUTER_API_KEY", None)
+    if use_ai_insights and ai_prompt_context and OPENAI_AVAILABLE:
+        with st.spinner("🤖 Generating AI insight..."):
             prompt = f"Evaluate baby Riley's logs: {ai_prompt_context}. Write a 1-2 sentence encouraging insight highlighting key trends. Keep formatting simple with bold key metrics. Do not include introductory filler."
-            output_text = call_groq_ai(prompt, api_key_param)
+            output_text = call_ai(prompt, api_key_param)
             border_color = "#8b5cf6"
-            badge_title = "✨ Groq AI Insight"
+            badge_title = "✨ AI Insight"
             text_color = "#4c1d95"
     else:
         output_text = hardcoded_text
@@ -1158,11 +1161,11 @@ if 'chat_history' not in st.session_state:
 
 with st.popover("💬"):
     st.markdown("<h4 style='margin-bottom:0;'>🤖 Riley's AI Assistant</h4>", unsafe_allow_html=True)
-    st.caption("Ask anything about Riley's recent logs! (Powered by Groq)")
+    st.caption("Ask anything about Riley's recent logs! (Powered by OpenRouter)")
     
     # Generate a tight string context of the top 40 logs to feed the AI
     recent_logs_str = df.head(40)[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].to_string(index=False)
-    current_api_key = st.secrets.get("GROQ_API_KEY", None)
+    current_api_key = st.secrets.get("OPENROUTER_API_KEY", None)
     
     chat_container = st.container(height=320)
     for msg in st.session_state.chat_history:
@@ -1181,7 +1184,7 @@ with st.popover("💬"):
                 with chat_container.chat_message("assistant"):
                     with st.spinner("Thinking..."):
                         prompt = f"Riley (Born {baby_dob}, {baby_gender}). Logs:\n{recent_logs_str}\n\nParent asks: {q}"
-                        resp = call_groq_ai(prompt, current_api_key)
+                        resp = call_ai(prompt, current_api_key)
                         st.write(resp)
                 st.session_state.chat_history.append({"role": "assistant", "content": resp})
                 st.rerun()
@@ -1201,7 +1204,7 @@ with st.popover("💬"):
             with st.spinner("Thinking..."):
                 chat_context = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.chat_history[-4:]])
                 prompt = f"Riley (Born {baby_dob}, {baby_gender}). Logs:\n{recent_logs_str}\n\nConversation:\n{chat_context}\n\nRespond clearly and encouragingly."
-                resp = call_groq_ai(prompt, current_api_key)
+                resp = call_ai(prompt, current_api_key)
                 st.write(resp)
         st.session_state.chat_history.append({"role": "assistant", "content": resp})
         st.rerun()
