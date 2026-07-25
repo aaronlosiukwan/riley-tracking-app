@@ -1183,8 +1183,25 @@ with tab8:
 # ==========================================
 # 7. UNIFIED MASTER DATABASE & EDITOR
 # ==========================================
+if 'edit_mode' not in st.session_state:
+    st.session_state.edit_mode = False
+
 st.markdown('<div id="database" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
-st.subheader("📋 Master Database")
+
+db_c1, db_c2 = st.columns([3, 1], vertical_alignment="bottom")
+with db_c1:
+    st.subheader("📋 Master Database")
+with db_c2:
+    if not st.session_state.edit_mode:
+        if st.button("🔓 Enable Edit Mode", use_container_width=True):
+            # Forcing a cache clear ensures you edit the absolute most recent data!
+            st.cache_data.clear()
+            st.session_state.edit_mode = True
+            st.rerun()
+    else:
+        if st.button("🔒 Cancel Editing", use_container_width=True):
+            st.session_state.edit_mode = False
+            st.rerun()
 
 # Ensure we keep the exact original dataframe with index intact for safe merging
 master_df = df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
@@ -1207,68 +1224,82 @@ if search_query:
         search_mask |= table_df[col].astype(str).str.contains(search_query, case=False, na=False)
     table_df = table_df[search_mask]
 
-# The Unified Editor View
-st.markdown("""
-<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
-    <strong style="color: #334155;">✏️ Edit Mode Active:</strong><br>
-    <span style="color: #475569; font-size: 0.85rem;">This table is live. Editing cells, adding rows, or deleting rows (click the gray index box on the far left and press Delete) will merge your changes to Google Sheets. <b>Always click '🔄 Refresh' at the very top of the app before editing to avoid overwriting new data.</b></span>
-</div>
-""", unsafe_allow_html=True)
-
 # Capture the exact timestamp of the newest record on screen for collision detection
 current_max_time = df['DateTime'].max() if not df.empty else None
 
-with st.form("database_editor_form"):
-    edited_df = st.data_editor(
+# Pre-define column configurations so both Dataframe and Data_Editor match visually
+col_config = {
+    "DateTime": st.column_config.TextColumn("DateTime (YYYY-MM-DD HH:MM:SS)", width="medium", required=True),
+    "Event Type": st.column_config.SelectboxColumn("Event Type", options=ALL_EVENT_CATEGORIES, width="medium", required=True),
+    "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
+    "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
+}
+
+# The Unified View / Editor Engine
+if st.session_state.edit_mode:
+    st.markdown("""
+    <div style="background-color: #fef2f2; border: 1px solid #f87171; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+        <strong style="color: #991b1b;">⚠️ Edit Mode Active (Live Sync)</strong><br>
+        <span style="color: #7f1d1d; font-size: 0.85rem;">Editing cells, adding rows, or deleting rows (click the left gray box and press Delete) will push changes to Google Sheets. <b>Auto-refresh completed upon enabling.</b></span>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    with st.form("database_editor_form"):
+        edited_df = st.data_editor(
+            table_df, 
+            use_container_width=True, 
+            height=900, # Extended height shows ~25 rows
+            num_rows="dynamic", # Enables Row Addition & Deletion
+            column_config=col_config
+        )
+        
+        submit_button = st.form_submit_button("💾 Save Changes to Google Sheets", type="primary", use_container_width=True)
+        
+        if submit_button:
+            with st.spinner("Verifying data sync and checking for conflicts..."):
+                try:
+                    conn = st.connection("gsheets", type=GSheetsConnection)
+                    
+                    # BULLETPROOF CHECK: Fetch the live sheet completely bypassing cache
+                    live_df = conn.read(spreadsheet=sheet_url_input, ttl=0)
+                    if 'DateTime' in live_df.columns: 
+                        live_max_time = pd.to_datetime(live_df['DateTime'], errors='coerce').max()
+                    elif 'EntryDateTime' in live_df.columns: 
+                        live_max_time = pd.to_datetime(live_df['EntryDateTime'], errors='coerce').max()
+                    else:
+                        live_max_time = None
+                        
+                    # If the live sheet has a newer entry than what the user was looking at, ABORT SAVE!
+                    if current_max_time and live_max_time and live_max_time > current_max_time:
+                        st.error("🚨 **CRITICAL COLLISION AVOIDED:** Someone else (or an iOS shortcut) logged new data to the spreadsheet while you were editing! Please click 'Cancel Editing' and re-enable it to sync the latest data.")
+                    else:
+                        # SMART MERGE: Only updates/deletes rows the user actually changed in the filtered view!
+                        master_df.update(edited_df)
+                        deleted_indices = set(table_df.index) - set(edited_df.index)
+                        master_df = master_df.drop(index=deleted_indices)
+                        new_rows = edited_df[~edited_df.index.isin(table_df.index)]
+                        master_df = pd.concat([master_df, new_rows])
+                        
+                        # BUG FIX: Explicitly passing the `spreadsheet=sheet_url_input` target for the update!
+                        conn.update(spreadsheet=sheet_url_input, worksheet="Sheet1", data=master_df)
+                        
+                        st.success("✅ Changes successfully pushed to Google Sheets! Refreshing...")
+                        st.session_state.edit_mode = False
+                        st.cache_data.clear()
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Failed to update Google Sheets: {e}")
+else:
+    # Read-Only View (Clean and Fast)
+    st.dataframe(
         table_df, 
         use_container_width=True, 
-        height=500,
-        num_rows="dynamic", # Enables Row Addition & Deletion
-        column_config={
-            "DateTime": st.column_config.TextColumn("DateTime (YYYY-MM-DD HH:MM:SS)", width="medium", required=True),
-            "Event Type": st.column_config.SelectboxColumn("Event Type", options=ALL_EVENT_CATEGORIES, width="medium", required=True),
-            "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
-            "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
-        }
+        height=900, # Extended height shows ~25 rows
+        column_config=col_config
     )
-    
-    submit_button = st.form_submit_button("💾 Save Changes to Google Sheets", type="primary", use_container_width=True)
-    
-    if submit_button:
-        with st.spinner("Verifying data sync and checking for conflicts..."):
-            try:
-                conn = st.connection("gsheets", type=GSheetsConnection)
-                
-                # BULLETPROOF CHECK: Fetch the live sheet completely bypassing cache
-                live_df = conn.read(spreadsheet=sheet_url_input, ttl=0)
-                if 'DateTime' in live_df.columns: 
-                    live_max_time = pd.to_datetime(live_df['DateTime'], errors='coerce').max()
-                elif 'EntryDateTime' in live_df.columns: 
-                    live_max_time = pd.to_datetime(live_df['EntryDateTime'], errors='coerce').max()
-                else:
-                    live_max_time = None
-                    
-                # If the live sheet has a newer entry than what the user was looking at, ABORT SAVE!
-                if current_max_time and live_max_time and live_max_time > current_max_time:
-                    st.error("🚨 **CRITICAL COLLISION AVOIDED:** Someone else (or an iOS shortcut) logged new data to the spreadsheet while you were editing! If we saved now, their data would be permanently deleted. **Please click the '🔄 Refresh' button at the top of the app to sync the latest data before editing.**")
-                else:
-                    # SMART MERGE: Only updates/deletes rows the user actually changed in the filtered view!
-                    master_df.update(edited_df)
-                    deleted_indices = set(table_df.index) - set(edited_df.index)
-                    master_df = master_df.drop(index=deleted_indices)
-                    new_rows = edited_df[~edited_df.index.isin(table_df.index)]
-                    master_df = pd.concat([master_df, new_rows])
-                    
-                    conn.update(worksheet="Sheet1", data=master_df)
-                    st.success("✅ Changes successfully pushed to Google Sheets! Refreshing...")
-                    st.cache_data.clear()
-                    st.rerun()
-            except Exception as e:
-                st.error(f"Failed to update Google Sheets: {e}")
 
 st.markdown(f'<div class="raw-log-count-text">Showing {len(table_df)} entry(s) matching your criteria.</div>', unsafe_allow_html=True)
 st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
-
 # ==========================================
 # 8. BACKGROUND AUTO-RETRY ENGINE
 # ==========================================
