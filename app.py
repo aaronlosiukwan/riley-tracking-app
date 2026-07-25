@@ -188,7 +188,7 @@ with h_col1:
     st.markdown('<div class="app-main-title">🍼 Riley\'s Dash</div>', unsafe_allow_html=True)
 
 with h_col2:
-    st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker", use_container_width=True)
+    st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker&silent=true", use_container_width=True)
 
 with h_col3:
     if st.button("🔄 Refresh", use_container_width=True):
