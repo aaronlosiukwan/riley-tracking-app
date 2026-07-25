@@ -123,7 +123,7 @@ st.markdown("""
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
             flex-wrap: wrap !important; gap: 0.5rem !important;
             flex-direction: row !important; /* Force row layout to stop stacking */
-            margin-bottom: 2rem !important;
+            margin-bottom: 1.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
             flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
@@ -217,13 +217,13 @@ st.sidebar.markdown("""
 DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
 
 st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; padding-top: 12px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
 sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
 tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
 if sheet_url_input: st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
 
 st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; padding-top: 12px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
 baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
