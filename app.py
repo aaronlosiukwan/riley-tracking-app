@@ -82,7 +82,7 @@ st.markdown("""
     .app-main-title {
         font-size: clamp(2.0rem, 5vw + 0.8rem, 2.8rem) !important;
         font-weight: 700 !important;
-        line-height: 1.2 !important;
+        line-height: 1.5 !important;
         white-space: normal !important; 
         color: var(--card-text);
         margin: 0;
