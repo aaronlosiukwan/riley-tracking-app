@@ -564,7 +564,9 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
     latest_data_timestamp = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
     refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
     
-    now_local = (datetime.utcnow() + timedelta(hours=tz_offset)).strftime('%Y-%m-%d %H:%M:%S')
+    now_local_dt = datetime.utcnow() + timedelta(hours=tz_offset)
+    now_local = now_local_dt.strftime('%Y-%m-%d %H:%M:%S')
+    curr_hour = now_local_dt.hour
     
     current_date_obj = datetime.utcnow().date()
     age_days = (current_date_obj - baby_dob).days
@@ -575,12 +577,20 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
     else:
         subject_context = f"Subject: {subject}."
 
+    # Dynamic Instruction for Suggested Action depending on 9am cutoff
+    if curr_hour < 9:
+        action_rule = "NOTE FOR SUGGESTED ACTION: You are analyzing full 24-hour completed data from yesterday (during early morning window 00:00-09:00). Base Suggested Action on completed data."
+    else:
+        action_rule = "NOTE FOR SUGGESTED ACTION: Today's data is currently in progress (after 09:00 AM). IGNORE today's partial data when determining Suggested Action; base it strictly on the completed 7-day average trends."
+
     prompt_template = f"""DATA CONTEXT:
 {subject_context}
 {ai_prompt_context}
 
 ROLE: You are an analytical data tool. You are NOT a medical professional. Never give medical advice.
 TASK: Write a summary strictly based on the numbers provided. 
+
+{action_rule}
 
 OUTPUT FORMAT RESTRICTIONS:
 - DO NOT wrap the output in ```html or ```markdown code blocks.
@@ -594,7 +604,7 @@ OUTPUT FORMAT RESTRICTIONS:
 [Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. Selected Range. Evaluate if healthy for her current age based on HK standards.]
 
 **Suggested Action**
-[Write 1 brief sentence suggesting a practical next step based on the data.]"""
+[Write 1 brief sentence suggesting a practical next step based strictly on complete historical trends.]"""
 
     # Helper function to generate the Hardcoded HTML
     def get_hardcoded_html():
@@ -1001,6 +1011,7 @@ with tab2:
     else: render_empty_state("No Feeding Data Logged in this period")
 
 # TAB 3: DIAPERS
+# TAB 3: DIAPERS
 with tab3:
     diaper_df = filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)].copy()
     if not diaper_df.empty:
@@ -1016,15 +1027,20 @@ with tab3:
         
         st.caption("ℹ️ *Compares Wet Diapers and Poop counts.*")
 
-        avg_diapers = len(diaper_df) / max(1, (end_date - start_date).days + 1)
+        # Deduplicated Diaper Change Calculations
+        avg_diapers = diaper_df.groupby('Date')['DateTime'].nunique().mean()
         wets = len(diaper_df[diaper_df['Category'] == '💧 Wet Diaper (Cnt)'])
         poops = len(diaper_df[diaper_df['Category'] == '🚽 Poop (Cnt)'])
-        t_diaper = len(today_df[today_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)])
-        diaper_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)]) / 7
-        ai_diaper_context = f"Category: Diaper Output. Today: {t_diaper} changes. Recent 7-Day Avg: {diaper_7d:.1f} changes/day. Selected Range ({start_date} to {end_date}) Avg: {avg_diapers:.1f} changes/day. (Selected total: {wets} wet, {poops} poops)."
         
-        render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diapers.", ai_prompt_context=ai_diaper_context)
-    else: render_empty_state("No Diaper Data Logged in this period")
+        t_diaper_events = today_df[today_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)]
+        t_diaper = t_diaper_events['DateTime'].nunique() if not t_diaper_events.empty else 0
+        
+        r_diaper_events = recent_7d_df[recent_7d_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)]
+        diaper_7d = (r_diaper_events.groupby('Date')['DateTime'].nunique().sum() / 7) if not r_diaper_events.empty else 0
+        
+        ai_diaper_context = f"Category: Diaper Output. Target Date ({today_date}): {t_diaper} diaper changes. Recent 7-Day Avg (excluding target day): {diaper_7d:.1f} changes/day. Selected Range ({start_date} to {end_date}) Avg: {avg_diapers:.1f} changes/day. (Total events in range: {wets} wet, {poops} poops)."
+        
+        render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diaper events across **{avg_diapers:.1f}** daily changes.", ai_prompt_context=ai_diaper_context)
 
 # TAB 4: PUMPING
 with tab4:
