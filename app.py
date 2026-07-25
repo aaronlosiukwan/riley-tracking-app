@@ -321,10 +321,14 @@ if st.session_state.last_ai_data_datetime is None:
 def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
     cache_key = hash(f"{prompt_text}_{latest_data_timestamp}_{refresh_key}")
     
-    # 1. Check cache: Now returns a dictionary with content AND model
+    # 1. Check cache: Now safely handles both new dictionaries AND legacy strings
     if cache_key in global_ai_cache:
         cached_data = global_ai_cache[cache_key]
-        return cached_data['content'], True, cached_data['model']
+        if isinstance(cached_data, dict):
+            return cached_data['content'], True, cached_data['model']
+        else:
+            # Handles old cache data from before the update
+            return cached_data, True, "Legacy Cache"
 
     if not OPENAI_AVAILABLE:
         return "⚠️ **OpenAI package missing.** Install `openai` in `requirements.txt`.", False, "N/A"
