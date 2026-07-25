@@ -964,7 +964,7 @@ with tab1:
             marker=dict(opacity=0.85, line=dict(width=1.5, color='white'))
         )
         
-        # HORIZONTAL Data Labels above bubbles (textangle=0)
+        # Dark Grey (#334155) Horizontal Value Labels above bubbles
         timeline_annotations = []
         for _, row in norm_today_df.iterrows():
             val = row['Value (Optional)']
@@ -977,12 +977,11 @@ with tab1:
                     text=f"<b>{val_str}</b>",
                     showarrow=False,
                     yshift=14,
-                    textangle=0,  # Kept Horizontal
-                    font=dict(size=10, color='#334155')
+                    textangle=0,
+                    font=dict(size=9.5, color='#334155')
                 ))
 
         fig_today_timeline.update_traces(hovertemplate='%{customdata[0]}<extra></extra>')
-        # y_tickangle=-90 rotates data series labels on the left 90° counter-clockwise
         fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=450, is_scatter=True, x_tickformat="%d-%H", x_dtick=10800000, y_tickangle=-90)
         fig_today_timeline.update_layout(
             showlegend=False,
@@ -1050,7 +1049,6 @@ with tab2:
             vertical_spacing=0.10
         )
         
-        # Formula Bar
         df_f = grouped_vol[grouped_vol['Category'] == '🍼 Formula (mL)']
         if not df_f.empty: 
             fig_milk.add_trace(go.Bar(
@@ -1062,7 +1060,6 @@ with tab2:
                 hovertemplate='%{y} mL<extra></extra>'
             ), row=1, col=1)
             
-        # Breast Milk Bar
         df_bm = grouped_vol[grouped_vol['Category'] == '🤱 Breast Milk (mL)']
         if not df_bm.empty: 
             fig_milk.add_trace(go.Bar(
@@ -1074,7 +1071,6 @@ with tab2:
                 hovertemplate='%{y} mL<extra></extra>'
             ), row=1, col=1)
             
-        # Volume Trend Line
         fig_milk.add_trace(go.Scatter(
             name='📈 Vol Trend', 
             x=total_per_x[group_col].astype(str), 
@@ -1084,7 +1080,7 @@ with tab2:
             hovertemplate='Avg Trend: %{y:.0f} mL<extra></extra>'
         ), row=1, col=1)
         
-        # Vertical 90° Counter-Clockwise Data Labels on Top of Bars (Standing Up vertically to prevent horizontal crowding)
+        # Dark Grey (#334155) Vertical Standing Volume Labels
         milk_annotations = []
         for _, row in total_per_x.iterrows():
             v = row['Value (Optional)']
@@ -1096,11 +1092,11 @@ with tab2:
                     text=f"<b>{int(v)}</b>",
                     showarrow=False,
                     yshift=14,
-                    textangle=-90,  # Stands vertically
+                    textangle=-90,
                     font=dict(size=9.5, color='#334155')
                 ))
 
-        # Feed Count Bars with Text OUTSIDE
+        # Feed Count Bars with Dark Grey (#334155) Text OUTSIDE
         fig_milk.add_trace(go.Bar(
             name='🔢 Feed Count', x=grouped_count[group_col].astype(str), y=grouped_count['Total Feeds Count'],
             marker_color='#8b5cf6', width=0.35 if is_single else None,
@@ -1170,10 +1166,10 @@ with tab3:
         )
         if is_single: fig_diaper.update_traces(width=0.25)
         
-        # Segment Text Labels Inside Bar
+        # Segment Text Labels Inside Bar (Shrunk to 9px font size)
         fig_diaper.update_traces(
             textposition='inside',
-            textfont=dict(size=11, color='white'),
+            textfont=dict(size=9, color='white'),
             hovertemplate='%{y}<extra></extra>'
         )
 
@@ -1181,13 +1177,14 @@ with tab3:
         daily_diaper_totals = grouped_diaper.groupby(group_col)['Count'].sum().reset_index()
         max_diapers = daily_diaper_totals['Count'].max() if not daily_diaper_totals.empty else 5
 
+        # Total Diaper Label OUTSIDE top of stacked bars (Dark Grey #334155, Shrunk to 9.5px)
         fig_diaper.add_trace(go.Scatter(
             x=daily_diaper_totals[group_col].astype(str),
             y=daily_diaper_totals['Count'],
             mode='text',
             text=['<b>' + str(int(c)) + '</b>' for c in daily_diaper_totals['Count']],
             textposition='top center',
-            textfont=dict(size=12.5, color='#0f172a'),
+            textfont=dict(size=9.5, color='#334155'),
             hoverinfo='skip',
             showlegend=False
         ))
@@ -1230,11 +1227,49 @@ with tab4:
         grouped_pump[group_col] = grouped_pump[group_col].apply(format_x_label)
         is_single = len(grouped_pump[group_col].unique()) == 1
         
+        max_pump = grouped_pump['Value (Optional)'].max() if not grouped_pump.empty else 100
+
         fig_pump = go.Figure()
-        fig_pump.add_trace(go.Bar(name='Yield (mL)', x=grouped_pump[group_col].astype(str), y=grouped_pump['Value (Optional)'], marker_color=COLOR_MAP["🧴 Pumping (mL)"], width=0.25 if is_single else None, hovertemplate='%{y} mL<extra></extra>'))
-        fig_pump.add_trace(go.Scatter(name='7-Period Trend', x=grouped_pump[group_col].astype(str), y=grouped_pump['Trend'], mode='lines', line=dict(color='#475569', width=2.5, shape='spline'), hovertemplate='Trend: %{y:.0f} mL<extra></extra>'))
+        fig_pump.add_trace(go.Bar(
+            name='Yield (mL)', 
+            x=grouped_pump[group_col].astype(str), 
+            y=grouped_pump['Value (Optional)'], 
+            marker_color=COLOR_MAP["🧴 Pumping (mL)"], 
+            width=0.25 if is_single else None, 
+            hovertemplate='%{y} mL<extra></extra>'
+        ))
         
-        fig_pump = style_plotly_figure(fig_pump, title_text=f"🧴 Pumping Volume (mL) & Trend — {granularity}", height=450, single_point=is_single)
+        fig_pump.add_trace(go.Scatter(
+            name='7-Period Trend', 
+            x=grouped_pump[group_col].astype(str), 
+            y=grouped_pump['Trend'], 
+            mode='lines', 
+            line=dict(color='#334155', width=2.5, shape='spline'), 
+            hovertemplate='Trend: %{y:.0f} mL<extra></extra>'
+        ))
+        
+        # Standing Data Labels on Top of Bars (Dark Grey #334155, 9.5px font size)
+        pump_annotations = []
+        for _, row in grouped_pump.iterrows():
+            v = row['Value (Optional)']
+            if pd.notna(v) and v > 0:
+                pump_annotations.append(dict(
+                    x=str(row[group_col]),
+                    y=v,
+                    text=f"<b>{int(v)}</b>",
+                    showarrow=False,
+                    yshift=14,
+                    textangle=-90,  # Stands vertically
+                    font=dict(size=9.5, color='#334155')
+                ))
+        
+        fig_pump = style_plotly_figure(fig_pump, title_text=f"🧴 Pumping Volume (mL) & Trend — {granularity}", height=470, single_point=is_single)
+        fig_pump.update_layout(
+            showlegend=False,
+            annotations=pump_annotations,
+            xaxis=dict(type='category', tickfont=dict(size=9.5), automargin=True),
+            yaxis=dict(showgrid=True, gridcolor="#f1f5f9", range=[0, max_pump * 1.28])  # Generous vertical space
+        )
         st.plotly_chart(fig_pump, use_container_width=True)
         
         st.caption("ℹ️ *Displays recorded pumping volume (mL) with rolling trend line.*")
