@@ -6,7 +6,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
-import time
 import re
 from streamlit_gsheets import GSheetsConnection
 
@@ -24,32 +23,6 @@ st.set_page_config(
     page_icon="🍼",
     layout="wide",
     initial_sidebar_state="expanded"
-)
-
-# Inject Apple Touch Icon ONLY
-components.html(
-    """
-    <script>
-    (function() {
-        const iconUrl = "https://em-content.zobj.net/source/apple/391/baby-bottle_1f37c.png";
-        try { 
-            let targetDoc = window.top ? window.top.document : document;
-            const rels = ['apple-touch-icon', 'apple-touch-icon-precomposed', 'icon', 'shortcut icon'];
-            rels.forEach(function(rel) {
-                let link = targetDoc.querySelector("link[rel='" + rel + "']");
-                if (!link) {
-                    link = targetDoc.createElement('link');
-                    link.rel = rel;
-                    targetDoc.head.appendChild(link);
-                }
-                link.href = iconUrl;
-            });
-        } catch(e) {}
-    })();
-    </script>
-    """,
-    height=0,
-    width=0
 )
 
 # Responsive & Adaptive CSS overrides
@@ -100,7 +73,7 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
         align-items: center !important;
         margin-top: 1rem !important;
-        margin-bottom: 1.5rem !important;
+        margin-bottom: 3rem !important; /* Spacious gap below header buttons */
     }
 
     /* Force Native Streamlit Buttons to adopt Custom UI styling perfectly */
@@ -125,12 +98,12 @@ st.markdown("""
     /* Mobile 50/50 Split Sizing (Title 100%, Buttons 50/50 Below it) */
     @media (max-width: 768px) {
         .app-main-title {
-            margin-bottom: 1.5rem !important; /* Added explicit gap below title on mobile */
+            margin-bottom: 1.5rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
             flex-wrap: wrap !important; gap: 0.5rem !important;
-            flex-direction: row !important; /* Force row layout to stop stacking */
-            margin-bottom: 1.5rem !important;
+            flex-direction: row !important;
+            margin-bottom: 3rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
             flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
@@ -204,7 +177,6 @@ with h_col3:
         st.session_state.show_refresh_toast = True
         st.rerun()
 
-# Executes the native Streamlit toast on reload
 if st.session_state.get('show_refresh_toast', False):
     st.toast("Data successfully updated!", icon="✅")
     st.session_state.show_refresh_toast = False
@@ -224,11 +196,10 @@ st.sidebar.markdown("""
 
 DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
 
-# Added generous spacing between Navigation and Configuration
 st.sidebar.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
 st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
 
-# Toggle to turn AI on and off (Bound to session_state)
+# Toggle AI settings linked directly to session_state
 if "ai_insights_enabled" not in st.session_state:
     st.session_state.ai_insights_enabled = False
 if "ai_refresh_key" not in st.session_state:
@@ -246,17 +217,17 @@ def get_global_ai_cache():
 
 global_ai_cache = get_global_ai_cache()
 
-if st.sidebar.button("🔄 Force Refresh AI Summaries", use_container_width=True, help="Forces the AI to completely re-generate insights."):
+if st.sidebar.button("🔄 Force Refresh AI Summaries", use_container_width=True, help="Forces the AI to completely re-generate insights based on the latest data."):
     st.session_state.ai_refresh_key = str(datetime.utcnow())
-    global_ai_cache.clear() # Wipe the custom cache to force a totally fresh pull
+    global_ai_cache.clear()
     st.rerun()
 
 sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
 tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
 if sheet_url_input: st.sidebar.link_button("🔗 Open Google Sheet Directly", sheet_url_input, use_container_width=True)
 
-st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; padding-top: 20px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
 baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
@@ -267,7 +238,6 @@ if 'needs_auto_retry' not in st.session_state:
     st.session_state.needs_auto_retry = False
 
 def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
-    # Smart Sync: Cache key changes ONLY when a new entry is logged or force refreshed
     cache_key = hash(f"{prompt_text}_{latest_data_timestamp}_{refresh_key}")
     
     if cache_key in global_ai_cache:
@@ -289,6 +259,7 @@ def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
     )
     
     try:
+        # Strictly using the universal free router
         chat_completion = client.chat.completions.create(
             model="openrouter/free",
             messages=[
@@ -313,12 +284,11 @@ def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
             st.session_state.needs_auto_retry = True
             return "⚠️ API Safety Filter tripped. Auto-retrying in background..."
             
-        # Success! Cache it so we never hit the API for this exact data state again
         global_ai_cache[cache_key] = content
         return content
         
     except Exception as e:
-        # DO NOT CACHE ERRORS! Flag for background auto-retry instead.
+        # Rate limit hit -> set retry flag
         st.session_state.needs_auto_retry = True
         return f"⚠️ **API Busy. Auto-retrying in background...**"
 
@@ -326,7 +296,6 @@ def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
 @st.cache_data(ttl=600) 
 def load_sheet_data(url):
     try:
-        # Establish secure connection
         conn = st.connection("gsheets", type=GSheetsConnection)
         df = conn.read(spreadsheet=url, ttl=0)
         
@@ -343,8 +312,14 @@ def load_sheet_data(url):
         df['Week'] = df['DateTime'].dt.to_period('W-SUN').dt.start_time.dt.date
         df['Month'] = df['DateTime'].dt.strftime('%Y-%m')
         
-        if 'Value (Optional)' in df.columns: df['Value (Optional)'] = pd.to_numeric(df['Value (Optional)'], errors='coerce').fillna(1.0)
-        else: df['Value (Optional)'] = 1.0
+        # Smart filling for optional values: 1.0 for discrete counts, NaN for continuous measurements
+        if 'Value (Optional)' in df.columns: 
+            df['Value (Optional)'] = pd.to_numeric(df['Value (Optional)'], errors='coerce')
+            countable_events = ["Wet Diaper", "Poop", "Meds", "Vaccine"]
+            mask = df['Event Type'].astype(str).str.contains('|'.join(countable_events), case=False, na=False) & df['Value (Optional)'].isna()
+            df.loc[mask, 'Value (Optional)'] = 1.0
+        else: 
+            df['Value (Optional)'] = 1.0
         
         if 'Event Type' in df.columns: df['Event Type'] = df['Event Type'].astype(str).str.strip()
         return df.sort_values('DateTime', ascending=False)
@@ -433,15 +408,11 @@ def get_unit_from_name(name):
 
 def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley", hidden_prefetch=False):
     api_key_param = st.secrets.get("OPENROUTER_API_KEY", None)
-    
-    # Capture the most recent entry's timestamp + user force refresh key
     latest_data_timestamp = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
     refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
     
-    # AI Mode Render
     if use_ai_insights:
         if hidden_prefetch and ai_prompt_context and api_key_param:
-             # Silently run the AI function in the background to prime the cache
              prompt = f"DATA CONTEXT:\n{ai_prompt_context}\n\nROLE: You are an automated data formatting tool. You are NOT a medical professional. Never give medical advice.\nTASK: Write an analytical summary based STRICTLY on the numbers provided. The subject of this data is {subject}.\n\nOUTPUT RESTRICTIONS:\n- OUTPUT ONLY THE EXACT HTML STRUCTURE BELOW.\n- DO NOT OUTPUT ANY METADATA (e.g., \"User Safety: safe\").\n- DO NOT USE MARKDOWN (NO ** OR *).\n- DO NOT ADD EXTRA BLANK LINES BETWEEN BULLET POINTS.\n\n<b>High-Level Summary</b><br>\n&bull; [Bullet point 1 highlighting a key metric]<br>\n&bull; [Bullet point 2 highlighting a key metric]<br><br>\n<b>Trend Analysis</b><br>\n[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. the Selected Range. Highlight any positive trends.]<br><br>\n<b>Suggested Action</b><br>\n[Write 1 brief sentence suggesting a practical next step based on the data.]"
              call_ai(prompt, api_key_param, latest_data_timestamp, refresh_key)
              return
@@ -476,11 +447,10 @@ OUTPUT RESTRICTIONS:
 """
                 output_text = call_ai(prompt, api_key_param, latest_data_timestamp, refresh_key)
             
-            # FORMAT FIX: Aggressive space stripping and markdown sanitization
+            # Format HTML to ensure beautiful UI rendering
             html_text = output_text
             html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', html_text) 
             html_text = re.sub(r'^[-*]\s+(.*?)$', r'&bull; \1', html_text, flags=re.MULTILINE)
-            # Squash all newlines to single <br> tags, then strictly limit to max 2 <br> tags at a time to prevent weird spacing
             html_text = html_text.replace('\n', '<br>')
             html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text)
             
@@ -491,7 +461,6 @@ OUTPUT RESTRICTIONS:
             </div>
             """, unsafe_allow_html=True)
             
-    # Hardcoded/Rule-Based Mode Render
     else:
         if hidden_prefetch: return
         html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', hardcoded_text)
@@ -500,7 +469,6 @@ OUTPUT RESTRICTIONS:
             <strong style="color: #0369a1;">💡 Insight:</strong> {html_text}
         </div>
         """, unsafe_allow_html=True)
-
 
 # ==========================================
 # 4. TODAY'S HIGHLIGHTS & GLOBAL TREND DATAFRAMES
@@ -533,7 +501,6 @@ def render_empty_state(title="No Data Logged", subtitle="Try picking a wider dat
 
 st.markdown('<div id="today"></div>', unsafe_allow_html=True)
 
-# Generate the global specific timeframes for AI Context Mapping
 today_date = max(current_local_time.date(), max_data_date)
 today_df = df[df['Date'] == today_date]
 cutoff_7d = today_date - timedelta(days=7)
@@ -582,9 +549,8 @@ else:
         formatted_today_cards.append(card.replace('class="highlight-card', f'class="{cls}'))
     st.markdown(f'<div class="cards-container">{"".join(formatted_today_cards)}</div>', unsafe_allow_html=True)
 
-
 # ==========================================
-# 5. COMPACT QUICK FILTERS (MOVED BELOW TODAY)
+# 5. COMPACT QUICK FILTERS
 # ==========================================
 min_str = min_data_date.strftime('%m.%d')
 max_str = max_data_date.strftime('%m.%d')
@@ -597,7 +563,6 @@ if 'ed' not in st.session_state:
 st.markdown('<div id="filters" style="margin-top: 4rem; padding-top: 1rem;"></div>', unsafe_allow_html=True)
 st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;'>⚙️ Date Range & Grouping Filters</div>", unsafe_allow_html=True)
 
-# Compact 4-Column Layout (Wrapped neatly into 2x2 grid on mobile via CSS)
 f_col1, f_col2, f_col3, f_col4 = st.columns([1.2, 1, 1, 0.8], vertical_alignment="bottom")
 
 with f_col1:
@@ -630,7 +595,6 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "⏰ Today", "🍼 Milk", "🚽 Diapers", "🧴 Pumping", "🛟 Tummy", "📈 Growth", "🩺 Health", "💉 Vaccine"
 ])
 
-# TAB 1: FIRST TAB - "Today" 24-Hour Timeline Chart
 with tab1:
     cutoff_24h = current_local_time - timedelta(hours=24)
     today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
@@ -674,7 +638,6 @@ with tab1:
 
         feed_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Formula|Breast Milk")])
         diaper_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Diaper|Poop")])
-        
         feed_cnt_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Formula|Breast Milk")]) / 7
         diaper_cnt_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Diaper|Poop")]) / 7
         
@@ -686,7 +649,6 @@ with tab1:
         render_insight_card(analysis, ai_prompt_context=ai_context)
     else: render_empty_state("No Events Logged in the Last 24 Hours")
 
-# TAB 2: Milk Intake
 with tab2:
     milk_df = filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)].copy()
     if not milk_df.empty:
@@ -743,7 +705,6 @@ with tab2:
         render_insight_card(f"Riley's intake averages **{avg_vol:.0f} mL** per {granularity.lower().replace('ly','').replace('all time','period')}. Based on recent logs, her volume is **{trend_word}**.", ai_prompt_context=ai_milk_context)
     else: render_empty_state("No Feeding Data Logged in this period")
 
-# TAB 3: Diaper Output
 with tab3:
     diaper_df = filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)].copy()
     if not diaper_df.empty:
@@ -770,7 +731,6 @@ with tab3:
         render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diapers, averaging **{avg_diapers:.1f}** changes per day. Consistent output is an excellent indicator that Riley is digesting properly!", ai_prompt_context=ai_diaper_context)
     else: render_empty_state("No Diaper Data Logged in this period")
 
-# TAB 4: Dedicated Pumping Chart
 with tab4:
     pump_df = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)].copy()
     if not pump_df.empty:
@@ -791,11 +751,9 @@ with tab4:
         pump_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum() / 7
         ai_pump_context = f"Category: Pumping. Today: {t_pump:.0f} mL. Recent 7-Day Avg: {pump_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}): {len(pump_df)} sessions, avg {avg_pump:.0f} mL/session."
         
-        # Explicitly changed subject to Yanyi
         render_insight_card(f"Across **{len(pump_df)}** sessions, the average yield is **{avg_pump:.0f} mL** per session. Maintaining regular pumping intervals is key to sustaining supply.", ai_prompt_context=ai_pump_context, subject="Yanyi")
     else: render_empty_state("No Pumping Data Logged in this period")
 
-# TAB 5: Dedicated Tummy Time Chart
 with tab5:
     tummy_df = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)].copy()
     if not tummy_df.empty:
@@ -820,16 +778,12 @@ with tab5:
         render_insight_card(f"Riley achieved **{total_tummy:.0f} total minutes** of tummy time (averaging **{avg_tummy:.0f}m** per session). Regular sessions are actively building her core and neck strength!", ai_prompt_context=ai_tummy_context)
     else: render_empty_state("No Tummy Time Data Logged in this period")
 
-# ==============================================================================
-# TAB 6: GROWTH CHARTS
-# ==============================================================================
 with tab6:
     st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
     st.markdown("<p style='font-size: 0.85rem; text-align: center; margin-bottom: 10px;'><a href='https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf' target='_blank' style='color: #64748b; text-decoration: none; opacity: 0.8;'>📄 Official HK Growth Charts Reference (PDF)</a></p>", unsafe_allow_html=True)
 
     who_option = st.radio("Select Growth Chart:", options=["⚖️ Weight", "🏔️ Height", "🐷 Head"], horizontal=True, label_visibility="collapsed")
     
-    # --- PRE-FETCH AI INSIGHTS FOR UNSELECTED RADIO BUTTONS (BACKGROUND CACHING) ---
     if use_ai_insights:
         for prefetch_opt in ["⚖️ Weight", "🏔️ Height", "🐷 Head"]:
             if prefetch_opt != who_option:
@@ -859,7 +813,6 @@ with tab6:
         if "Height" in met: return (0.95, 0.975, 1.025, 1.05)
         return (0.96, 0.98, 1.02, 1.04)
 
-    # Use entire dataset for growth charting, bypassing the date filter
     db_keyword = "⚖️ Weight (kg)" if "Weight" in who_option else ("🏔️ Height (cm)" if "Height" in who_option else "🐷 Head Size (cm)")
     who_df = df[df['Event Type'] == db_keyword].copy()
     
@@ -971,12 +924,9 @@ with tab6:
     else:
         render_empty_state(f"No {who_option} Data Logged")
 
-
-# TAB 7: Health Charts
 with tab7:
     act_option = st.radio("Select Category:", options=["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"], index=0, horizontal=True, label_visibility="collapsed")
     
-    # --- PRE-FETCH AI INSIGHTS FOR UNSELECTED RADIO BUTTONS (BACKGROUND CACHING) ---
     if use_ai_insights:
         for prefetch_opt in ["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"]:
             if prefetch_opt != act_option:
@@ -1035,7 +985,6 @@ with tab7:
 
         avg_act = act_df['Value (Optional)'].mean()
         
-        # Calculate Health Timeframes Safely
         t_health_df = today_df[today_df['Event Type'].str.contains(keyword, case=False, na=False)]
         r_health_df = recent_7d_df[recent_7d_df['Event Type'].str.contains(keyword, case=False, na=False)]
         
@@ -1057,8 +1006,6 @@ with tab7:
             
     else: render_empty_state(f"No {act_option.split(' ')[1]} Data Logged in this period")
 
-
-# TAB 8: Vaccine Milestones & Logs
 with tab8:
     vac_df = df[df['Event Type'] == "💉 Vaccine (Cnt)"].copy()
     
@@ -1126,7 +1073,6 @@ with tab8:
         
     styled_df = pd.DataFrame(rows)
     
-    # Generate AI Insight for Vaccines
     if not vac_df.empty:
         total_vacs = len(vac_df)
         upcoming = [r for r in rows if r["Status"] == "🟡 Due Soon" or r["Status"] == "⚠️ Overdue"]
@@ -1188,7 +1134,7 @@ with tab8:
     else: render_empty_state("No Vaccine Data Logged")
 
 # ==========================================
-# 6. EXPANDED DATABASE TABLE (MOVED TO BOTTOM)
+# 6. EXPANDED DATABASE TABLE 
 # ==========================================
 st.markdown('<div id="database" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
 st.subheader("📋 Database")
@@ -1199,8 +1145,12 @@ with filter_c2: search_query = st.text_input("🔍 Search Anything:", "", placeh
 
 table_df = filtered_df.copy()
 if selected_events: table_df = table_df[table_df['Event Type'].isin(selected_events)]
+
+# Vectorized Search Bar (Lightning Fast)
 if search_query:
-    search_mask = table_df.astype(str).apply(lambda row: row.str.contains(search_query, case=False, na=False).any(), axis=1)
+    search_mask = pd.Series(False, index=table_df.index)
+    for col in table_df.columns:
+        search_mask |= table_df[col].astype(str).str.contains(search_query, case=False, na=False)
     table_df = table_df[search_mask]
 
 if 'DateTime' in table_df.columns:
@@ -1234,11 +1184,16 @@ if not display_df.empty:
     
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
     with st.expander("✏️ Edit Master Database (Advanced)"):
-        st.caption("⚠️ **Warning:** This editor contains your *entire, unfiltered* dataset. Editing cells or deleting rows here and clicking 'Save' will permanently overwrite your Google Sheet data. Event Types cannot be modified.")
+        current_max_time = df['DateTime'].max() if not df.empty else None
         
-        # Ensure we are passing standard strings back to the editor, not the parsed dates
+        st.markdown("""
+        <div style="background-color: #fef2f2; border: 1px solid #f87171; padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+            <strong style="color: #991b1b;">⚠️ CRITICAL DATA WARNING:</strong><br>
+            <span style="color: #7f1d1d; font-size: 0.85rem;">Saving changes here overwrites the <b>entire</b> Google Sheet with what is currently on your screen. If someone else logged a new entry from their phone while you had this page open, their entry will be permanently deleted! <b>Always click '🔄 Refresh' at the top of the app immediately before editing.</b></span>
+        </div>
+        """, unsafe_allow_html=True)
+        
         raw_edit_df = df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
-        # Convert datetime objects back to string formatting for the editor so they don't break when saving
         raw_edit_df['DateTime'] = raw_edit_df['DateTime'].dt.strftime('%Y-%m-%d %H:%M:%S')
         
         with st.form("database_editor_form"):
@@ -1246,10 +1201,10 @@ if not display_df.empty:
                 raw_edit_df, 
                 use_container_width=True, 
                 height=400,
-                num_rows="dynamic", # Enables Row Deletion (Click left gray box -> Press Delete)
+                num_rows="dynamic",
                 column_config={
                     "DateTime": st.column_config.TextColumn("DateTime (YYYY-MM-DD HH:MM:SS)", width="medium"),
-                    "Event Type": st.column_config.TextColumn("Event Type", disabled=True, width="medium"), # DISABLED
+                    "Event Type": st.column_config.TextColumn("Event Type", disabled=True, width="medium"),
                     "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
                     "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
                 }
@@ -1258,19 +1213,29 @@ if not display_df.empty:
             submit_button = st.form_submit_button("💾 Save Changes to Google Sheets", type="primary", use_container_width=True)
             
             if submit_button:
-                try:
-                    conn = st.connection("gsheets", type=GSheetsConnection)
-                    
-                    # Convert the string dates back to pure strings to ensure Google Sheets understands them
-                    push_df = edited_df.copy()
-                    
-                    # You MUST specify the exact worksheet name your data lives in! Defaults to Sheet1
-                    conn.update(worksheet="Sheet1", data=push_df)
-                    st.success("✅ Changes successfully pushed to Google Sheets! Refreshing...")
-                    st.cache_data.clear()
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Failed to update Google Sheets: {e}")
+                with st.spinner("Verifying data sync and checking for conflicts..."):
+                    try:
+                        conn = st.connection("gsheets", type=GSheetsConnection)
+                        live_df = conn.read(spreadsheet=sheet_url_input, ttl=0)
+                        
+                        if 'DateTime' in live_df.columns: 
+                            live_max_time = pd.to_datetime(live_df['DateTime'], errors='coerce').max()
+                        elif 'EntryDateTime' in live_df.columns: 
+                            live_max_time = pd.to_datetime(live_df['EntryDateTime'], errors='coerce').max()
+                        else:
+                            live_max_time = None
+                            
+                        # Optimistic Concurrency Check (Collision avoidance)
+                        if current_max_time and live_max_time and live_max_time > current_max_time:
+                            st.error("🚨 **CRITICAL COLLISION AVOIDED:** Someone else (or an iOS shortcut) logged new data to the spreadsheet while you were editing! If we saved now, their data would be permanently deleted. **Please click the '🔄 Refresh' button at the top of the app to sync the latest data before editing.**")
+                        else:
+                            push_df = edited_df.copy()
+                            conn.update(worksheet="Sheet1", data=push_df)
+                            st.success("✅ Changes successfully pushed to Google Sheets! Refreshing...")
+                            st.cache_data.clear()
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Failed to update Google Sheets: {e}")
 
     st.markdown(f'<div class="raw-log-count-text">Showing {len(display_df)} entry(s) matching your criteria sorted in descending order.</div>', unsafe_allow_html=True)
 else:
@@ -1281,7 +1246,17 @@ st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
 # ==========================================
 # 7. BACKGROUND AUTO-RETRY ENGINE
 # ==========================================
+# Asynchronous JS Refresh prevents Python thread freezing while waiting for AI rate limits
 if st.session_state.get('needs_auto_retry', False):
     st.session_state.needs_auto_retry = False
-    time.sleep(3) # Wait 3 seconds to let OpenRouter's rate limits cool down
-    st.rerun() # Silently refresh the UI to trigger the missing API calls again
+    components.html(
+        """
+        <script>
+            setTimeout(function() {
+                window.parent.location.reload();
+            }, 3000);
+        </script>
+        """,
+        height=0,
+        width=0
+    )
