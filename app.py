@@ -236,7 +236,7 @@ def load_sheet_data(url):
     try:
         # Establish secure connection
         conn = st.connection("gsheets", type=GSheetsConnection)
-        df = conn.read(spreadsheet=url)
+        df = conn.read(spreadsheet=url, ttl=0)
         
         # Clean the data
         df.columns = df.columns.astype(str).str.strip()
