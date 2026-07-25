@@ -68,7 +68,7 @@ st.markdown("""
     /* Generous bottom padding so switching tabs doesn't bounce the page */
     [data-testid="stMainBlockContainer"] {
         padding-top: calc(2.5rem + env(safe-area-inset-top)) !important;
-        padding-bottom: 25rem !important; 
+        padding-bottom: 10rem !important; 
     }
 
     /* Highly Compressed Vertical Spacing Between Blocks */
