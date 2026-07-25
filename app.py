@@ -824,7 +824,7 @@ if 'ed' not in st.session_state:
     st.session_state.ed = max_data_date
 
 st.markdown('<div id="filters" style="margin-top: 4rem; padding-top: 1rem;"></div>', unsafe_allow_html=True)
-st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;'>⚙️ Date Range / Grouping</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;'>⚙️ Filters</div>", unsafe_allow_html=True)
 
 f_col1, f_col2, f_col3, f_col4 = st.columns([1.2, 1, 1, 0.8], vertical_alignment="bottom")
 
@@ -1622,7 +1622,7 @@ if 'edit_mode' not in st.session_state:
 st.markdown('<div id="database" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
 
 db_c1, db_c2 = st.columns([3, 1], vertical_alignment="bottom")
-with db_c1: st.subheader("📋 Master Database")
+with db_c1: st.subheader("📋 Database")
 with db_c2:
     if not st.session_state.edit_mode:
         if st.button("🔓 Enable Edit Mode", use_container_width=True):
