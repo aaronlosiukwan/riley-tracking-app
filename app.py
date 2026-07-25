@@ -566,7 +566,6 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
     
     now_local_dt = datetime.utcnow() + timedelta(hours=tz_offset)
     now_local = now_local_dt.strftime('%Y-%m-%d %H:%M:%S')
-    curr_hour = now_local_dt.hour
     
     current_date_obj = datetime.utcnow().date()
     age_days = (current_date_obj - baby_dob).days
@@ -577,12 +576,6 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
     else:
         subject_context = f"Subject: {subject}."
 
-    # Dynamic Instruction for Suggested Action depending on 9am cutoff
-    if curr_hour < 9:
-        action_rule = "NOTE FOR SUGGESTED ACTION: You are analyzing full 24-hour completed data from yesterday (during early morning window 00:00-09:00). Base Suggested Action on completed data."
-    else:
-        action_rule = "NOTE FOR SUGGESTED ACTION: Today's data is currently in progress (after 09:00 AM). IGNORE today's partial data when determining Suggested Action; base it strictly on the completed 7-day average trends."
-
     prompt_template = f"""DATA CONTEXT:
 {subject_context}
 {ai_prompt_context}
@@ -590,21 +583,24 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
 ROLE: You are an analytical data tool. You are NOT a medical professional. Never give medical advice.
 TASK: Write a summary strictly based on the numbers provided. 
 
-{action_rule}
+STRICT DATA EVALUATION RULES:
+1. TODAY'S DATA IS PARTIAL / IN-PROGRESS: Use Today's logged metrics ONLY for factual, descriptive reporting.
+2. TREND ANALYSIS MUST IGNORE TODAY: Evaluate trends strictly by comparing full completed days (Yesterday and prior completed days) against the Recent 7-Day Avg and Selected Historical Range. Absolutely DO NOT evaluate trends or draw health conclusions using Today's partial data.
+3. SUGGESTED ACTION MUST IGNORE TODAY: Base your practical recommendation STRICTLY on completed full-day trends (Yesterday and earlier). Never base recommendations on Today's partial progress.
 
 OUTPUT FORMAT RESTRICTIONS:
 - DO NOT wrap the output in ```html or ```markdown code blocks.
 - Provide the response in plain text using the exact section headers below (wrapped in **).
 
 **High-Level Summary**
-- [Bullet point 1 highlighting a key metric]
-- [Bullet point 2 highlighting a key metric]
+- [Bullet point 1: Factual/descriptive summary of Today's logged progress so far]
+- [Bullet point 2: Key observation from recent full-day baselines]
 
 **Trend Analysis**
-[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. Selected Range. Evaluate if healthy for her current age based on HK standards.]
+[Write a single paragraph (3-4 sentences) evaluating full completed days (Yesterday and prior) compared against the Recent 7-Day Avg and Selected Range. Ignore today's partial numbers. Evaluate if healthy for her current age based on HK standards.]
 
 **Suggested Action**
-[Write 1 brief sentence suggesting a practical next step based strictly on complete historical trends.]"""
+[Write 1 brief sentence suggesting a practical next step based STRICTLY on completed full-day historical trends (yesterday and earlier).]"""
 
     # Helper function to generate the Hardcoded HTML
     def get_hardcoded_html():
@@ -627,7 +623,7 @@ OUTPUT FORMAT RESTRICTIONS:
         cache_key = hash(f"{prompt_template}_{latest_data_timestamp}_{refresh_key}")
         is_already_cached = cache_key in global_ai_cache
         
-        # If we have to wait for the API, immediately display the hardcoded text in the placeholder!
+        # Display hardcoded placeholder if waiting for API
         if not is_already_cached:
             card_placeholder.markdown(get_hardcoded_html(), unsafe_allow_html=True)
         
@@ -670,7 +666,7 @@ OUTPUT FORMAT RESTRICTIONS:
             
             ai_final_html = f"""
             <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
-                <strong style="color: #4c1d95; font-size: 1.05rem; letter-spacing: 0.01em; display: block; margin-bottom: 4px;">✨ AI Insight</strong>
+                <strong style="color: #4c1d95; font-size: 1.05rem; letter-spacing: 0.01em; display: block; margin-bottom: 4px;">✨ AI Insight</strong> 
                 {html_text}
                 <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #94a3b8;">
                     <span>{time_display}</span>
@@ -679,7 +675,6 @@ OUTPUT FORMAT RESTRICTIONS:
             </div>
             """
             
-            # The moment the API returns, completely OVERWRITE the placeholder with the AI text!
             card_placeholder.markdown(ai_final_html, unsafe_allow_html=True)
             
     else:
