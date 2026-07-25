@@ -952,18 +952,34 @@ with tab1:
         
         st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours.*")
 
-        feed_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Formula|Breast Milk")])
-        diaper_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Diaper|Poop")])
-        feed_cnt_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Formula|Breast Milk")]) / 7
-        diaper_cnt_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Diaper|Poop")]) / 7
+        # --- SAFELY COMPUTE 24H METRICS INSIDE TAB 1 SCOPE ---
+        t_formula = today_24h_df[today_24h_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
+        t_bm = today_24h_df[today_24h_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
+        t_milk = t_formula + t_bm
+        t_feed_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
+        t_avg_feed = (t_milk / t_feed_cnt) if t_feed_cnt > 0 else 0
+        
+        t_diaper_events = today_24h_df[today_24h_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)]
+        t_diaper_changes = t_diaper_events['DateTime'].nunique() if not t_diaper_events.empty else 0
+        t_wet = len(today_24h_df[today_24h_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
+        t_poop = len(today_24h_df[today_24h_df['Event Type'].str.contains("Poop", case=False, na=False)])
+        
+        t_tummy = today_24h_df[today_24h_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
+        t_sleep = today_24h_df[today_24h_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
+        t_meds = len(today_24h_df[today_24h_df['Event Type'].str.contains("Meds", case=False, na=False)])
+
+        feed_cnt_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]) / 7
+        r_diaper_events = recent_7d_df[recent_7d_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)]
+        diaper_cnt_7d = (r_diaper_events.groupby('Date')['DateTime'].nunique().sum() / 7) if not r_diaper_events.empty else 0
         
         analysis = f"""• **Milk Intake:** {int(t_milk):,} mL across {t_feed_cnt} feed(s) (Avg: ~{int(t_avg_feed)} mL | Form: {int(t_formula):,} mL, BM: {int(t_bm):,} mL)
 • **Diaper Output:** {t_diaper_changes} change(s) ({t_wet} wet, {t_poop} poop)
 • **Activity & Rest:** {int(t_tummy)} min tummy time | {int(t_sleep)} hrs rest | {t_meds} med dose(s)"""
-        
+
         ai_context = f"Category: 24h Overview. Today: {t_feed_cnt} feeds, {t_diaper_changes} diaper changes. Recent 7-Day Avg: {feed_cnt_7d:.1f} feeds/day, {diaper_cnt_7d:.1f} diapers/day."
         render_insight_card(analysis, ai_prompt_context=ai_context, category_df=today_24h_df)
-    else: render_empty_state("No Events Logged in the Last 24 Hours")
+    else: 
+        render_empty_state("No Events Logged in the Last 24 Hours")
 
 # TAB 2: MILK
 with tab2:
