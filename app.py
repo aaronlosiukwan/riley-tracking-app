@@ -20,7 +20,7 @@ except ImportError:
 # ==========================================
     layout="wide",
     initial_sidebar_state="expanded"
-)
+
 
 components.html(
     """
