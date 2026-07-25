@@ -948,14 +948,13 @@ with tab1:
             color_discrete_map=COLOR_MAP, text="Value (Optional)", hover_data={"Value (Optional)": True, "CategoryBubbleSize": False, "DateTime": False, "Event Type": False}, size_max=14
         )
         
-        # 90° Vertical Text Labels with Value ONLY (No Units)
+        # Display value above scatter points (without unit string)
         fig_today_timeline.for_each_trace(
             lambda t: t.update(
                 mode='markers+text',
                 marker=dict(opacity=0.85, line=dict(width=1.5, color='white')),
                 textposition='top center',
-                textfont=dict(weight='bold', size=10),
-                textangle=-90,
+                textfont=dict(size=10),
                 texttemplate='%{text}'
             ) if "(Cnt)" not in t.name else t.update(
                 mode='markers',
@@ -1019,7 +1018,6 @@ with tab2:
         total_per_x[group_col] = total_per_x[group_col].apply(format_x_label)
         is_single = len(grouped_count[group_col].unique()) == 1
         
-        # Faceted 2-Row Subplot Panel to eliminate dual Y-axis confusion on mobile
         fig_milk = make_subplots(
             rows=2, cols=1, 
             shared_xaxes=True, 
@@ -1481,7 +1479,6 @@ with tab8:
     styled_table = dropped_df.style.apply(apply_vaccine_colors, axis=1)
     
     st.dataframe(styled_table, use_container_width=True, hide_index=True, height=550)
-
 # ==========================================
 # 7. UNIFIED MASTER DATABASE & EDITOR
 # ==========================================
