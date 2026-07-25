@@ -117,10 +117,11 @@ st.markdown("""
     .card-span-3 { grid-column: span 3 !important; } .card-span-4 { grid-column: span 4 !important; } .card-span-6 { grid-column: span 6 !important; } .card-span-12 { grid-column: span 12 !important; } 
     @media (max-width: 1024px) { .card-span-3, .card-span-4 { grid-column: span 6 !important; } .mobile-full-width { grid-column: span 12 !important; } }
 
+   /* --- METRIC CARDS --- */
     .highlight-card { 
         background-color: var(--card-bg); 
         border-radius: 16px; 
-        padding: 16px; 
+        padding: 18px 20px; /* Slightly more breathing room */
         min-height: 125px; 
         height: 100% !important; 
         display: flex !important; flex-direction: column !important; justify-content: space-between !important; 
@@ -130,23 +131,34 @@ st.markdown("""
         color: var(--card-text) !important; 
         transition: transform 0.15s ease, box-shadow 0.15s ease; 
     }
+    .highlight-card:hover {
+        transform: translateY(-2px); /* Subtle lift interaction */
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+    }
     
-    .highlight-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 6px; line-height: 1.2; color: #475569; } 
+    /* Super-title micro-labels for cards */
+    .highlight-title { 
+        font-weight: 700; 
+        font-size: 0.75rem; 
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 8px; 
+        color: #64748b; 
+    } 
     .highlight-body { font-size: 0.9rem; opacity: 0.95; line-height: 1.3; } 
-    .highlight-sub { font-size: 0.75rem; color: #94a3b8; margin-top: 6px; line-height: 1.3; }
+    .highlight-sub { font-size: 0.75rem; color: #94a3b8; margin-top: 8px; line-height: 1.3; font-weight: 500; }
 
-    .raw-log-count-text { font-size: 0.72rem; color: #64748b; margin-top: 3px; margin-bottom: 6px; }
-
+    /* --- EMPTY STATES --- */
     .empty-data-card { 
         background-color: #f8fafc; 
-        border: none; 
+        border: 1px dashed #cbd5e1; /* Dashed border indicates 'waiting for data' */
         border-radius: 16px; 
-        padding: 24px 16px; 
+        padding: 32px 16px; /* Taller padding for empty states */
         text-align: center; 
         margin: 6px 0; 
         color: #64748b; 
     }
-    .empty-data-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 4px; color: #475569;}
+    .empty-data-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 6px; color: #475569;}
     .empty-data-sub { font-size: 0.85rem; opacity: 0.8; }
     </style>
 """, unsafe_allow_html=True)
@@ -648,7 +660,7 @@ OUTPUT FORMAT RESTRICTIONS:
             
             ai_final_html = f"""
             <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
-                <strong style="color: #4c1d95; font-size: 0.98rem; display: block; margin-bottom: 4px;">✨ AI Insight</strong> 
+                <strong style="color: #4c1d95; font-size: 1.05rem; letter-spacing: 0.01em; display: block; margin-bottom: 4px;">✨ AI Insight</strong>
                 {html_text}
                 <div style="margin-top: 14px; padding-top: 8px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: #94a3b8;">
                     <span>{time_display}</span>
@@ -730,7 +742,7 @@ else:
     c_temp = COLOR_MAP["🌡️ Temp (°C)"]
     c_events = "#64748b"
 
-    today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">⏰ Last Feeding</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_feed};">{last_feed_delta}</span></div></div><div class="highlight-sub">{last_feed_sub}</div></div>""")
+    today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">⏰ Last Feeding</div><div class="highlight-body"><span style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: {c_feed}; line-height: 1.1;">last_feed_delta}</span></div></div><div class="highlight-sub">{last_feed_sub}</div></div>""")
     if t_milk > 0 or t_feed_cnt > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_milk};">{int(t_milk):,} mL</span> across {t_feed_cnt} feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Form: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div></div>""")
     if t_wet + t_poop > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body"><span style="font-size: 1.15rem; font-weight: 700; color: {c_diaper};">{t_wet + t_poop}</span> change(s).</div></div><div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div></div>""")
     p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
