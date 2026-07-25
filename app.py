@@ -288,16 +288,15 @@ baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], in
 # AUTHENTICATED GSHEETS CONNECTION & GEMINI HANDLERS
 # ---------------------------------------------------------
 @st.cache_data(ttl=1800, show_spinner=False)
-def call_gemini_ai(prompt_text):
+def call_gemini_ai(prompt_text, api_key_param):
     if not GEMINI_AVAILABLE:
         return "⚠️ **google-genai package missing.** Please install `google-genai` in `requirements.txt`."
     
-    api_key = st.secrets.get("GEMINI_API_KEY", None)
-    if not api_key or api_key == "AIzaSy...":
+    if not api_key_param or api_key_param == "AIzaSy...":
         return "⚠️ **Gemini API Key missing.** Set `GEMINI_API_KEY` in Streamlit Secrets."
     
     try:
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key=api_key_param)
         response = client.models.generate_content(
             model='gemini-2.0-flash',
             contents=prompt_text
@@ -307,13 +306,13 @@ def call_gemini_ai(prompt_text):
         return f"⚠️ **AI Insight Error:** {str(e)}"
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def get_suggested_questions(context_str):
-    if not GEMINI_AVAILABLE or not st.secrets.get("GEMINI_API_KEY"):
+def get_suggested_questions(context_str, api_key_param):
+    if not GEMINI_AVAILABLE or not api_key_param or api_key_param == "AIzaSy...":
         return ["How is Riley's sleep pattern?", "Is her milk intake normal?", "Any upcoming vaccines?"]
     
     prompt = f"Based on these recent logs:\n{context_str}\n\nSuggest exactly 3 short, highly relevant questions the parents could ask an AI pediatrician about this data. Return ONLY the 3 questions, one per line, without bullet points or numbers."
     try:
-        res = call_gemini_ai(prompt)
+        res = call_gemini_ai(prompt, api_key_param)
         return [q.strip().replace('- ', '').replace('*', '') for q in res.split('\n') if q.strip()][:3]
     except:
         return ["How is Riley's sleep pattern?", "Is her milk intake normal?", "Any upcoming vaccines?"]
@@ -425,10 +424,11 @@ def get_unit_from_name(name):
     return ""
 
 def render_insight_card(hardcoded_text, ai_prompt_context=None):
+    api_key_param = st.secrets.get("GEMINI_API_KEY", None)
     if use_ai_insights and ai_prompt_context and GEMINI_AVAILABLE:
         with st.spinner("🤖 Generating Gemini AI insight..."):
             prompt = f"You are a supportive pediatric assistant evaluating baby Riley's logs. Context: {ai_prompt_context}. Write a 1-2 sentence encouraging insight highlighting key trends. Keep formatting simple with bold key metrics. Do not include introductory filler."
-            output_text = call_gemini_ai(prompt)
+            output_text = call_gemini_ai(prompt, api_key_param)
             border_color = "#8b5cf6"
             badge_title = "✨ Gemini AI Insight"
             text_color = "#4c1d95"
@@ -1153,6 +1153,7 @@ with st.popover("💬"):
     
     # Generate a tight string context of the top 40 logs to feed the AI
     recent_logs_str = df.head(40)[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].to_string(index=False)
+    current_api_key = st.secrets.get("GEMINI_API_KEY", None)
     
     chat_container = st.container(height=320)
     for msg in st.session_state.chat_history:
@@ -1161,7 +1162,7 @@ with st.popover("💬"):
     # Show Top 3 Suggested Questions ONLY if chat is completely empty
     if not st.session_state.chat_history:
         st.markdown("<div style='margin-top: 10px; font-size: 0.85rem; font-weight: 600; color: #64748b;'>Suggested Questions:</div>", unsafe_allow_html=True)
-        suggested_qs = get_suggested_questions(recent_logs_str)
+        suggested_qs = get_suggested_questions(recent_logs_str, current_api_key)
         for q in suggested_qs:
             if st.button(q, use_container_width=True):
                 st.session_state.chat_history.append({"role": "user", "content": q})
@@ -1171,7 +1172,7 @@ with st.popover("💬"):
                 with chat_container.chat_message("assistant"):
                     with st.spinner("Thinking..."):
                         prompt = f"You are a helpful pediatric nurse assistant analyzing Riley's data (Born {baby_dob}, {baby_gender}). Logs:\n{recent_logs_str}\n\nParent asks: {q}"
-                        resp = call_gemini_ai(prompt)
+                        resp = call_gemini_ai(prompt, current_api_key)
                         st.write(resp)
                 st.session_state.chat_history.append({"role": "assistant", "content": resp})
                 st.rerun()
@@ -1191,7 +1192,7 @@ with st.popover("💬"):
             with st.spinner("Thinking..."):
                 chat_context = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.chat_history[-4:]])
                 prompt = f"You are a helpful pediatric nurse assistant analyzing Riley's data (Born {baby_dob}, {baby_gender}). Logs:\n{recent_logs_str}\n\nConversation:\n{chat_context}\n\nRespond clearly and encouragingly."
-                resp = call_gemini_ai(prompt)
+                resp = call_gemini_ai(prompt, current_api_key)
                 st.write(resp)
         st.session_state.chat_history.append({"role": "assistant", "content": resp})
         st.rerun()
