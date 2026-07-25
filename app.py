@@ -355,8 +355,8 @@ st.sidebar.markdown("""
 st.sidebar.markdown('<div class="pro-sidebar-header" style="margin-top: 0;">Navigation</div>', unsafe_allow_html=True)
 st.sidebar.markdown("""
     <a href="#top-header" class="pro-nav-item">✨ Today's Highlights</a>
-    <a href="#filters" class="pro-nav-item">⚙️ Date Filters</a>
-    <a href="#insights" class="pro-nav-item">📊 Data Insights</a>
+    <a href="#filters" class="pro-nav-item">⚙️ Groups & Filters</a>
+    <a href="#insights" class="pro-nav-item">📊 Insights</a>
     <a href="#database" class="pro-nav-item">📋 Master Database</a>
 """, unsafe_allow_html=True)
 
@@ -375,7 +375,7 @@ if active_url:
 # --- SECTION 3: SETTINGS ---
 st.sidebar.markdown('<div class="pro-sidebar-header">Settings</div>', unsafe_allow_html=True)
 
-with st.sidebar.expander("🧠 AI Preferences", expanded=False):
+with st.sidebar.expander("🧠 AI Preference", expanded=False):
     if "ai_insights_enabled" not in st.session_state:
         st.session_state.ai_insights_enabled = True
 
