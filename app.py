@@ -501,11 +501,20 @@ ALL_EVENT_CATEGORIES = [
 ]
 
 COLOR_MAP = {
-    "🍼 Formula (mL)": "#0ea5e9", "🤱 Breast Milk (mL)": "#64748b", "💧 Wet Diaper (Cnt)": "#3b82f6",
-    "🚽 Poop (Cnt)": "#d97706", "🧴 Pumping (mL)": "#a855f7", "🛟 Tummy Time (Mins)": "#10b981",
-    "🛌 Sleep (hrs)": "#6366f1", "🌡️ Temp (°C)": "#ef4444", "💊 Meds (Cnt)": "#f59e0b",
-    "⚖️ Weight (kg)": "#14b8a6", "🏔️ Height (cm)": "#0ea5e9", "🐷 Head Size (cm)": "#ec4899",
-    "💉 Vaccine (Cnt)": "#f43f5e", "Other": "#6b7280"
+    "🍼 Formula (mL)": "#0284c7", 
+    "🤱 Breast Milk (mL)": "#fb7185", 
+    "💧 Wet Diaper (Cnt)": "#3b82f6",
+    "🚽 Poop (Cnt)": "#d97706", 
+    "🧴 Pumping (mL)": "#8b5cf6", 
+    "🛟 Tummy Time (Mins)": "#10b981",
+    "🛌 Sleep (hrs)": "#6366f1", 
+    "🌡️ Temp (°C)": "#f43f5e", 
+    "💊 Meds (Cnt)": "#eab308",
+    "⚖️ Weight (kg)": "#0284c7", 
+    "🏔️ Height (cm)": "#0ea5e9", 
+    "🐷 Head Size (cm)": "#ec4899",
+    "💉 Vaccine (Cnt)": "#f43f5e", 
+    "Other": "#64748b"
 }
 
 def format_x_label(val):
@@ -945,28 +954,39 @@ with tab1:
         
         fig_today_timeline = px.scatter(
             norm_today_df, x="DateTime", y="Short_Event", size="CategoryBubbleSize", color="Event Type",
-            color_discrete_map=COLOR_MAP, text="Value (Optional)", hover_data={"Value (Optional)": True, "CategoryBubbleSize": False, "DateTime": False, "Event Type": False}, size_max=14
+            color_discrete_map=COLOR_MAP, hover_data={"Value (Optional)": True, "CategoryBubbleSize": False, "DateTime": False, "Event Type": False}, size_max=14
         )
         
-        # Display value above scatter points (without unit string)
-        fig_today_timeline.for_each_trace(
-            lambda t: t.update(
-                mode='markers+text',
-                marker=dict(opacity=0.85, line=dict(width=1.5, color='white')),
-                textposition='top center',
-                textfont=dict(size=10),
-                texttemplate='%{text}'
-            ) if "(Cnt)" not in t.name else t.update(
-                mode='markers',
-                marker=dict(opacity=0.85, line=dict(width=1.5, color='white')),
-                text=None
-            )
+        # Mode markers only
+        fig_today_timeline.update_traces(
+            mode='markers',
+            marker=dict(opacity=0.85, line=dict(width=1.5, color='white'))
         )
         
+        # Build 90° counter-clockwise (-90°) rotated annotations for data values
+        timeline_annotations = []
+        for _, row in norm_today_df.iterrows():
+            val = row['Value (Optional)']
+            event_name = str(row['Event Type'])
+            if pd.notna(val) and "(Cnt)" not in event_name:
+                val_str = f"{int(val)}" if float(val).is_integer() else f"{val:.1f}"
+                timeline_annotations.append(dict(
+                    x=row['DateTime'],
+                    y=row['Short_Event'],
+                    text=f"<b>{val_str}</b>",
+                    showarrow=False,
+                    yshift=16,
+                    textangle=-90,  # 90° Counter-Clockwise Rotation
+                    font=dict(size=10, color='#334155')
+                ))
+
         fig_today_timeline.update_traces(hovertemplate='%{customdata[0]}<extra></extra>')
-        # y_tickangle=0 makes Y-axis tick labels horizontal & upright (no diagonal slant!)
         fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=450, is_scatter=True, x_tickformat="%d-%H", x_dtick=10800000, y_tickangle=0)
-        fig_today_timeline.update_layout(showlegend=False, yaxis=dict(title=dict(text=""), showgrid=True, gridcolor="#f1f5f9", tickfont=dict(size=10.5), automargin=True))
+        fig_today_timeline.update_layout(
+            showlegend=False,
+            annotations=timeline_annotations,
+            yaxis=dict(title=dict(text=""), showgrid=True, gridcolor="#f1f5f9", tickfont=dict(size=10.5), automargin=True)
+        )
         st.plotly_chart(fig_today_timeline, use_container_width=True)
         
         st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours.*")
@@ -1000,7 +1020,6 @@ with tab1:
     else: 
         render_empty_state("No Events Logged in the Last 24 Hours")
 
-
 # ==========================================
 # TAB 2: MILK
 # ==========================================
@@ -1022,65 +1041,65 @@ with tab2:
         max_vol = total_per_x['Value (Optional)'].max() if not total_per_x.empty else 100
         max_feeds = grouped_count['Total Feeds Count'].max() if not grouped_count.empty else 10
 
-        # Clean 2-Row Subplot Panel without distracting inner annotations
+        # Subplot panel with vertical spacing and NO LEGEND
         fig_milk = make_subplots(
             rows=2, cols=1, 
             shared_xaxes=True, 
             row_heights=[0.68, 0.32], 
-            vertical_spacing=0.12
+            vertical_spacing=0.10
         )
         
-        # Formula: Vibrant Sky Blue
+        # Formula Bar: Refined Sky Cyan (#0284c7)
         df_f = grouped_vol[grouped_vol['Category'] == '🍼 Formula (mL)']
         if not df_f.empty: 
             fig_milk.add_trace(go.Bar(
                 name='🍼 Formula (mL)', 
                 x=df_f[group_col].astype(str), 
                 y=df_f['Value (Optional)'], 
-                marker_color="#0ea5e9", 
+                marker_color=COLOR_MAP["🍼 Formula (mL)"], 
                 width=0.35 if is_single else None, 
                 hovertemplate='%{y} mL<extra></extra>'
             ), row=1, col=1)
             
-        # Breast Milk: Soft Indigo / Periwinkle (Harmonic match with Sky Blue)
+        # Breast Milk Bar: Soft Coral Rose (#fb7185)
         df_bm = grouped_vol[grouped_vol['Category'] == '🤱 Breast Milk (mL)']
         if not df_bm.empty: 
             fig_milk.add_trace(go.Bar(
                 name='🤱 Breast Milk (mL)', 
                 x=df_bm[group_col].astype(str), 
                 y=df_bm['Value (Optional)'], 
-                marker_color="#818cf8", 
+                marker_color=COLOR_MAP["🤱 Breast Milk (mL)"], 
                 width=0.35 if is_single else None, 
                 hovertemplate='%{y} mL<extra></extra>'
             ), row=1, col=1)
             
+        # Volume Trend Line (Slate Navy)
         fig_milk.add_trace(go.Scatter(
             name='📈 Vol Trend', 
             x=total_per_x[group_col].astype(str), 
             y=total_per_x['Trend'], 
             mode='lines', 
-            line=dict(color='#0f172a', width=2.5, shape='spline'), 
+            line=dict(color='#334155', width=2, shape='spline'), 
             hovertemplate='Avg Trend: %{y:.0f} mL<extra></extra>'
         ), row=1, col=1)
         
-        # Total Volume Label OUTSIDE top of stacked bars
+        # Clean Compact Volume Label (NO 'mL', font size 9.5px, bold)
         fig_milk.add_trace(go.Scatter(
             x=total_per_x[group_col].astype(str), y=total_per_x['Value (Optional)'],
-            mode='text', text=['<b>' + f"{int(v):,} mL" + '</b>' for v in total_per_x['Value (Optional)']],
-            textposition='top center', textfont=dict(size=12.5, color='#0f172a'),
+            mode='text', text=['<b>' + f"{int(v):,}" + '</b>' for v in total_per_x['Value (Optional)']],
+            textposition='top center', textfont=dict(size=9.5, color='#334155'),
             hoverinfo='skip', showlegend=False
         ), row=1, col=1)
 
-        # Feed Count Bars with Text OUTSIDE
+        # Feed Count Bars (Harmonic Soft Lavender Violet #8b5cf6)
         fig_milk.add_trace(go.Bar(
             name='🔢 Feed Count', x=grouped_count[group_col].astype(str), y=grouped_count['Total Feeds Count'],
-            marker_color='#f97316', width=0.35 if is_single else None,
+            marker_color='#8b5cf6', width=0.35 if is_single else None,
             text=['<b>' + str(int(c)) + '</b>' for c in grouped_count['Total Feeds Count']],
-            textposition="outside", textfont=dict(size=12, color='#0f172a'),
+            textposition="outside", textfont=dict(size=9.5, color='#334155'),
             hovertemplate='%{y} feeds<extra></extra>'
         ), row=2, col=1)
 
-        # Uniform Title styling matching style_plotly_figure across all tabs
         fig_milk = style_plotly_figure(fig_milk, title_text=f"🍼 Milk Intake Volume & Feed Count — {granularity}", height=520, single_point=is_single)
         fig_milk.update_layout(
             barmode='stack', showlegend=False,
