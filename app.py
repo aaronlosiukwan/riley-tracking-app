@@ -292,7 +292,7 @@ def call_gemini_ai(prompt_text, api_key_param):
     if not GEMINI_AVAILABLE:
         return "⚠️ **google-genai package missing.** Please install `google-genai` in `requirements.txt`."
     
-    if not api_key_param or api_key_param == "AIzaSy...":
+    if not api_key_param:
         return "⚠️ **Gemini API Key missing.** Set `GEMINI_API_KEY` in Streamlit Secrets."
     
     try:
@@ -307,7 +307,7 @@ def call_gemini_ai(prompt_text, api_key_param):
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_suggested_questions(context_str, api_key_param):
-    if not GEMINI_AVAILABLE or not api_key_param or api_key_param == "AIzaSy...":
+    if not GEMINI_AVAILABLE or not api_key_param:
         return ["How is Riley's sleep pattern?", "Is her milk intake normal?", "Any upcoming vaccines?"]
     
     prompt = f"Based on these recent logs:\n{context_str}\n\nSuggest exactly 3 short, highly relevant questions the parents could ask an AI pediatrician about this data. Return ONLY the 3 questions, one per line, without bullet points or numbers."
