@@ -1261,7 +1261,15 @@ if st.session_state.edit_mode:
             with st.spinner("Executing surgical cell updates..."):
                 try:
                     conn = st.connection("gsheets", type=GSheetsConnection)
-                    client = conn.client
+                    
+                    # BUG FIX: Bypass Streamlit's wrapper and authenticate gspread natively
+                    secrets_dict = dict(st.secrets["connections"]["gsheets"])
+                    # Remove Streamlit-specific keys so gspread doesn't crash
+                    secrets_dict.pop("spreadsheet", None)
+                    secrets_dict.pop("worksheet", None)
+                    secrets_dict.pop("type", None)
+                    
+                    client = gspread.service_account_from_dict(secrets_dict)
                     sheet = client.open_by_url(sheet_url_input).worksheet("Log")
                     
                     live_df = conn.read(spreadsheet=sheet_url_input, worksheet="Log", ttl=0)
