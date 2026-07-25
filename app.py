@@ -118,12 +118,12 @@ st.markdown("""
     /* Mobile 50/50 Split Sizing (Title 100%, Buttons 50/50 Below it) */
     @media (max-width: 768px) {
         .app-main-title {
-            margin-bottom: 1.2rem !important; /* Added explicit gap below title on mobile */
+            margin-bottom: 1.5rem !important; /* Added explicit gap below title on mobile */
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
             flex-wrap: wrap !important; gap: 0.5rem !important;
             flex-direction: row !important; /* Force row layout to stop stacking */
-            margin-bottom: 2.5rem !important;
+            margin-bottom: 2rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
             flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
