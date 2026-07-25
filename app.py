@@ -1229,14 +1229,15 @@ if search_query:
 current_max_time = df['DateTime'].max() if not df.empty else None
 
 col_config = {
-    "DateTime": st.column_config.TextColumn("DateTime (YYYY-MM-DD HH:MM:SS)", width="medium", required=True),
+    "DateTime": st.column_config.DatetimeColumn("DateTime", format="YYYY-MM-DD HH:mm", width="medium", required=True),
     "Event Type": st.column_config.SelectboxColumn("Event Type", options=ALL_EVENT_CATEGORIES, width="medium", required=True),
     "Value (Optional)": st.column_config.NumberColumn("Value", width="small"),
     "Notes / Details (Optional)": st.column_config.TextColumn("Notes / Details (Optional)", width="large")
 }
 
-# Strip out the SheetRow so it doesn't show in the UI, but keep the index identical!
+# Strip out SheetRow for UI display and convert DateTime to datetime object for clean date picker UI
 display_df = table_df[['DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
+display_df['DateTime'] = pd.to_datetime(display_df['DateTime'], errors='coerce')
 
 if st.session_state.edit_mode:
     st.markdown("""
