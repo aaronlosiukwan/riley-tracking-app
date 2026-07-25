@@ -1263,9 +1263,7 @@ if st.session_state.edit_mode:
                 try:
                     conn = st.connection("gsheets", type=GSheetsConnection)
                     
-                    # BUG FIX: Bypass Streamlit's wrapper and authenticate gspread natively
                     secrets_dict = dict(st.secrets["connections"]["gsheets"])
-                    # Remove Streamlit-specific keys so gspread doesn't crash
                     secrets_dict.pop("spreadsheet", None)
                     secrets_dict.pop("worksheet", None)
                     secrets_dict.pop("type", None)
@@ -1283,6 +1281,8 @@ if st.session_state.edit_mode:
                     if current_max_time and live_max_time and live_max_time > current_max_time:
                         st.error("🚨 **CRITICAL COLLISION:** Someone logged new data to the spreadsheet while you were editing! Please click 'Cancel Editing' and re-enable it to sync the latest data.")
                     else:
+                        now_timestamp = (datetime.utcnow() + timedelta(hours=tz_offset)).strftime('%Y-%m-%d %H:%M:%S')
+                        
                         # 1. IDENTIFY DELETIONS
                         deleted_indices = set(table_df.index) - set(edited_df.index)
                         deleted_sheet_rows = table_df.loc[list(deleted_indices), 'SheetRow'].tolist()
@@ -1299,22 +1299,34 @@ if st.session_state.edit_mode:
                             new_row = edited_df.loc[idx]
                             sheet_row = int(old_row['SheetRow'])
                             
-                            # Compare explicitly and build atomic Cell updates (Cols D=4, E=5, F=6, G=7, H=8)
-                            if str(old_row['DateTime']) != str(new_row['DateTime']):
-                                edits_to_push.append(gspread.Cell(row=sheet_row, col=5, value=str(new_row['DateTime'])))
+                            row_changed = False
+                            
+                            new_dt_str = pd.to_datetime(new_row['DateTime']).strftime('%Y-%m-%d %H:%M:%S') if pd.notna(new_row['DateTime']) else ""
+                            old_dt_str = str(old_row['DateTime'])
+                            
+                            if old_dt_str != new_dt_str:
+                                edits_to_push.append(gspread.Cell(row=sheet_row, col=5, value=new_dt_str))
+                                row_changed = True
                                 
                             if str(old_row['Event Type']) != str(new_row['Event Type']):
                                 edits_to_push.append(gspread.Cell(row=sheet_row, col=6, value=str(new_row['Event Type'])))
+                                row_changed = True
                                 
                             old_val = "" if pd.isna(old_row['Value (Optional)']) else str(old_row['Value (Optional)'])
                             new_val = "" if pd.isna(new_row['Value (Optional)']) else str(new_row['Value (Optional)'])
                             if old_val != new_val:
                                 edits_to_push.append(gspread.Cell(row=sheet_row, col=7, value=new_row['Value (Optional)'] if not pd.isna(new_row['Value (Optional)']) else ""))
+                                row_changed = True
                                 
                             old_note = "" if pd.isna(old_row['Notes / Details (Optional)']) else str(old_row['Notes / Details (Optional)'])
                             new_note = "" if pd.isna(new_row['Notes / Details (Optional)']) else str(new_row['Notes / Details (Optional)'])
                             if old_note != new_note:
                                 edits_to_push.append(gspread.Cell(row=sheet_row, col=8, value=new_note))
+                                row_changed = True
+                            
+                            # If any field in the row was edited, record UpdateDateTime in Column I (Col 9)
+                            if row_changed:
+                                edits_to_push.append(gspread.Cell(row=sheet_row, col=9, value=now_timestamp))
                         
                         # EXECUTE BATCH UPDATES
                         if edits_to_push:
@@ -1325,23 +1337,23 @@ if st.session_state.edit_mode:
                             for r in sorted(deleted_sheet_rows, reverse=True):
                                 sheet.delete_rows(r)
                                 
-                        # EXECUTE ADDITIONS (Inject strictly into D:H, skipping A:C formulas)
+                        # EXECUTE ADDITIONS (Inject into D:I, skipping A:C formulas)
                         if not new_rows_df.empty:
                             dt_col = sheet.col_values(5) # Get all values in Col E (DateTime)
-                            next_row = len(dt_col) + 1   # Find the absolute bottom
+                            next_row = len(dt_col) + 1   # Find bottom
                             
                             new_data = []
                             for _, r in new_rows_df.iterrows():
-                                entry_dt = (datetime.utcnow() + timedelta(hours=tz_offset)).strftime('%Y-%m-%d %H:%M:%S')
-                                dt = str(r['DateTime'])
+                                entry_dt = now_timestamp
+                                dt_str = pd.to_datetime(r['DateTime']).strftime('%Y-%m-%d %H:%M:%S') if pd.notna(r['DateTime']) else now_timestamp
                                 ev = str(r['Event Type'])
                                 val = r['Value (Optional)'] if pd.notna(r['Value (Optional)']) else ""
                                 notes = str(r['Notes / Details (Optional)']) if pd.notna(r['Notes / Details (Optional)']) else ""
-                                new_data.append([entry_dt, dt, ev, val, notes])
+                                new_data.append([entry_dt, dt_str, ev, val, notes, now_timestamp])
                                 
-                            sheet.update(values=new_data, range_name=f"D{next_row}:H{next_row + len(new_data) - 1}")
+                            sheet.update(values=new_data, range_name=f"D{next_row}:I{next_row + len(new_data) - 1}")
                             
-                        st.success("✅ Surgical updates successfully pushed to Google Sheets! Refreshing...")
+                        st.success("✅ Surgical updates & UpdateDateTime successfully pushed to Google Sheets! Refreshing...")
                         st.session_state.edit_mode = False
                         st.cache_data.clear()
                         st.rerun()
