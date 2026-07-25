@@ -279,7 +279,7 @@ st.sidebar.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
 st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
 
 if "ai_insights_enabled" not in st.session_state:
-    st.session_state.ai_insights_enabled = False # Always default to non-AI view on fresh reload
+    st.session_state.ai_insights_enabled = True # Always default to non-AI view on fresh reload
 
 use_ai_insights = st.sidebar.toggle(
     "✨ Enable AI Insights", 
@@ -464,7 +464,6 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
     latest_data_timestamp = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
     refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
     
-    # Capture the exact time the UI is rendering this card
     now_local = (datetime.utcnow() + timedelta(hours=tz_offset)).strftime('%Y-%m-%d %H:%M:%S')
     
     current_date_obj = datetime.utcnow().date()
@@ -497,6 +496,19 @@ OUTPUT FORMAT RESTRICTIONS:
 **Suggested Action**
 [Write 1 brief sentence suggesting a practical next step based on the data.]"""
 
+    # Helper function to generate the Hardcoded HTML
+    def get_hardcoded_html():
+        clean_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', hardcoded_text)
+        return f"""
+        <div style="background-color: #ffffff; border-left: 4px solid #0ea5e9; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
+            <strong style="color: #0369a1; font-size: 0.98rem; display: block; margin-bottom: 6px;">💡 Insight</strong> 
+            {clean_text}
+        </div>
+        """
+
+    # Create a dynamic Streamlit placeholder container
+    card_placeholder = st.empty()
+
     if use_ai_insights:
         if hidden_prefetch and ai_prompt_context and api_key_param:
              call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
@@ -504,6 +516,10 @@ OUTPUT FORMAT RESTRICTIONS:
              
         cache_key = hash(f"{prompt_template}_{latest_data_timestamp}_{refresh_key}")
         is_already_cached = cache_key in global_ai_cache
+        
+        # If we have to wait for the API, immediately display the hardcoded text in the placeholder!
+        if not is_already_cached:
+            card_placeholder.markdown(get_hardcoded_html(), unsafe_allow_html=True)
         
         spinner_msg = f"⚡ Extracting {subject}'s cached summary..." if is_already_cached else f"🤖 Asking AI to analyze {subject}'s trends..."
              
@@ -515,7 +531,6 @@ OUTPUT FORMAT RESTRICTIONS:
             elif not ai_prompt_context: 
                 output_text, is_cached, actual_model_used, gen_time = "⚠️ **No context provided for AI to analyze.**", False, "N/A", "N/A"
             else: 
-                # Unpack all 4 variables, including the actual AI generation time
                 output_text, is_cached, actual_model_used, gen_time = call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
             
             html_text = output_text.strip()
@@ -538,13 +553,12 @@ OUTPUT FORMAT RESTRICTIONS:
             html_text = re.sub(r'(</div>)\s*(?:<br>\s*)+', r'\1', html_text)
             html_text = html_text.replace('margin-top: 18px;', 'margin-top: 4px;', 1)
             
-            # Format Footer String
             if is_cached:
                 time_display = f"🕒 AI Summarized: {gen_time} &bull; ⚡ Cache Loaded: {now_local}"
             else:
                 time_display = f"🕒 AI Summarized: {gen_time} &bull; 🚀 Live AI Call"
             
-            st.markdown(f"""
+            ai_final_html = f"""
             <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
                 <strong style="color: #4c1d95; font-size: 0.98rem; display: block; margin-bottom: 4px;">✨ AI Insight</strong> 
                 {html_text}
@@ -553,17 +567,14 @@ OUTPUT FORMAT RESTRICTIONS:
                     <span>🤖 Model: <code style="font-size: 0.70rem; color: #64748b; background-color: #f8fafc; padding: 1px 4px; border-radius: 4px;">{actual_model_used}</code></span>
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            """
+            
+            # The moment the API returns, completely OVERWRITE the placeholder with the AI text!
+            card_placeholder.markdown(ai_final_html, unsafe_allow_html=True)
             
     else:
         if hidden_prefetch: return
-        html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', hardcoded_text)
-        st.markdown(f"""
-        <div style="background-color: #ffffff; border-left: 4px solid #0ea5e9; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
-            <strong style="color: #0369a1; font-size: 0.98rem; display: block; margin-bottom: 6px;">💡 Insight</strong> 
-            {html_text}
-        </div>
-        """, unsafe_allow_html=True)
+        card_placeholder.markdown(get_hardcoded_html(), unsafe_allow_html=True)
 
 # ==========================================
 # 4. TODAY'S HIGHLIGHTS & GLOBAL TREND DATAFRAMES
