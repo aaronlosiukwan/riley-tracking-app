@@ -207,9 +207,22 @@ with h_col1:
 with h_col2:
     st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker&silent=true", use_container_width=True)
 
+# Initialize Global AI Cache up here so the Refresh button can access it
+@st.cache_resource
+def get_global_ai_cache():
+    return {}
+
+global_ai_cache = get_global_ai_cache()
+
 with h_col3:
     if st.button("🔄 Refresh", use_container_width=True):
-        st.cache_data.clear()
+        st.cache_data.clear() # Always clear the Google Sheets data cache
+        
+        # SMART REFRESH: If AI is enabled, force a new AI generation too!
+        if st.session_state.get('ai_insights_enabled', False):
+            st.session_state.ai_refresh_key = str(datetime.utcnow())
+            global_ai_cache.clear()
+            
         st.session_state.show_refresh_toast = True
         st.rerun()
 
@@ -237,7 +250,7 @@ st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bo
 
 # Toggle AI settings linked directly to session_state
 if "ai_insights_enabled" not in st.session_state:
-    st.session_state.ai_insights_enabled = False
+    st.session_state.ai_insights_enabled = False # Always defaults to False on hard page reload
 if "ai_refresh_key" not in st.session_state:
     st.session_state.ai_refresh_key = "default_key"
 
@@ -246,12 +259,6 @@ use_ai_insights = st.sidebar.toggle(
     key="ai_insights_enabled", 
     help="Switches insights from rule-based formulas to LLM narrative analysis."
 )
-
-@st.cache_resource
-def get_global_ai_cache():
-    return {}
-
-global_ai_cache = get_global_ai_cache()
 
 if st.sidebar.button("🔄 Force Refresh AI Summaries", use_container_width=True, help="Forces the AI to completely re-generate insights based on the latest data."):
     st.session_state.ai_refresh_key = str(datetime.utcnow())
@@ -266,6 +273,10 @@ st.sidebar.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
 st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>👶 Baby Settings</div>", unsafe_allow_html=True)
 baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date())
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
+
+# ---------------------------------------------------------
+# AUTHENTICATED GSHEETS CONNECTION & AI HANDLERS
+# ---------------------------------------------------------
 
 # ---------------------------------------------------------
 # AUTHENTICATED GSHEETS CONNECTION & AI HANDLERS
@@ -438,13 +449,6 @@ def prepare_normalized_timeline_df(input_df):
     return res_df
 
 def get_unit_from_name(name):
-    if "mL" in name: return " mL"
-    if "Mins" in name: return " Mins"
-    if "hrs" in name: return " hrs"
-    if "°C" in name: return " °C"
-    if "kg" in name: return " kg"
-    if "cm" in name: return " cm"
-    return ""def get_unit_from_name(name):
     if "mL" in name: return " mL"
     if "Mins" in name: return " Mins"
     if "hrs" in name: return " hrs"
