@@ -329,9 +329,9 @@ st.sidebar.markdown("""
     
     /* Custom Primary Button Styling (Refresh AI) */
     [data-testid="stSidebar"] button[kind="primary"] {
-        background-color: #8b5cf6 !important;
-        color: white !important;
-        border: none !important;
+        border: 1px solid #cbd5e1 !important;
+        background-color: transparent !important;
+        color: #334155 !important;
         font-weight: 600 !important;
         border-radius: 8px !important;
         transition: all 0.2s ease !important;
