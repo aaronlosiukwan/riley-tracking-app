@@ -444,6 +444,13 @@ def get_unit_from_name(name):
     if "°C" in name: return " °C"
     if "kg" in name: return " kg"
     if "cm" in name: return " cm"
+    return ""def get_unit_from_name(name):
+    if "mL" in name: return " mL"
+    if "Mins" in name: return " Mins"
+    if "hrs" in name: return " hrs"
+    if "°C" in name: return " °C"
+    if "kg" in name: return " kg"
+    if "cm" in name: return " cm"
     return ""
 
 def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley", hidden_prefetch=False):
@@ -451,17 +458,16 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
     latest_data_timestamp = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
     refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
     
-    # Calculate exact age context for the AI
     current_date_obj = datetime.utcnow().date()
     age_days = (current_date_obj - baby_dob).days
     age_months = age_days / 30.437
     
-    # Define the core prompt dynamically based on the subject
     if subject == "Riley":
         subject_context = f"Subject: Riley (Baby Girl, Age: {age_days} days / {age_months:.1f} months old). Always evaluate her trends against typical developmental milestones and Hong Kong standards for her exact age."
     else:
         subject_context = f"Subject: {subject}."
 
+    # SIMPLIFIED PROMPT: LLMs are much better at pure markdown than raw HTML.
     prompt_template = f"""DATA CONTEXT:
 {subject_context}
 {ai_prompt_context}
@@ -469,19 +475,18 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
 ROLE: You are an analytical data tool. You are NOT a medical professional. Never give medical advice.
 TASK: Write a summary strictly based on the numbers provided. 
 
-OUTPUT RESTRICTIONS:
-- OUTPUT ONLY THE EXACT HTML STRUCTURE BELOW. 
-- DO NOT OUTPUT ANY METADATA.
-- DO NOT WRAP THE OUTPUT IN ```html CODE BLOCKS.
-- NO MARKDOWN BOLDING (**).
-- DO NOT ADD EXTRA BLANK LINES OR <br> TAGS BETWEEN BULLET POINTS.
+OUTPUT FORMAT RESTRICTIONS:
+- DO NOT wrap the output in ```html or ```markdown code blocks.
+- Provide the response in plain text using the exact section headers below (wrapped in **).
 
-<b>High-Level Summary</b><br>
-&bull; [Bullet point 1 highlighting a key metric]<br>
-&bull; [Bullet point 2 highlighting a key metric]<br><br>
-<b>Trend Analysis</b><br>
-[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. the Selected Range. Evaluate if this is healthy for her current age based on HK standards.]<br><br>
-<b>Suggested Action</b><br>
+**High-Level Summary**
+- [Bullet point 1 highlighting a key metric]
+- [Bullet point 2 highlighting a key metric]
+
+**Trend Analysis**
+[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. the Selected Range. Evaluate if this is healthy for her current age based on HK standards.]
+
+**Suggested Action**
 [Write 1 brief sentence suggesting a practical next step based on the data.]"""
 
     if use_ai_insights:
@@ -499,33 +504,43 @@ OUTPUT RESTRICTIONS:
             else:
                 output_text = call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
             
-            # AGGRESSIVE CLEANING: Strip out markdown blocks and fix spacing
-            html_text = output_text
-            html_text = re.sub(r'```html\n?', '', html_text, flags=re.IGNORECASE) # Strip opening ```html
-            html_text = re.sub(r'```\n?', '', html_text) # Strip closing ```
-            html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', html_text) 
+            # PERFECT FORMATTING ENGINE
+            html_text = output_text.strip()
+            
+            # 1. Strip hallucinated markdown blocks
+            html_text = re.sub(r'```[a-zA-Z]*\n?', '', html_text)
+            html_text = html_text.replace('```', '')
+            
+            # 2. Convert raw markdown to standard tags
+            html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', html_text)
             html_text = re.sub(r'^[-*]\s+(.*?)$', r'&bull; \1', html_text, flags=re.MULTILINE)
             html_text = html_text.replace('\n', '<br>')
-            html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text) # Collapse huge spaces
-            html_text = re.sub(r'(<br>){2,}(?=&bull;)', '<br>', html_text) # Collapse spaces specifically between bullets
+            
+            # 3. Clean up loose <br> tags
+            html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text) # Max 2 line breaks
+            html_text = re.sub(r'(<br>\s*){2,}(?=&bull;)', '<br>', html_text) # Keep bullets tight
+            
+            # 4. Transform Headers into perfectly spaced CSS Blocks
+            headers = ["High-Level Summary", "Trend Analysis", "Suggested Action"]
+            for header in headers:
+                # Wipes out all unpredictable <br> tags above and below the header
+                pattern = rf'(?:<br>\s*)*(?:<b>|\*\*){header}(?:</b>|\*\*)(?:<br>\s*)*'
+                # Replaces it with exact pixel padding
+                replacement = f'<div style="margin-top: 18px; margin-bottom: 6px; font-weight: 600; color: #1e293b; letter-spacing: 0.01em;">{header}</div>'
+                html_text = re.sub(pattern, replacement, html_text, flags=re.IGNORECASE)
+                
+            # 5. Remove the top margin from the very first header so it aligns under the title
+            html_text = html_text.replace('margin-top: 18px;', 'margin-top: 4px;', 1)
             
             st.markdown(f"""
             <div style="background-color: #ffffff; border-left: 4px solid #8b5cf6; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
-                <strong style="color: #4c1d95; font-size: 0.98rem; display: block; margin-bottom: 12px;">✨ AI Insight</strong> 
+                <strong style="color: #4c1d95; font-size: 0.98rem; display: block; margin-bottom: 4px;">✨ AI Insight</strong> 
                 {html_text}
             </div>
             """, unsafe_allow_html=True)
             
     else:
         if hidden_prefetch: return
-        html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', hardcoded_text)
-        st.markdown(f"""
-        <div style="background-color: #ffffff; border-left: 4px solid #0ea5e9; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
-            <strong style="color: #0369a1; font-size: 0.98rem; display: block; margin-bottom: 6px;">💡 Insight</strong> 
-            {html_text}
-        </div>
-        """, unsafe_allow_html=True)
-
 # ==========================================
 # 4. TODAY'S HIGHLIGHTS & GLOBAL TREND DATAFRAMES
 # ==========================================
