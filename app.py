@@ -6,6 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
+import time
 import re
 from streamlit_gsheets import GSheetsConnection
 
@@ -223,11 +224,32 @@ st.sidebar.markdown("""
 
 DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
 
-st.sidebar.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
-st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; padding-top: 20px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
+# Added generous spacing between Navigation and Configuration
+st.sidebar.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
 
-# Toggle to turn AI on and off
-use_ai_insights = st.sidebar.toggle("✨ Enable AI Insights", value=False, help="Switches insights from rule-based formulas to LLM narrative analysis.")
+# Toggle to turn AI on and off (Bound to session_state)
+if "ai_insights_enabled" not in st.session_state:
+    st.session_state.ai_insights_enabled = False
+if "ai_refresh_key" not in st.session_state:
+    st.session_state.ai_refresh_key = "default_key"
+
+use_ai_insights = st.sidebar.toggle(
+    "✨ Enable AI Insights", 
+    key="ai_insights_enabled", 
+    help="Switches insights from rule-based formulas to LLM narrative analysis."
+)
+
+@st.cache_resource
+def get_global_ai_cache():
+    return {}
+
+global_ai_cache = get_global_ai_cache()
+
+if st.sidebar.button("🔄 Force Refresh AI Summaries", use_container_width=True, help="Forces the AI to completely re-generate insights."):
+    st.session_state.ai_refresh_key = str(datetime.utcnow())
+    global_ai_cache.clear() # Wipe the custom cache to force a totally fresh pull
+    st.rerun()
 
 sheet_url_input = st.sidebar.text_input("Google Sheet URL", value=DEFAULT_SHEET_URL)
 tz_offset = st.sidebar.number_input("Timezone Offset (UTC Hours)", value=8, step=1)
@@ -241,8 +263,16 @@ baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], in
 # ---------------------------------------------------------
 # AUTHENTICATED GSHEETS CONNECTION & AI HANDLERS
 # ---------------------------------------------------------
-@st.cache_data(ttl=1800, show_spinner=False)
-def call_ai(prompt_text, api_key_param):
+if 'needs_auto_retry' not in st.session_state:
+    st.session_state.needs_auto_retry = False
+
+def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
+    # Smart Sync: Cache key changes ONLY when a new entry is logged or force refreshed
+    cache_key = hash(f"{prompt_text}_{latest_data_timestamp}_{refresh_key}")
+    
+    if cache_key in global_ai_cache:
+        return global_ai_cache[cache_key]
+
     if not OPENAI_AVAILABLE:
         return "⚠️ **OpenAI package missing.** Please install `openai` in `requirements.txt`."
     
@@ -258,39 +288,42 @@ def call_ai(prompt_text, api_key_param):
         }
     )
     
-    # OpenRouter's universal free router automatically selects an online, available free model
-    free_models = [
-        "openrouter/free",
-        "openai/gpt-oss-20b:free",
-        "google/gemma-4-31b-it:free",
-        "nvidia/nemotron-3-nano-30b-a3b:free"
-    ]
-    
-    last_error = ""
-    for model_id in free_models:
-        try:
-            chat_completion = client.chat.completions.create(
-                model=model_id,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a data-driven pediatric assistant. You MUST base your answer ONLY on the provided data numbers. NEVER ask the user to provide more logs or data. Respond directly with insights, no conversational filler."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt_text,
-                    }
-                ],
-            )
-            return chat_completion.choices[0].message.content
-        except Exception as e:
-            last_error = f"Error code: {e}"
-            continue 
+    try:
+        chat_completion = client.chat.completions.create(
+            model="openrouter/free",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a data formatting tool. You are NOT a medical professional. Do NOT provide health or medical advice. Strictly summarize the numbers provided."
+                },
+                {
+                    "role": "user",
+                    "content": prompt_text,
+                }
+            ],
+        )
+        content = chat_completion.choices[0].message.content
+        
+        # Aggressive cleaning: Strip out safety metadata injections from AI providers
+        content = re.sub(r'(?i)User Safety:.*?(?=\n|<br>|$)', '', content)
+        content = re.sub(r'(?i)Safety Categories:.*?(?=\n|<br>|$)', '', content)
+        content = content.strip()
+        
+        if "User Safety" in content or "Unauthorized Advice" in content or not content:
+            st.session_state.needs_auto_retry = True
+            return "⚠️ API Safety Filter tripped. Auto-retrying in background..."
             
-    return f"⚠️ **AI Insight Error (All free models failed):** {last_error}"
+        # Success! Cache it so we never hit the API for this exact data state again
+        global_ai_cache[cache_key] = content
+        return content
+        
+    except Exception as e:
+        # DO NOT CACHE ERRORS! Flag for background auto-retry instead.
+        st.session_state.needs_auto_retry = True
+        return f"⚠️ **API Busy. Auto-retrying in background...**"
 
 
-@st.cache_data(ttl=1)
+@st.cache_data(ttl=600) 
 def load_sheet_data(url):
     try:
         # Establish secure connection
@@ -398,12 +431,22 @@ def get_unit_from_name(name):
     if "cm" in name: return " cm"
     return ""
 
-def render_insight_card(hardcoded_text, ai_prompt_context=None):
+def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley", hidden_prefetch=False):
     api_key_param = st.secrets.get("OPENROUTER_API_KEY", None)
+    
+    # Capture the most recent entry's timestamp + user force refresh key
+    latest_data_timestamp = df['DateTime'].max().strftime('%Y-%m-%d %H:%M:%S') if not df.empty else "None"
+    refresh_key = st.session_state.get('ai_refresh_key', 'default_key')
     
     # AI Mode Render
     if use_ai_insights:
-        with st.spinner("🤖 Summarizing Riley's trends..."):
+        if hidden_prefetch and ai_prompt_context and api_key_param:
+             # Silently run the AI function in the background to prime the cache
+             prompt = f"DATA CONTEXT:\n{ai_prompt_context}\n\nROLE: You are an automated data formatting tool. You are NOT a medical professional. Never give medical advice.\nTASK: Write an analytical summary based STRICTLY on the numbers provided. The subject of this data is {subject}.\n\nOUTPUT RESTRICTIONS:\n- OUTPUT ONLY THE EXACT HTML STRUCTURE BELOW.\n- DO NOT OUTPUT ANY METADATA (e.g., \"User Safety: safe\").\n- DO NOT USE MARKDOWN (NO ** OR *).\n- DO NOT ADD EXTRA BLANK LINES BETWEEN BULLET POINTS.\n\n<b>High-Level Summary</b><br>\n&bull; [Bullet point 1 highlighting a key metric]<br>\n&bull; [Bullet point 2 highlighting a key metric]<br><br>\n<b>Trend Analysis</b><br>\n[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. the Selected Range. Highlight any positive trends.]<br><br>\n<b>Suggested Action</b><br>\n[Write 1 brief sentence suggesting a practical next step based on the data.]"
+             call_ai(prompt, api_key_param, latest_data_timestamp, refresh_key)
+             return
+             
+        with st.spinner(f"🤖 Summarizing {subject}'s trends..."):
             if not OPENAI_AVAILABLE:
                 output_text = "⚠️ **OpenAI package missing.**"
             elif not api_key_param:
@@ -411,26 +454,35 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None):
             elif not ai_prompt_context:
                 output_text = "⚠️ **No context provided for AI to analyze.**"
             else:
-                prompt = f"""DATA CONTEXT FOR RILEY:
+                prompt = f"""DATA CONTEXT:
 {ai_prompt_context}
 
-TASK:
-Write an analytical summary of Riley's data based strictly on the provided context. 
-Format your response EXACTLY using these HTML tags (do not use markdown ** or *):
+ROLE: You are an automated data formatting tool. You are NOT a medical professional. Never give medical advice.
+TASK: Write an analytical summary based STRICTLY on the numbers provided. The subject of this data is {subject}.
+
+OUTPUT RESTRICTIONS:
+- OUTPUT ONLY THE EXACT HTML STRUCTURE BELOW.
+- DO NOT OUTPUT ANY METADATA (e.g., "User Safety: safe").
+- DO NOT USE MARKDOWN (NO ** OR *).
+- DO NOT ADD EXTRA BLANK LINES BETWEEN BULLET POINTS.
 
 <b>High-Level Summary</b><br>
-&bull; [Bullet point 1 highlighting a key metric or ratio]<br>
-&bull; [Bullet point 2 highlighting a key metric or ratio]<br><br>
+&bull; [Bullet point 1 highlighting a key metric]<br>
+&bull; [Bullet point 2 highlighting a key metric]<br><br>
 <b>Trend Analysis</b><br>
-[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. the Selected Range. Highlight any positive trends, stability, or areas to watch. Always refer to the baby as Riley.]
-
-DO NOT ask for more data. DO NOT include any introductory or concluding conversational filler.
+[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. the Selected Range. Highlight any positive trends.]<br><br>
+<b>Suggested Action</b><br>
+[Write 1 brief sentence suggesting a practical next step based on the data.]
 """
-                output_text = call_ai(prompt, api_key_param)
+                output_text = call_ai(prompt, api_key_param, latest_data_timestamp, refresh_key)
             
-            # Sanitize the markdown just in case the AI ignores the HTML instruction
-            html_text = output_text.replace('\n', '<br>')
-            html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', html_text)
+            # FORMAT FIX: Aggressive space stripping and markdown sanitization
+            html_text = output_text
+            html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', html_text) 
+            html_text = re.sub(r'^[-*]\s+(.*?)$', r'&bull; \1', html_text, flags=re.MULTILINE)
+            # Squash all newlines to single <br> tags, then strictly limit to max 2 <br> tags at a time to prevent weird spacing
+            html_text = html_text.replace('\n', '<br>')
+            html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text)
             
             st.markdown(f"""
             <div style="background-color: #f8fafc; border-left: 4px solid #8b5cf6; padding: 12px 16px; border-radius: 8px; margin: 12px 0 24px 0; font-size: 0.88rem; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05); line-height: 1.5;">
@@ -441,6 +493,7 @@ DO NOT ask for more data. DO NOT include any introductory or concluding conversa
             
     # Hardcoded/Rule-Based Mode Render
     else:
+        if hidden_prefetch: return
         html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', hardcoded_text)
         st.markdown(f"""
         <div style="background-color: #f8fafc; border-left: 4px solid #0ea5e9; padding: 12px 16px; border-radius: 8px; margin: 12px 0 24px 0; font-size: 0.88rem; color: #334155; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
@@ -738,7 +791,8 @@ with tab4:
         pump_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum() / 7
         ai_pump_context = f"Category: Pumping. Today: {t_pump:.0f} mL. Recent 7-Day Avg: {pump_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}): {len(pump_df)} sessions, avg {avg_pump:.0f} mL/session."
         
-        render_insight_card(f"Across **{len(pump_df)}** sessions, the average yield is **{avg_pump:.0f} mL** per session. Maintaining regular pumping intervals is key to sustaining supply.", ai_prompt_context=ai_pump_context)
+        # Explicitly changed subject to Yanyi
+        render_insight_card(f"Across **{len(pump_df)}** sessions, the average yield is **{avg_pump:.0f} mL** per session. Maintaining regular pumping intervals is key to sustaining supply.", ai_prompt_context=ai_pump_context, subject="Yanyi")
     else: render_empty_state("No Pumping Data Logged in this period")
 
 # TAB 5: Dedicated Tummy Time Chart
@@ -774,6 +828,20 @@ with tab6:
     st.markdown("<p style='font-size: 0.85rem; text-align: center; margin-bottom: 10px;'><a href='https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf' target='_blank' style='color: #64748b; text-decoration: none; opacity: 0.8;'>📄 Official HK Growth Charts Reference (PDF)</a></p>", unsafe_allow_html=True)
 
     who_option = st.radio("Select Growth Chart:", options=["⚖️ Weight", "🏔️ Height", "🐷 Head"], horizontal=True, label_visibility="collapsed")
+    
+    # --- PRE-FETCH AI INSIGHTS FOR UNSELECTED RADIO BUTTONS (BACKGROUND CACHING) ---
+    if use_ai_insights:
+        for prefetch_opt in ["⚖️ Weight", "🏔️ Height", "🐷 Head"]:
+            if prefetch_opt != who_option:
+                p_keyword = "⚖️ Weight (kg)" if "Weight" in prefetch_opt else ("🏔️ Height (cm)" if "Height" in prefetch_opt else "🐷 Head Size (cm)")
+                p_df = df[df['Event Type'] == p_keyword].copy()
+                if not p_df.empty:
+                    p_df = p_df.sort_values('DateTime', ascending=True)
+                    p_latest = p_df.iloc[-1]
+                    p_age = (pd.to_datetime(p_latest['Date']) - pd.to_datetime(baby_dob)).days / 30.437
+                    p_unit = p_keyword.split('(')[1].replace(')','')
+                    p_context = f"Category: Growth ({prefetch_opt}). Latest {prefetch_opt.split(' ')[1]}: {p_latest['Value (Optional)']:.1f} {p_unit} at age {p_age:.1f} months."
+                    render_insight_card("", ai_prompt_context=p_context, hidden_prefetch=True)
     
     def get_who_data(gen, met):
         if "Weight" in met:
@@ -907,6 +975,29 @@ with tab6:
 # TAB 7: Health Charts
 with tab7:
     act_option = st.radio("Select Category:", options=["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"], index=0, horizontal=True, label_visibility="collapsed")
+    
+    # --- PRE-FETCH AI INSIGHTS FOR UNSELECTED RADIO BUTTONS (BACKGROUND CACHING) ---
+    if use_ai_insights:
+        for prefetch_opt in ["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"]:
+            if prefetch_opt != act_option:
+                p_keyword = "Sleep" if "Sleep" in prefetch_opt else ("Temp" if "Temp" in prefetch_opt else "Meds")
+                p_df = filtered_df[filtered_df['Event Type'].str.contains(p_keyword, case=False, na=False)].copy()
+                if not p_df.empty:
+                    p_avg_act = p_df['Value (Optional)'].mean()
+                    p_t_df = today_df[today_df['Event Type'].str.contains(p_keyword, case=False, na=False)]
+                    p_r_df = recent_7d_df[recent_7d_df['Event Type'].str.contains(p_keyword, case=False, na=False)]
+                    if p_keyword == "Temp":
+                        p_t_val = p_t_df['Value (Optional)'].mean() if not p_t_df.empty else 0
+                        p_r_val = p_r_df['Value (Optional)'].mean() if not p_r_df.empty else 0
+                        p_context = f"Category: Body Temperature. Today's Avg: {p_t_val:.1f}°C. Recent 7-Day Avg: {p_r_val:.1f}°C. Selected Range Avg: {p_avg_act:.1f}°C."
+                    elif p_keyword == "Sleep":
+                        p_t_val = p_t_df['Value (Optional)'].sum() if not p_t_df.empty else 0
+                        p_r_val = p_r_df['Value (Optional)'].sum() / 7 if not p_r_df.empty else 0
+                        p_context = f"Category: Sleep. Today: {p_t_val:.1f} hrs. Recent 7-Day Avg: {p_r_val:.1f} hrs/day. Selected Range Avg: {p_avg_act:.1f} hrs/record."
+                    else:
+                        p_context = f"Category: Medication. Today: {len(p_t_df)} doses. Recent 7-Day Avg: {len(p_r_df)/7:.1f} doses/day. Selected Range Total: {len(p_df)} doses."
+                    render_insight_card("", ai_prompt_context=p_context, hidden_prefetch=True)
+    
     act_mapping = {
         "🛌 Sleep (hrs)": ("Sleep", "Duration (hrs)", COLOR_MAP["🛌 Sleep (hrs)"], "hrs"),
         "🌡️ Temp (°C)": ("Temp", "Temperature (°C)", COLOR_MAP["🌡️ Temp (°C)"], "°C"),
@@ -1035,6 +1126,14 @@ with tab8:
         
     styled_df = pd.DataFrame(rows)
     
+    # Generate AI Insight for Vaccines
+    if not vac_df.empty:
+        total_vacs = len(vac_df)
+        upcoming = [r for r in rows if r["Status"] == "🟡 Due Soon" or r["Status"] == "⚠️ Overdue"]
+        next_due = upcoming[0]["Vaccine / 疫苗"] if upcoming else "All caught up"
+        ai_vac_context = f"Category: Vaccines. Total administered so far: {total_vacs}. Next action required: {next_due}."
+        render_insight_card(f"Riley has received **{total_vacs}** vaccine(s). Status of next vaccine: **{next_due}**.", ai_prompt_context=ai_vac_context)
+
     v_col1, v_col2 = st.columns([1, 1])
     with v_col1: grouping = st.radio("Sort View:", ["By Age Milestone", "By Vaccine Type"], horizontal=True, label_visibility="collapsed")
     
@@ -1178,3 +1277,11 @@ else:
     render_empty_state("No Raw Data Rows Match Your Search Criteria")
 
 st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
+
+# ==========================================
+# 7. BACKGROUND AUTO-RETRY ENGINE
+# ==========================================
+if st.session_state.get('needs_auto_retry', False):
+    st.session_state.needs_auto_retry = False
+    time.sleep(3) # Wait 3 seconds to let OpenRouter's rate limits cool down
+    st.rerun() # Silently refresh the UI to trigger the missing API calls again
