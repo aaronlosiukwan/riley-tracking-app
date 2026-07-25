@@ -681,6 +681,29 @@ OUTPUT FORMAT RESTRICTIONS:
 # ==========================================
 utc_now = datetime.utcnow()
 current_local_time = utc_now + timedelta(hours=tz_offset)
+curr_hour = current_local_time.hour
+
+# 1. 9:00 AM DAY CUTOFF LOGIC
+if curr_hour < 9:
+    # Between 00:00 and 08:59: Summarize yesterday's completed 24h data
+    summary_target_date = current_local_time.date() - timedelta(days=1)
+    is_morning_window = True
+else:
+    # 09:00 AM onwards: Summarize active today
+    summary_target_date = current_local_time.date()
+    is_morning_window = False
+
+if max_data_date < summary_target_date:
+    today_date = max_data_date
+else:
+    today_date = summary_target_date
+
+today_df = df[df['Date'] == today_date]
+
+# 2. RECENT 7-DAY AVERAGE LOGIC (STRICTLY EXCLUDES TODAY / TARGET DATE)
+cutoff_7d_start = today_date - timedelta(days=7)
+cutoff_7d_end = today_date - timedelta(days=1)
+recent_7d_df = df[(df['Date'] >= cutoff_7d_start) & (df['Date'] <= cutoff_7d_end)]
 
 all_feed_events = df[df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]
 if not all_feed_events.empty:
@@ -722,8 +745,13 @@ else:
     t_milk = t_formula + t_bm
     t_feed_cnt = len(today_df[today_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)])
     t_avg_feed = (t_milk / t_feed_cnt) if t_feed_cnt > 0 else 0
+    # Deduplicate Diaper Changes by unique DateTime
+    t_diaper_events = today_df[today_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)]
+    t_diaper_changes = t_diaper_events['DateTime'].nunique() if not t_diaper_events.empty else 0
+    
     t_wet = len(today_df[today_df['Event Type'].str.contains("Wet Diaper", case=False, na=False)])
     t_poop = len(today_df[today_df['Event Type'].str.contains("Poop", case=False, na=False)])
+    
     t_pumping = today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
     t_tummy = today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
     t_sleep = today_df[today_df['Event Type'].str.contains("Sleep", case=False, na=False)]['Value (Optional)'].sum()
@@ -744,7 +772,9 @@ else:
 
     today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">⏰ Last Feeding</div><div class="highlight-body"><span style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: {c_feed}; line-height: 1.1;">{last_feed_delta}</span></div></div><div class="highlight-sub">{last_feed_sub}</div></div>""")
     if t_milk > 0 or t_feed_cnt > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🍼 Milk Intake</div><div class="highlight-body"><span style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: {c_milk}; line-height: 1.1;">{int(t_milk):,} mL</span> across {t_feed_cnt} feed(s).</div></div><div class="highlight-sub">Avg Feed: ~{int(t_avg_feed)} mL (Form: {int(t_formula):,}mL, BM: {int(t_bm):,}mL)</div></div>""")
-    if t_wet + t_poop > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body"><span style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: {c_diaper}; line-height: 1.1;">{t_wet + t_poop}</span> change(s).</div></div><div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div></div>""")
+    # Updated Diaper Card displaying deduplicated change count:
+    if t_diaper_changes > 0: 
+        today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🚽 Diaper Output</div><div class="highlight-body"><span style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: {c_diaper}; line-height: 1.1;">{t_diaper_changes}</span> change(s).</div></div><div class="highlight-sub">💧 Wet: {t_wet} | 🚽 Poop: {t_poop}</div></div>""")
     p_cnt_today = len(today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)])
     if t_pumping > 0 or p_cnt_today > 0: today_cards.append(f"""<div class="highlight-card"><div><div class="highlight-title">🧴 Pumping</div><div class="highlight-body"><span style="font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; color: {c_pump}; line-height: 1.1;">{int(t_pumping):,} mL</span> today.</div></div><div class="highlight-sub">{p_cnt_today} pumping session(s)</div></div>""")
     tummy_cnt_today = len(today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)])
