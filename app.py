@@ -27,7 +27,6 @@ st.set_page_config(
 )
 
 # Responsive & Adaptive CSS overrides with Apple Health / Premium UI aesthetics
-# NOTE: 'span' removed from font-family to fix Streamlit Material Icons glitch!
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -37,7 +36,7 @@ st.markdown("""
     html { scroll-behavior: smooth; }
     [id] { scroll-margin-top: 70px; }
 
-    /* Modern Typography & Native System Fonts */
+    /* Modern Typography & Native System Fonts - Excluding span so Streamlit Icons render correctly */
     body, .stApp, p, h1, h2, h3, h4, h5, h6 {
         font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
     }
@@ -51,20 +50,17 @@ st.markdown("""
         background-color: #f8fafc !important; 
     }
     
-    /* Generous bottom padding so switching tabs doesn't bounce the page */
     [data-testid="stMainBlockContainer"] {
         padding-top: calc(2.5rem + env(safe-area-inset-top)) !important;
         padding-bottom: 10rem !important; 
     }
 
-    /* Relaxed Vertical Spacing for better breathing room */
     div[data-testid="stVerticalBlock"] { gap: 0.75rem !important; }
 
     :root {
         --card-bg: #ffffff; --card-border: #f1f5f9; --card-text: #1e293b;
     }
 
-    /* Title Styling - Forces normal wrap natively */
     .app-main-title {
         font-size: clamp(2.2rem, 5vw + 0.8rem, 2.8rem) !important;
         font-weight: 800 !important;
@@ -76,14 +72,12 @@ st.markdown("""
         padding: 0;
     }
 
-    /* --- NATIVE STREAMLIT HEADER RESTRUCTURING --- */
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
         align-items: center !important;
         margin-top: 1rem !important;
-        margin-bottom: 3.5rem !important; /* Spacious gap below header buttons */
+        margin-bottom: 3.5rem !important;
     }
 
-    /* Force Native Streamlit Buttons to adopt Custom UI styling perfectly */
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseButton-secondary"],
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseLinkButton-secondary"] {
         height: 44px !important; min-height: 44px !important; 
@@ -97,20 +91,12 @@ st.markdown("""
     div[data-testid="stHorizontalBlock"]:has(.app-main-title) p {
         font-weight: 600 !important; font-size: 0.95rem !important; color: #1e293b !important; margin: 0 !important;
     }
-    div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseButton-secondary"]:active,
-    div[data-testid="stHorizontalBlock"]:has(.app-main-title) [data-testid="baseLinkButton-secondary"]:active {
-        background-color: #f1f5f9 !important; transform: scale(0.98);
-    }
 
-    /* Mobile 50/50 Split Sizing (Title 100%, Buttons 50/50 Below it) */
     @media (max-width: 768px) {
-        .app-main-title {
-            margin-bottom: 1.5rem !important;
-        }
+        .app-main-title { margin-bottom: 1.5rem !important; }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) {
             flex-wrap: wrap !important; gap: 0.5rem !important;
-            flex-direction: row !important;
-            margin-bottom: 3rem !important;
+            flex-direction: row !important; margin-bottom: 3rem !important;
         }
         div[data-testid="stHorizontalBlock"]:has(.app-main-title) > div[data-testid="column"]:nth-child(1) {
             flex: 1 1 100% !important; width: 100% !important; min-width: 100% !important;
@@ -123,33 +109,14 @@ st.markdown("""
         }
     }
 
-    /* Mobile Compact 2x2 Grid for Filters */
-    @media (max-width: 768px) {
-        div[data-testid="stHorizontalBlock"]:has(> div > div[data-testid="stSelectbox"]) {
-            flex-wrap: wrap !important;
-            flex-direction: row !important;
-        }
-        div[data-testid="stHorizontalBlock"]:has(> div > div[data-testid="stSelectbox"]) > div[data-testid="column"] {
-            width: calc(50% - 0.5rem) !important;
-            flex: 1 1 calc(50% - 0.5rem) !important;
-            min-width: calc(50% - 0.5rem) !important;
-            margin-bottom: 0.5rem !important;
-            margin-top: 3rem !important;
-        }
-    }
-
-    /* Standard Elements */
     span[data-baseweb="tag"] { background-color: #e5e7eb !important; color: #1f2937 !important; border: 1px solid #d1d5db !important; font-weight: 500 !important; }
     .toc-button { display: block; width: 100%; padding: 8px 12px; margin: 4px 0; background-color: var(--card-bg); border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color: var(--card-text) !important; text-decoration: none !important; border-radius: 8px; font-size: 0.9rem; font-weight: 500; transition: all 0.15s ease-in-out; }
     .toc-button:hover { background-color: #f1f5f9; border-color: #cbd5e1; text-decoration: none !important; }
-    
-    .sidebar-header { font-weight: 700; font-size: 1.05rem; margin-bottom: 0px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px; margin-top: 32px; }
 
     .cards-container { display: grid !important; grid-template-columns: repeat(12, 1fr) !important; gap: 12px !important; align-items: stretch !important; margin-bottom: 2px !important; width: 100% !important; margin-top: 8px !important; }
     .card-span-3 { grid-column: span 3 !important; } .card-span-4 { grid-column: span 4 !important; } .card-span-6 { grid-column: span 6 !important; } .card-span-12 { grid-column: span 12 !important; } 
     @media (max-width: 1024px) { .card-span-3, .card-span-4 { grid-column: span 6 !important; } .mobile-full-width { grid-column: span 12 !important; } }
 
-    /* PREMIUM HEALTH DASHBOARD CARDS */
     .highlight-card { 
         background-color: var(--card-bg); 
         border-radius: 16px; 
@@ -163,22 +130,13 @@ st.markdown("""
         color: var(--card-text) !important; 
         transition: transform 0.15s ease, box-shadow 0.15s ease; 
     }
-    @media (min-width: 769px) { 
-        .highlight-card:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
-            cursor: default; 
-        } 
-    }
     
     .highlight-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 6px; line-height: 1.2; color: #475569; } 
     .highlight-body { font-size: 0.9rem; opacity: 0.95; line-height: 1.3; } 
     .highlight-sub { font-size: 0.75rem; color: #94a3b8; margin-top: 6px; line-height: 1.3; }
 
-    .default-range-text { color: #64748b; font-size: 0.8rem; font-style: italic; margin-top: 1px; display: inline-block; }
     .raw-log-count-text { font-size: 0.72rem; color: #64748b; margin-top: 3px; margin-bottom: 6px; }
 
-    /* PREMIUM EMPTY STATES */
     .empty-data-card { 
         background-color: #f8fafc; 
         border: none; 
@@ -193,11 +151,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Main Title Anchor
 st.markdown('<div id="top-header"></div>', unsafe_allow_html=True)
 
+@st.cache_resource
+def get_global_ai_cache():
+    return {}
+
+global_ai_cache = get_global_ai_cache()
+
 # ---------------------------------------------------------
-# 2. RESPONSIVE HEADER SECTION (NATIVE STREAMLIT)
+# 2. RESPONSIVE HEADER SECTION
 # ---------------------------------------------------------
 h_col1, h_col2, h_col3 = st.columns([6, 2, 2], vertical_alignment="center")
 
@@ -207,22 +170,61 @@ with h_col1:
 with h_col2:
     st.link_button("➕ Add", "shortcuts://run-shortcut?name=Riley%20Tracker&silent=true", use_container_width=True)
 
-# Initialize Global AI Cache up here so the Refresh button can access it
-@st.cache_resource
-def get_global_ai_cache():
-    return {}
+DEFAULT_SHEET_URL = "[https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing](https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing)"
 
-global_ai_cache = get_global_ai_cache()
+@st.cache_data(ttl=600)
+def load_sheet_data(url):
+    try:
+        conn = st.connection("gsheets", type=GSheetsConnection)
+        df = conn.read(spreadsheet=url, worksheet="Log", ttl=0)
+        df['SheetRow'] = df.index + 2 
+        
+        df.columns = df.columns.astype(str).str.strip()
+        if 'DateTime' in df.columns: df['DateTime'] = pd.to_datetime(df['DateTime'], errors='coerce')
+        elif 'EntryDateTime' in df.columns: df['DateTime'] = pd.to_datetime(df['EntryDateTime'], errors='coerce')
+        else:
+            date_cols = [c for c in df.columns if 'date' in c.lower()]
+            if date_cols: df['DateTime'] = pd.to_datetime(df[date_cols[0]], errors='coerce')
+            
+        df = df.dropna(subset=['DateTime'])
+        df['Date'] = df['DateTime'].dt.date
+        df['Week'] = df['DateTime'].dt.to_period('W-SUN').dt.start_time.dt.date
+        df['Month'] = df['DateTime'].dt.strftime('%Y-%m')
+        
+        if 'Value (Optional)' in df.columns: 
+            df['Value (Optional)'] = pd.to_numeric(df['Value (Optional)'], errors='coerce')
+            countable_events = ["Wet Diaper", "Poop", "Meds", "Vaccine"]
+            mask = df['Event Type'].astype(str).str.contains('|'.join(countable_events), case=False, na=False) & df['Value (Optional)'].isna()
+            df.loc[mask, 'Value (Optional)'] = 1.0
+        else: 
+            df['Value (Optional)'] = 1.0
+        
+        if 'Event Type' in df.columns: df['Event Type'] = df['Event Type'].astype(str).str.strip()
+        return df.sort_values('DateTime', ascending=False)
+        
+    except Exception as e:
+        st.error(f"Error fetching Google Sheet securely: {e}")
+        return pd.DataFrame()
+
+# Initialize session states for AI refresh tracking
+if "last_ai_data_datetime" not in st.session_state:
+    st.session_state.last_ai_data_datetime = None
+if "ai_refresh_key" not in st.session_state:
+    st.session_state.ai_refresh_key = "default_key"
 
 with h_col3:
     if st.button("🔄 Refresh", use_container_width=True):
-        st.cache_data.clear() # Always clear the Google Sheets data cache
+        st.cache_data.clear()
         
-        # SMART REFRESH: If AI is enabled, force a new AI generation too!
-        if st.session_state.get('ai_insights_enabled', False):
-            st.session_state.ai_refresh_key = str(datetime.utcnow())
-            global_ai_cache.clear()
-            
+        # SMART REFRESH RULE: Compare Column E Max DateTime against Last Generated DateTime
+        temp_df = load_sheet_data(DEFAULT_SHEET_URL)
+        if not temp_df.empty:
+            current_max_dt = temp_df['DateTime'].max()
+            if (st.session_state.last_ai_data_datetime is None) or (current_max_dt > st.session_state.last_ai_data_datetime):
+                st.session_state.ai_refresh_key = str(datetime.utcnow())
+                st.session_state.last_ai_data_datetime = current_max_dt
+                global_ai_cache.clear()
+                
         st.session_state.show_refresh_toast = True
         st.rerun()
 
@@ -243,16 +245,11 @@ st.sidebar.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/1HV8aBFaZBPJfIeZgkicSO-zOQcPZJr8UBzRjHeyWBYw/edit?usp=sharing"
-
 st.sidebar.markdown("<div style='height: 24px;'></div>", unsafe_allow_html=True)
 st.sidebar.markdown("<div style='font-weight: 700; font-size: 1.05rem; margin-bottom: 12px; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 6px;'>⚙️ Configuration</div>", unsafe_allow_html=True)
 
-# Toggle AI settings linked directly to session_state
 if "ai_insights_enabled" not in st.session_state:
-    st.session_state.ai_insights_enabled = False # Always defaults to False on hard page reload
-if "ai_refresh_key" not in st.session_state:
-    st.session_state.ai_refresh_key = "default_key"
+    st.session_state.ai_insights_enabled = False # Always default to non-AI view on fresh reload
 
 use_ai_insights = st.sidebar.toggle(
     "✨ Enable AI Insights", 
@@ -275,14 +272,21 @@ baby_dob = st.sidebar.date_input("Birth Date", value=datetime(2026, 6, 29).date(
 baby_gender = st.sidebar.radio("Gender (For Growth Charts)", ["Girl", "Boy"], index=0, horizontal=True)
 
 # ---------------------------------------------------------
-# AUTHENTICATED GSHEETS CONNECTION & AI HANDLERS
-# ---------------------------------------------------------
-
-# ---------------------------------------------------------
-# AUTHENTICATED GSHEETS CONNECTION & AI HANDLERS
+# GSHEET DATA ENGINE & AI PIPELINE
 # ---------------------------------------------------------
 if 'needs_auto_retry' not in st.session_state:
     st.session_state.needs_auto_retry = False
+
+df = load_sheet_data(sheet_url_input)
+if df.empty: st.stop()
+
+max_data_date = df['Date'].max()
+min_data_date = df['Date'].min()
+
+# Sync Column E Max DateTime on load
+current_col_e_max = df['DateTime'].max()
+if st.session_state.last_ai_data_datetime is None:
+    st.session_state.last_ai_data_datetime = current_col_e_max
 
 def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
     cache_key = hash(f"{prompt_text}_{latest_data_timestamp}_{refresh_key}")
@@ -291,41 +295,29 @@ def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
         return global_ai_cache[cache_key]
 
     if not OPENAI_AVAILABLE:
-        return "⚠️ **OpenAI package missing.** Please install `openai` in `requirements.txt`."
+        return "⚠️ **OpenAI package missing.** Install `openai` in `requirements.txt`."
     
     if not api_key_param:
         return "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets."
     
     client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
+        base_url="[https://openrouter.ai/api/v1](https://openrouter.ai/api/v1)",
         api_key=api_key_param,
-        default_headers={
-            "HTTP-Referer": "https://streamlit.app", 
-            "X-Title": "Rileys Dash"
-        }
+        default_headers={"HTTP-Referer": "[https://streamlit.app](https://streamlit.app)", "X-Title": "Rileys Dash"}
     )
     
     try:
-        # Strictly using the universal free router
         chat_completion = client.chat.completions.create(
             model="openrouter/free",
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a data formatting tool. You are NOT a medical professional. Do NOT provide health or medical advice. Strictly summarize the numbers provided."
-                },
-                {
-                    "role": "user",
-                    "content": prompt_text,
-                }
+                {"role": "system", "content": "You are a data formatting tool. You are NOT a medical professional. Do NOT provide medical advice. Strictly summarize numbers."},
+                {"role": "user", "content": prompt_text}
             ],
         )
         content = chat_completion.choices[0].message.content
         
-        # Aggressive cleaning: Strip out safety metadata injections from AI providers
         content = re.sub(r'(?i)User Safety:.*?(?=\n|<br>|$)', '', content)
-        content = re.sub(r'(?i)Safety Categories:.*?(?=\n|<br>|$)', '', content)
-        content = content.strip()
+        content = re.sub(r'(?i)Safety Categories:.*?(?=\n|<br>|$)', '', content).strip()
         
         if "User Safety" in content or "Unauthorized Advice" in content or not content:
             st.session_state.needs_auto_retry = True
@@ -335,55 +327,8 @@ def call_ai(prompt_text, api_key_param, latest_data_timestamp, refresh_key):
         return content
         
     except Exception as e:
-        # Rate limit hit -> set retry flag
         st.session_state.needs_auto_retry = True
-        return f"⚠️ **API Busy. Auto-retrying in background...**"
-
-@st.cache_data(ttl=600) # Efficient 10-minute cache
-def load_sheet_data(url):
-    try:
-        conn = st.connection("gsheets", type=GSheetsConnection)
-        # BUG FIX: Explicitly target "Log" to avoid "Sheet1" errors
-        df = conn.read(spreadsheet=url, worksheet="Log", ttl=0)
-        
-        # MAP UNIQUE ROW ID: Header is Row 1, ArrayFormula is Row 2.
-        # df.index 0 corresponds to Row 2 in Google Sheets.
-        df['SheetRow'] = df.index + 2 
-        
-        # Clean the data
-        df.columns = df.columns.astype(str).str.strip()
-        if 'DateTime' in df.columns: df['DateTime'] = pd.to_datetime(df['DateTime'], errors='coerce')
-        elif 'EntryDateTime' in df.columns: df['DateTime'] = pd.to_datetime(df['EntryDateTime'], errors='coerce')
-        else:
-            date_cols = [c for c in df.columns if 'date' in c.lower()]
-            if date_cols: df['DateTime'] = pd.to_datetime(df[date_cols[0]], errors='coerce')
-            
-        df = df.dropna(subset=['DateTime'])
-        df['Date'] = df['DateTime'].dt.date
-        df['Week'] = df['DateTime'].dt.to_period('W-SUN').dt.start_time.dt.date
-        df['Month'] = df['DateTime'].dt.strftime('%Y-%m')
-        
-        # Smart filling: 1.0 for discrete counts, NaN for continuous measurements
-        if 'Value (Optional)' in df.columns: 
-            df['Value (Optional)'] = pd.to_numeric(df['Value (Optional)'], errors='coerce')
-            countable_events = ["Wet Diaper", "Poop", "Meds", "Vaccine"]
-            mask = df['Event Type'].astype(str).str.contains('|'.join(countable_events), case=False, na=False) & df['Value (Optional)'].isna()
-            df.loc[mask, 'Value (Optional)'] = 1.0
-        else: 
-            df['Value (Optional)'] = 1.0
-        
-        if 'Event Type' in df.columns: df['Event Type'] = df['Event Type'].astype(str).str.strip()
-        return df.sort_values('DateTime', ascending=False)
-        
-    except Exception as e:
-        st.error(f"Error fetching Google Sheet securely: {e}")
-        return pd.DataFrame()
-
-df = load_sheet_data(sheet_url_input)
-if df.empty: st.stop()
-
-max_data_date = df['Date'].max()
-min_data_date = df['Date'].min()
+        return "⚠️ API Busy. Auto-retrying in background..."
 
 def standardize_event_name(event_str):
     s = str(event_str).strip()
@@ -467,11 +412,10 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None, subject="Riley",
     age_months = age_days / 30.437
     
     if subject == "Riley":
-        subject_context = f"Subject: Riley (Baby Girl, Age: {age_days} days / {age_months:.1f} months old). Always evaluate her trends against typical developmental milestones and Hong Kong standards for her exact age."
+        subject_context = f"Subject: Riley (Baby Girl, Age: {age_days} days / {age_months:.1f} months old). Evaluate her trends against developmental benchmarks and Hong Kong standards for her exact age."
     else:
         subject_context = f"Subject: {subject}."
 
-    # SIMPLIFIED PROMPT: LLMs are much better at pure markdown than raw HTML.
     prompt_template = f"""DATA CONTEXT:
 {subject_context}
 {ai_prompt_context}
@@ -488,7 +432,7 @@ OUTPUT FORMAT RESTRICTIONS:
 - [Bullet point 2 highlighting a key metric]
 
 **Trend Analysis**
-[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. the Selected Range. Evaluate if this is healthy for her current age based on HK standards.]
+[Write a single paragraph (3-4 sentences) comparing Today vs. Recent 7-Day Avg vs. Selected Range. Evaluate if healthy for her current age based on HK standards.]
 
 **Suggested Action**
 [Write 1 brief sentence suggesting a practical next step based on the data.]"""
@@ -499,41 +443,30 @@ OUTPUT FORMAT RESTRICTIONS:
              return
              
         with st.spinner(f"🤖 Summarizing {subject}'s trends..."):
-            if not OPENAI_AVAILABLE:
-                output_text = "⚠️ **OpenAI package missing.**"
-            elif not api_key_param:
-                output_text = "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets."
-            elif not ai_prompt_context:
-                output_text = "⚠️ **No context provided for AI to analyze.**"
-            else:
-                output_text = call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
+            if not OPENAI_AVAILABLE: output_text = "⚠️ **OpenAI package missing.**"
+            elif not api_key_param: output_text = "⚠️ **OpenRouter API Key missing.** Set `OPENROUTER_API_KEY` in Streamlit Secrets."
+            elif not ai_prompt_context: output_text = "⚠️ **No context provided for AI to analyze.**"
+            else: output_text = call_ai(prompt_template, api_key_param, latest_data_timestamp, refresh_key)
             
-            # PERFECT FORMATTING ENGINE
+            # UNIFORM FORMATTING ENGINE: Strictly standardizes padding across all summaries
             html_text = output_text.strip()
-            
-            # 1. Strip hallucinated markdown blocks
             html_text = re.sub(r'```[a-zA-Z]*\n?', '', html_text)
             html_text = html_text.replace('```', '')
             
-            # 2. Convert raw markdown to standard tags
             html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', html_text)
             html_text = re.sub(r'^[-*]\s+(.*?)$', r'&bull; \1', html_text, flags=re.MULTILINE)
             html_text = html_text.replace('\n', '<br>')
             
-            # 3. Clean up loose <br> tags
-            html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text) # Max 2 line breaks
-            html_text = re.sub(r'(<br>\s*){2,}(?=&bull;)', '<br>', html_text) # Keep bullets tight
+            html_text = re.sub(r'(<br>\s*){3,}', '<br><br>', html_text)
+            html_text = re.sub(r'(<br>\s*){2,}(?=&bull;)', '<br>', html_text)
             
-            # 4. Transform Headers into perfectly spaced CSS Blocks
             headers = ["High-Level Summary", "Trend Analysis", "Suggested Action"]
             for header in headers:
-                # Wipes out all unpredictable <br> tags above and below the header
                 pattern = rf'(?:<br>\s*)*(?:<b>|\*\*){header}(?:</b>|\*\*)(?:<br>\s*)*'
-                # Replaces it with exact pixel padding
                 replacement = f'<div style="margin-top: 18px; margin-bottom: 6px; font-weight: 600; color: #1e293b; letter-spacing: 0.01em;">{header}</div>'
                 html_text = re.sub(pattern, replacement, html_text, flags=re.IGNORECASE)
                 
-            # 5. Remove the top margin from the very first header so it aligns under the title
+            # Remove top margin from the very first header so it sits flush under "✨ AI Insight"
             html_text = html_text.replace('margin-top: 18px;', 'margin-top: 4px;', 1)
             
             st.markdown(f"""
@@ -545,6 +478,14 @@ OUTPUT FORMAT RESTRICTIONS:
             
     else:
         if hidden_prefetch: return
+        html_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', hardcoded_text)
+        st.markdown(f"""
+        <div style="background-color: #ffffff; border-left: 4px solid #0ea5e9; padding: 16px 20px; border-radius: 12px; margin: 12px 0 24px 0; font-size: 0.92rem; color: #334155; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); border: 1px solid #f1f5f9; line-height: 1.5;">
+            <strong style="color: #0369a1; font-size: 0.98rem; display: block; margin-bottom: 6px;">💡 Insight</strong> 
+            {html_text}
+        </div>
+        """, unsafe_allow_html=True)
+
 # ==========================================
 # 4. TODAY'S HIGHLIGHTS & GLOBAL TREND DATAFRAMES
 # ==========================================
@@ -600,7 +541,6 @@ else:
     t_temp_df = today_df[today_df['Event Type'].str.contains("Temp", case=False, na=False)]
     t_latest_temp = t_temp_df.iloc[0]['Value (Optional)'] if not t_temp_df.empty else None
 
-    # Premium Highlight Cards styling with inline colors for values
     today_cards = []
     c_feed = "#a855f7"
     c_milk = COLOR_MAP["🍼 Formula (mL)"]
@@ -638,9 +578,6 @@ else:
 # ==========================================
 # 5. COMPACT QUICK FILTERS
 # ==========================================
-min_str = min_data_date.strftime('%m.%d')
-max_str = max_data_date.strftime('%m.%d')
-
 if 'sd' not in st.session_state: 
     st.session_state.sd = max(min_data_date, max_data_date - timedelta(days=20))
 if 'ed' not in st.session_state: 
@@ -670,6 +607,75 @@ filtered_df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)].copy()
 
 st.markdown("<div style='margin-top: 1.5rem; margin-bottom: 2.5rem; border-bottom: 1px solid rgba(128,128,128,0.15);'></div>", unsafe_allow_html=True)
 
+# Helper WHO growth functions
+def get_who_data(gen, met):
+    if "Weight" in met:
+        if gen == "Boy": return np.array([3.3, 4.5, 5.6, 6.4, 7.0, 7.5, 7.9, 8.3, 8.6, 8.9, 9.2, 9.4, 9.6, 9.9, 10.1, 10.3, 10.5, 10.7, 10.9, 11.1, 11.3, 11.5, 11.8, 12.0, 12.2])
+        else: return np.array([3.2, 4.2, 5.1, 5.8, 6.4, 6.9, 7.3, 7.6, 7.9, 8.2, 8.5, 8.7, 8.9, 9.2, 9.4, 9.6, 9.8, 10.0, 10.2, 10.4, 10.6, 10.9, 11.1, 11.3, 11.5])
+    elif "Height" in met:
+        if gen == "Boy": return np.array([49.9, 54.7, 58.4, 61.4, 63.9, 65.9, 67.6, 69.2, 70.6, 72.0, 73.3, 74.5, 75.7, 76.9, 78.0, 79.1, 80.2, 81.2, 82.3, 83.2, 84.2, 85.1, 86.0, 86.9, 87.8])
+        else: return np.array([49.1, 53.7, 57.1, 59.8, 62.1, 64.0, 65.7, 67.3, 68.7, 70.1, 71.5, 72.8, 74.0, 75.2, 76.4, 77.5, 78.6, 79.7, 80.7, 81.7, 82.7, 83.7, 84.6, 85.5, 86.4])
+    else:
+        if gen == "Boy": return np.array([34.5, 37.3, 39.1, 40.5, 41.6, 42.6, 43.3, 44.0, 44.6, 45.1, 45.5, 46.0, 46.3, 46.6, 46.9, 47.2, 47.4, 47.6, 47.8, 48.0, 48.2, 48.4, 48.5, 48.7, 48.8])
+        else: return np.array([33.9, 36.5, 38.3, 39.5, 40.6, 41.5, 42.2, 42.8, 43.4, 43.8, 44.2, 44.6, 44.9, 45.2, 45.4, 45.7, 45.9, 46.1, 46.3, 46.5, 46.7, 46.9, 47.0, 47.2, 47.3])
+
+def get_hk_mults(met):
+    if "Weight" in met: return (0.80, 0.89, 1.11, 1.20)
+    if "Height" in met: return (0.95, 0.975, 1.025, 1.05)
+    return (0.96, 0.98, 1.02, 1.04)
+
+# DETERMINISTIC AI CONTEXT GENERATORS
+def build_growth_ai_context(db_keyword, who_option_name):
+    w_df = df[df['Event Type'] == db_keyword].copy()
+    if w_df.empty: return f"Category: Growth ({who_option_name}). No data logged."
+    w_df = w_df.sort_values('DateTime', ascending=True)
+    w_df['Age_Months'] = (pd.to_datetime(w_df['Date']) - pd.to_datetime(baby_dob)).dt.days / 30.437
+    w_df = w_df[w_df['Age_Months'] >= 0]
+    if w_df.empty: return f"Category: Growth ({who_option_name}). No data logged."
+    latest_data = w_df.iloc[-1]
+    m_x = np.arange(25)
+    p50 = get_who_data(baby_gender, who_option_name)
+    m3, m15, m85, m97 = get_hk_mults(who_option_name)
+    p3, p97 = p50*m3, p50*m97
+    
+    v = latest_data['Value (Optional)']
+    age = latest_data['Age_Months']
+    lp50 = np.interp(age, m_x, p50)
+    lp3 = np.interp(age, m_x, p3)
+    lp97 = np.interp(age, m_x, p97)
+    z = (v - lp50) / ((lp97 - lp3) / 3.76)
+    pct = (1 / (1 + np.exp(-1.702 * z))) * 100
+    unit_str = db_keyword.split('(')[1].replace(')','')
+    
+    return f"Category: Growth ({who_option_name}). Latest {who_option_name.split(' ')[1]}: {v:.1f} {unit_str} at age {age:.1f} months (~{pct:.0f}th percentile)."
+
+act_mapping = {
+    "🛌 Sleep (hrs)": ("Sleep", "Duration (hrs)", COLOR_MAP["🛌 Sleep (hrs)"], "hrs"),
+    "🌡️ Temp (°C)": ("Temp", "Temperature (°C)", COLOR_MAP["🌡️ Temp (°C)"], "°C"),
+    "💊 Meds (Cnt)": ("Meds", "Dose Count(s)", COLOR_MAP["💊 Meds (Cnt)"], "doses")
+}
+
+def build_health_ai_context(act_opt):
+    keyword, y_title, act_color, unit = act_mapping[act_opt]
+    act_df = filtered_df[filtered_df['Event Type'].str.contains(keyword, case=False, na=False)].copy()
+    if act_df.empty: return f"Category: Health ({act_opt}). No data logged in this period."
+    avg_act = act_df['Value (Optional)'].mean()
+    t_health_df = today_df[today_df['Event Type'].str.contains(keyword, case=False, na=False)]
+    r_health_df = recent_7d_df[recent_7d_df['Event Type'].str.contains(keyword, case=False, na=False)]
+    
+    if keyword == "Temp":
+        t_val = t_health_df['Value (Optional)'].mean() if not t_health_df.empty else 0
+        r_val = r_health_df['Value (Optional)'].mean() if not r_health_df.empty else 0
+        return f"Category: Body Temperature. Today's Avg: {t_val:.1f}°C. Recent 7-Day Avg: {r_val:.1f}°C. Selected Range Avg: {avg_act:.1f}°C across {len(act_df)} records."
+    elif keyword == "Sleep":
+        t_val = t_health_df['Value (Optional)'].sum() if not t_health_df.empty else 0
+        r_val = r_health_df['Value (Optional)'].sum() / 7 if not r_health_df.empty else 0
+        return f"Category: Sleep. Today: {t_val:.1f} hrs. Recent 7-Day Avg: {r_val:.1f} hrs/day. Selected Range Avg: {avg_act:.1f} hrs/record across {len(act_df)} records."
+    else:
+        t_val = len(t_health_df)
+        r_val = len(r_health_df) / 7
+        return f"Category: Medication. Today: {t_val} doses. Recent 7-Day Avg: {r_val:.1f} doses/day. Selected Range Total: {len(act_df)} doses."
+
 # ==========================================
 # 6. CHARTS & ANALYTICS
 # ==========================================
@@ -680,6 +686,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "⏰ Today", "🍼 Milk", "🚽 Diapers", "🧴 Pumping", "🛟 Tummy", "📈 Growth", "🩺 Health", "💉 Vaccine"
 ])
 
+# TAB 1: TODAY
 with tab1:
     cutoff_24h = current_local_time - timedelta(hours=24)
     today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
@@ -719,31 +726,27 @@ with tab1:
         fig_today_timeline.update_layout(showlegend=False, yaxis=dict(title=dict(text=""), showgrid=True, gridcolor="#f1f5f9", tickfont=dict(size=10.5), automargin=True))
         st.plotly_chart(fig_today_timeline, use_container_width=True)
         
-        st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours. Markers size and label text correspond to the recorded volume/duration.*")
+        st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours.*")
 
         feed_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Formula|Breast Milk")])
         diaper_cnt = len(today_24h_df[today_24h_df['Event Type'].str.contains("Diaper|Poop")])
         feed_cnt_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Formula|Breast Milk")]) / 7
         diaper_cnt_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Diaper|Poop")]) / 7
         
-        analysis = f"Riley has had **{feed_cnt} feeds** and **{diaper_cnt} diaper changes** in the past 24 hours. "
-        if feed_cnt >= 7: analysis += "Her feeding frequency is robust, which is excellent for hydration and growth!"
-        elif feed_cnt > 0: analysis += "Her routine appears well-spaced and stable."
-        
+        analysis = f"Riley has had **{feed_cnt} feeds** and **{diaper_cnt} diaper changes** in the past 24 hours."
         ai_context = f"Category: 24h Overview. Today: {feed_cnt} feeds, {diaper_cnt} diaper changes. Recent 7-Day Avg: {feed_cnt_7d:.1f} feeds/day, {diaper_cnt_7d:.1f} diapers/day."
         render_insight_card(analysis, ai_prompt_context=ai_context)
     else: render_empty_state("No Events Logged in the Last 24 Hours")
 
+# TAB 2: MILK
 with tab2:
     milk_df = filtered_df[filtered_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)].copy()
     if not milk_df.empty:
         milk_df['Category'] = milk_df['Event Type'].apply(lambda x: "🤱 Breast Milk (mL)" if "breast" in x.lower() else "🍼 Formula (mL)")
-        
         grouped_vol = milk_df.groupby([group_col, 'Category'])['Value (Optional)'].sum().reset_index()
         grouped_count = milk_df.groupby(group_col).size().reset_index(name='Total Feeds Count')
         
-        total_per_x = milk_df.groupby(group_col)['Value (Optional)'].sum().reset_index()
-        total_per_x = total_per_x.sort_values(group_col)
+        total_per_x = milk_df.groupby(group_col)['Value (Optional)'].sum().reset_index().sort_values(group_col)
         total_per_x['Trend'] = total_per_x['Value (Optional)'].rolling(window=min(7, len(total_per_x)), min_periods=1).mean()
 
         grouped_vol[group_col] = grouped_vol[group_col].apply(format_x_label)
@@ -754,12 +757,7 @@ with tab2:
         fig_milk = make_subplots(specs=[[{"secondary_y": True}]])
         df_f = grouped_vol[grouped_vol['Category'] == '🍼 Formula (mL)']
         if not df_f.empty: 
-            fig_milk.add_trace(go.Bar(
-                name='🍼 Formula (mL)', x=df_f[group_col].astype(str), y=df_f['Value (Optional)'], 
-                marker_color="#38bdf8", width=0.25 if is_single else None, 
-                text=df_f['Value (Optional)'], textposition='inside', textfont=dict(weight='bold', color='white'),
-                hovertemplate='%{y} mL<extra></extra>'
-            ), secondary_y=False)
+            fig_milk.add_trace(go.Bar(name='🍼 Formula (mL)', x=df_f[group_col].astype(str), y=df_f['Value (Optional)'], marker_color="#38bdf8", width=0.25 if is_single else None, text=df_f['Value (Optional)'], textposition='inside', textfont=dict(weight='bold', color='white'), hovertemplate='%{y} mL<extra></extra>'), secondary_y=False)
             
         df_bm = grouped_vol[grouped_vol['Category'] == '🤱 Breast Milk (mL)']
         if not df_bm.empty: 
@@ -770,26 +768,19 @@ with tab2:
         
         fig_milk = style_plotly_figure(fig_milk, title_text=f"🍼 Milk Intake Volume & Feed Count — {granularity}", height=490, single_point=is_single)
         fig_milk.update_layout(barmode='stack')
-        fig_milk.update_yaxes(title_text="", secondary_y=False, showgrid=True, gridcolor="#f1f5f9", tickfont=dict(size=9.5), automargin=True)
-        fig_milk.update_yaxes(title_text="", secondary_y=True, showgrid=False, tickfont=dict(size=9.5), automargin=True)
         st.plotly_chart(fig_milk, use_container_width=True)
         
-        st.caption(f"ℹ️ *Combines stacked Formula and Breast Milk volume (mL) on left axis with Feed Count(s) (orange) on right axis. The grey line plots the 7-period rolling average.*", unsafe_allow_html=True)
+        st.caption("ℹ️ *Combines stacked Formula and Breast Milk volume (mL) with Feed Count(s).*")
 
         avg_vol = total_per_x['Value (Optional)'].mean()
-        trend_word = "holding highly stable ⚖️"
-        if len(total_per_x) > 3:
-             recent_avg = total_per_x['Value (Optional)'].iloc[-3:].mean()
-             if recent_avg > avg_vol * 1.05: trend_word = "trending upwards 📈, a great sign of healthy appetite growth"
-             elif recent_avg < avg_vol * 0.95: trend_word = "trending slightly downwards 📉 (keep an eye on hydration)"
-        
         t_milk = today_df[today_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
         milk_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Formula|Breast Milk", case=False, na=False)]['Value (Optional)'].sum() / 7
         ai_milk_context = f"Category: Milk Intake. Today: {t_milk:.0f} mL. Recent 7-Day Avg: {milk_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}) Avg: {avg_vol:.0f} mL per {granularity.lower()}."
         
-        render_insight_card(f"Riley's intake averages **{avg_vol:.0f} mL** per {granularity.lower().replace('ly','').replace('all time','period')}. Based on recent logs, her volume is **{trend_word}**.", ai_prompt_context=ai_milk_context)
+        render_insight_card(f"Riley's intake averages **{avg_vol:.0f} mL** per {granularity.lower()}.", ai_prompt_context=ai_milk_context)
     else: render_empty_state("No Feeding Data Logged in this period")
 
+# TAB 3: DIAPERS
 with tab3:
     diaper_df = filtered_df[filtered_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)].copy()
     if not diaper_df.empty:
@@ -803,19 +794,19 @@ with tab3:
         fig_diaper = style_plotly_figure(fig_diaper, title_text=f"🚽 Diaper Changes Count — {granularity}", height=450, single_point=is_single)
         st.plotly_chart(fig_diaper, use_container_width=True)
         
-        st.caption(f"ℹ️ *Compares Wet Diapers and Poop counts grouped {granularity.lower()} from {start_date} to {end_date}.*")
+        st.caption("ℹ️ *Compares Wet Diapers and Poop counts.*")
 
         avg_diapers = len(diaper_df) / max(1, (end_date - start_date).days + 1)
         wets = len(diaper_df[diaper_df['Category'] == '💧 Wet Diaper (Cnt)'])
         poops = len(diaper_df[diaper_df['Category'] == '🚽 Poop (Cnt)'])
-        
         t_diaper = len(today_df[today_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)])
         diaper_7d = len(recent_7d_df[recent_7d_df['Event Type'].str.contains("Wet Diaper|Poop", case=False, na=False)]) / 7
         ai_diaper_context = f"Category: Diaper Output. Today: {t_diaper} changes. Recent 7-Day Avg: {diaper_7d:.1f} changes/day. Selected Range ({start_date} to {end_date}) Avg: {avg_diapers:.1f} changes/day. (Selected total: {wets} wet, {poops} poops)."
         
-        render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diapers, averaging **{avg_diapers:.1f}** changes per day. Consistent output is an excellent indicator that Riley is digesting properly!", ai_prompt_context=ai_diaper_context)
+        render_insight_card(f"You've tracked **{wets}** wet and **{poops}** soiled diapers.", ai_prompt_context=ai_diaper_context)
     else: render_empty_state("No Diaper Data Logged in this period")
 
+# TAB 4: PUMPING
 with tab4:
     pump_df = filtered_df[filtered_df['Event Type'].str.contains("Pumping", case=False, na=False)].copy()
     if not pump_df.empty:
@@ -828,18 +819,17 @@ with tab4:
         fig_pump = style_plotly_figure(fig_pump, title_text=f"🧴 Pumping Volume (mL) — {granularity}", height=450, single_point=is_single)
         st.plotly_chart(fig_pump, use_container_width=True)
         
-        st.caption(f"ℹ️ *Displays recorded pumping volume (mL) grouped {granularity.lower()} from {start_date} to {end_date}.*")
+        st.caption("ℹ️ *Displays recorded pumping volume (mL).*")
 
         avg_pump = pump_df['Value (Optional)'].sum() / max(1, len(pump_df))
-        
         t_pump = today_df[today_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum()
         pump_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Pumping", case=False, na=False)]['Value (Optional)'].sum() / 7
         ai_pump_context = f"Category: Pumping. Today: {t_pump:.0f} mL. Recent 7-Day Avg: {pump_7d:.0f} mL/day. Selected Range ({start_date} to {end_date}): {len(pump_df)} sessions, avg {avg_pump:.0f} mL/session."
         
-        # NOTE: Subject passed as Yanyi for accurate context
-        render_insight_card(f"Across **{len(pump_df)}** sessions, the average yield is **{avg_pump:.0f} mL** per session. Maintaining regular pumping intervals is key to sustaining supply.", ai_prompt_context=ai_pump_context, subject="Yanyi")
+        render_insight_card(f"Across **{len(pump_df)}** sessions, average yield is **{avg_pump:.0f} mL**.", ai_prompt_context=ai_pump_context, subject="Yanyi")
     else: render_empty_state("No Pumping Data Logged in this period")
 
+# TAB 5: TUMMY
 with tab5:
     tummy_df = filtered_df[filtered_df['Event Type'].str.contains("Tummy Time", case=False, na=False)].copy()
     if not tummy_df.empty:
@@ -852,54 +842,32 @@ with tab5:
         fig_tummy = style_plotly_figure(fig_tummy, title_text=f"🛟 Tummy Time — {granularity}", height=450, single_point=is_single)
         st.plotly_chart(fig_tummy, use_container_width=True)
         
-        st.caption(f"ℹ️ *Displays recorded tummy time duration (Mins) grouped {granularity.lower()} from {start_date} to {end_date}.*")
+        st.caption("ℹ️ *Displays recorded tummy time duration (Mins).*")
 
         total_tummy = tummy_df['Value (Optional)'].sum()
         avg_tummy = total_tummy / max(1, len(tummy_df))
-        
         t_tummy = today_df[today_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum()
         tummy_7d = recent_7d_df[recent_7d_df['Event Type'].str.contains("Tummy Time", case=False, na=False)]['Value (Optional)'].sum() / 7
         ai_tummy_context = f"Category: Tummy Time. Today: {t_tummy:.0f} mins. Recent 7-Day Avg: {tummy_7d:.0f} mins/day. Selected Range ({start_date} to {end_date}): {total_tummy:.0f} total mins, avg {avg_tummy:.0f} mins/session."
         
-        render_insight_card(f"Riley achieved **{total_tummy:.0f} total minutes** of tummy time (averaging **{avg_tummy:.0f}m** per session). Regular sessions are actively building her core and neck strength!", ai_prompt_context=ai_tummy_context)
+        render_insight_card(f"Riley achieved **{total_tummy:.0f} total minutes** of tummy time.", ai_prompt_context=ai_tummy_context)
     else: render_empty_state("No Tummy Time Data Logged in this period")
 
+# TAB 6: GROWTH
 with tab6:
     st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size: 0.85rem; text-align: center; margin-bottom: 10px;'><a href='https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf' target='_blank' style='color: #64748b; text-decoration: none; opacity: 0.8;'>📄 Official HK Growth Charts Reference (PDF)</a></p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 0.85rem; text-align: center; margin-bottom: 10px;'><a href='[https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf](https://www.dh.gov.hk/english/useful/useful_HP_Growth_Chart/files/growth_charts.pdf)' target='_blank' style='color: #64748b; text-decoration: none; opacity: 0.8;'>📄 Official HK Growth Charts Reference (PDF)</a></p>", unsafe_allow_html=True)
 
     who_option = st.radio("Select Growth Chart:", options=["⚖️ Weight", "🏔️ Height", "🐷 Head"], horizontal=True, label_visibility="collapsed")
     
+    # STRICT SEQUENTIAL PRE-FETCHING FOR ALL 3 GROWTH OPTIONS
     if use_ai_insights:
-        # Pre-fetch the unselected radio buttons in the background
         for prefetch_opt in ["⚖️ Weight", "🏔️ Height", "🐷 Head"]:
             if prefetch_opt != who_option:
                 p_keyword = "⚖️ Weight (kg)" if "Weight" in prefetch_opt else ("🏔️ Height (cm)" if "Height" in prefetch_opt else "🐷 Head Size (cm)")
-                p_df = df[df['Event Type'] == p_keyword].copy()
-                if not p_df.empty:
-                    p_df = p_df.sort_values('DateTime', ascending=True)
-                    p_latest = p_df.iloc[-1]
-                    p_age = (pd.to_datetime(p_latest['Date']) - pd.to_datetime(baby_dob)).days / 30.437
-                    p_unit = p_keyword.split('(')[1].replace(')','')
-                    p_context = f"Category: Growth ({prefetch_opt}). Latest {prefetch_opt.split(' ')[1]}: {p_latest['Value (Optional)']:.1f} {p_unit} at age {p_age:.1f} months."
-                    render_insight_card("", ai_prompt_context=p_context, hidden_prefetch=True)
+                p_context = build_growth_ai_context(p_keyword, prefetch_opt)
+                render_insight_card("", ai_prompt_context=p_context, hidden_prefetch=True)
     
-    def get_who_data(gen, met):
-        if "Weight" in met:
-            if gen == "Boy": return np.array([3.3, 4.5, 5.6, 6.4, 7.0, 7.5, 7.9, 8.3, 8.6, 8.9, 9.2, 9.4, 9.6, 9.9, 10.1, 10.3, 10.5, 10.7, 10.9, 11.1, 11.3, 11.5, 11.8, 12.0, 12.2])
-            else: return np.array([3.2, 4.2, 5.1, 5.8, 6.4, 6.9, 7.3, 7.6, 7.9, 8.2, 8.5, 8.7, 8.9, 9.2, 9.4, 9.6, 9.8, 10.0, 10.2, 10.4, 10.6, 10.9, 11.1, 11.3, 11.5])
-        elif "Height" in met:
-            if gen == "Boy": return np.array([49.9, 54.7, 58.4, 61.4, 63.9, 65.9, 67.6, 69.2, 70.6, 72.0, 73.3, 74.5, 75.7, 76.9, 78.0, 79.1, 80.2, 81.2, 82.3, 83.2, 84.2, 85.1, 86.0, 86.9, 87.8])
-            else: return np.array([49.1, 53.7, 57.1, 59.8, 62.1, 64.0, 65.7, 67.3, 68.7, 70.1, 71.5, 72.8, 74.0, 75.2, 76.4, 77.5, 78.6, 79.7, 80.7, 81.7, 82.7, 83.7, 84.6, 85.5, 86.4])
-        else:
-            if gen == "Boy": return np.array([34.5, 37.3, 39.1, 40.5, 41.6, 42.6, 43.3, 44.0, 44.6, 45.1, 45.5, 46.0, 46.3, 46.6, 46.9, 47.2, 47.4, 47.6, 47.8, 48.0, 48.2, 48.4, 48.5, 48.7, 48.8])
-            else: return np.array([33.9, 36.5, 38.3, 39.5, 40.6, 41.5, 42.2, 42.8, 43.4, 43.8, 44.2, 44.6, 44.9, 45.2, 45.4, 45.7, 45.9, 46.1, 46.3, 46.5, 46.7, 46.9, 47.0, 47.2, 47.3])
-
-    def get_hk_mults(met):
-        if "Weight" in met: return (0.80, 0.89, 1.11, 1.20)
-        if "Height" in met: return (0.95, 0.975, 1.025, 1.05)
-        return (0.96, 0.98, 1.02, 1.04)
-
     db_keyword = "⚖️ Weight (kg)" if "Weight" in who_option else ("🏔️ Height (cm)" if "Height" in who_option else "🐷 Head Size (cm)")
     who_df = df[df['Event Type'] == db_keyword].copy()
     
@@ -947,7 +915,6 @@ with tab6:
         fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p50, fill='tonexty', fillcolor='rgba(14,165,233,0.25)', line=dict(width=0), name='50th Pct', hoverinfo='x+y+name', hovertemplate='50th: %{y:.2f} ' + unit_str + '<extra></extra>'))
         fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p15, fill='tonexty', fillcolor='rgba(14,165,233,0.25)', line=dict(width=0), name='15th Pct', hoverinfo='x+y+name', hovertemplate='15th: %{y:.2f} ' + unit_str + '<extra></extra>'))
         fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p3, fill='tonexty', fillcolor='rgba(14,165,233,0.1)', line=dict(width=0), name='3rd Pct', hoverinfo='x+y+name', hovertemplate='3rd: %{y:.2f} ' + unit_str + '<extra></extra>'))
-        
         fig_who.add_trace(go.Scatter(x=fine_x, y=fine_p50, mode='lines', line=dict(color='rgba(2,132,199,0.5)', width=2, dash='dot'), showlegend=False, hoverinfo='skip'))
         
         c_code = COLOR_MAP.get(db_keyword, '#38bdf8')
@@ -969,9 +936,7 @@ with tab6:
             x=who_df['Age_Months'], y=who_df['Value (Optional)'], mode='lines+markers',
             line=dict(color=c_code, width=3, shape='spline'),
             marker=dict(size=10, color=c_code, line=dict(width=2, color='#ffffff')),
-            name=who_option.split(' ')[1],
-            text=hover_text,
-            hovertemplate="%{text}"
+            name=who_option.split(' ')[1], text=hover_text, hovertemplate="%{text}"
         ))
         
         x_max_buffer = range_max + 1.5
@@ -995,51 +960,27 @@ with tab6:
         )
         st.plotly_chart(fig_who, use_container_width=True)
         
-        st.caption(f"ℹ️ *Interactive Growth Chart for {baby_gender}s based on standard HK lines. The shaded bands map the 3rd, 15th, 50th, 85th, and 97th percentiles.*")
+        st.caption(f"ℹ️ *Interactive Growth Chart for {baby_gender}s based on standard HK lines.*")
         
         latest_data = who_df.iloc[-1]
         latest_pct = latest_data['Est_Pct']
         latest_val = latest_data['Value (Optional)']
         
-        if latest_pct > 85: pct_text = "tracking in the higher percentiles 📈"
-        elif latest_pct < 15: pct_text = "tracking in the lower percentiles 📉"
-        else: pct_text = "tracking beautifully near the median ⚖️"
-            
-        ai_growth_context = f"Category: Growth ({who_option}). Latest {who_option.split(' ')[1]}: {latest_val:.1f} {unit_str} at age {latest_data['Age_Months']:.1f} months (~{latest_pct:.0f}th percentile)."
-        render_insight_card(f"At **{latest_data['Age_Months']:.1f} months**, Riley's {who_option.split(' ')[1].lower()} is **{latest_val:.1f} {unit_str}** (~**{latest_pct:.0f}th** percentile). She is {pct_text} compared to HK standard guidelines.", ai_prompt_context=ai_growth_context)
-        
-    else:
-        render_empty_state(f"No {who_option} Data Logged")
+        ai_growth_context = build_growth_ai_context(db_keyword, who_option)
+        render_insight_card(f"At **{latest_data['Age_Months']:.1f} months**, Riley's {who_option.split(' ')[1].lower()} is **{latest_val:.1f} {unit_str}** (~**{latest_pct:.0f}th** percentile).", ai_prompt_context=ai_growth_context)
+    else: render_empty_state(f"No {who_option} Data Logged")
 
+# TAB 7: HEALTH
 with tab7:
     act_option = st.radio("Select Category:", options=["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"], index=0, horizontal=True, label_visibility="collapsed")
     
+    # STRICT SEQUENTIAL PRE-FETCHING FOR ALL HEALTH OPTIONS
     if use_ai_insights:
         for prefetch_opt in ["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"]:
             if prefetch_opt != act_option:
-                p_keyword = "Sleep" if "Sleep" in prefetch_opt else ("Temp" if "Temp" in prefetch_opt else "Meds")
-                p_df = filtered_df[filtered_df['Event Type'].str.contains(p_keyword, case=False, na=False)].copy()
-                if not p_df.empty:
-                    p_avg_act = p_df['Value (Optional)'].mean()
-                    p_t_df = today_df[today_df['Event Type'].str.contains(p_keyword, case=False, na=False)]
-                    p_r_df = recent_7d_df[recent_7d_df['Event Type'].str.contains(p_keyword, case=False, na=False)]
-                    if p_keyword == "Temp":
-                        p_t_val = p_t_df['Value (Optional)'].mean() if not p_t_df.empty else 0
-                        p_r_val = p_r_df['Value (Optional)'].mean() if not p_r_df.empty else 0
-                        p_context = f"Category: Body Temperature. Today's Avg: {p_t_val:.1f}°C. Recent 7-Day Avg: {p_r_val:.1f}°C. Selected Range Avg: {p_avg_act:.1f}°C."
-                    elif p_keyword == "Sleep":
-                        p_t_val = p_t_df['Value (Optional)'].sum() if not p_t_df.empty else 0
-                        p_r_val = p_r_df['Value (Optional)'].sum() / 7 if not p_r_df.empty else 0
-                        p_context = f"Category: Sleep. Today: {p_t_val:.1f} hrs. Recent 7-Day Avg: {p_r_val:.1f} hrs/day. Selected Range Avg: {p_avg_act:.1f} hrs/record."
-                    else:
-                        p_context = f"Category: Medication. Today: {len(p_t_df)} doses. Recent 7-Day Avg: {len(p_r_df)/7:.1f} doses/day. Selected Range Total: {len(p_df)} doses."
-                    render_insight_card("", ai_prompt_context=p_context, hidden_prefetch=True)
+                p_context = build_health_ai_context(prefetch_opt)
+                render_insight_card("", ai_prompt_context=p_context, hidden_prefetch=True)
     
-    act_mapping = {
-        "🛌 Sleep (hrs)": ("Sleep", "Duration (hrs)", COLOR_MAP["🛌 Sleep (hrs)"], "hrs"),
-        "🌡️ Temp (°C)": ("Temp", "Temperature (°C)", COLOR_MAP["🌡️ Temp (°C)"], "°C"),
-        "💊 Meds (Cnt)": ("Meds", "Dose Count(s)", COLOR_MAP["💊 Meds (Cnt)"], "doses")
-    }
     keyword, y_title, act_color, unit = act_mapping[act_option]
     act_df = filtered_df[filtered_df['Event Type'].str.contains(keyword, case=False, na=False)].copy()
     
@@ -1068,31 +1009,14 @@ with tab7:
         fig_act = style_plotly_figure(fig_act, title_text=f"🩺 Health — {act_option} ({granularity})", height=450, single_point=is_single)
         st.plotly_chart(fig_act, use_container_width=True)
         
-        st.caption(f"ℹ️ *Displays recorded {act_option} data grouped {granularity.lower()} from {start_date} to {end_date}.*")
+        st.caption(f"ℹ️ *Displays recorded {act_option} data.*")
 
         avg_act = act_df['Value (Optional)'].mean()
-        
-        t_health_df = today_df[today_df['Event Type'].str.contains(keyword, case=False, na=False)]
-        r_health_df = recent_7d_df[recent_7d_df['Event Type'].str.contains(keyword, case=False, na=False)]
-        
-        if keyword == "Temp":
-            t_val = t_health_df['Value (Optional)'].mean() if not t_health_df.empty else 0
-            r_val = r_health_df['Value (Optional)'].mean() if not r_health_df.empty else 0
-            ai_health_context = f"Category: Body Temperature. Today's Avg: {t_val:.1f}°C. Recent 7-Day Avg: {r_val:.1f}°C. Selected Range Avg: {avg_act:.1f}°C across {len(act_df)} records."
-            render_insight_card(f"Across **{len(act_df)}** records, Riley averages **{avg_act:.1f} {unit}**. Stable patterns in {act_option.split(' ')[1].lower()} are strong indicators of general wellbeing.", ai_prompt_context=ai_health_context)
-        elif keyword == "Sleep":
-            t_val = t_health_df['Value (Optional)'].sum() if not t_health_df.empty else 0
-            r_val = r_health_df['Value (Optional)'].sum() / 7 if not r_health_df.empty else 0
-            ai_health_context = f"Category: Sleep. Today: {t_val:.1f} hrs. Recent 7-Day Avg: {r_val:.1f} hrs/day. Selected Range Avg: {avg_act:.1f} hrs/record across {len(act_df)} records."
-            render_insight_card(f"Across **{len(act_df)}** records, Riley averages **{avg_act:.1f} {unit}**. Stable patterns in {act_option.split(' ')[1].lower()} are strong indicators of general wellbeing.", ai_prompt_context=ai_health_context)
-        else:
-            t_val = len(t_health_df)
-            r_val = len(r_health_df) / 7
-            ai_health_context = f"Category: Medication. Today: {t_val} doses. Recent 7-Day Avg: {r_val:.1f} doses/day. Selected Range Total: {len(act_df)} doses."
-            render_insight_card(f"Riley has logged **{len(act_df)}** medication doses in this period. Tracking these logs carefully prevents missed or double doses.", ai_prompt_context=ai_health_context)
-            
+        ai_health_context = build_health_ai_context(act_option)
+        render_insight_card(f"Across **{len(act_df)}** records, Riley averages **{avg_act:.1f} {unit}**.", ai_prompt_context=ai_health_context)
     else: render_empty_state(f"No {act_option.split(' ')[1]} Data Logged in this period")
 
+# TAB 8: VACCINE
 with tab8:
     vac_df = df[df['Event Type'] == "💉 Vaccine (Cnt)"].copy()
     
@@ -1114,23 +1038,9 @@ with tab8:
         {"Age": "4 mo", "Days": 120, "Group": "Rotavirus", "Vaccine": "輪狀病毒 第二劑 (Rotavirus 2nd)", "Disease": "輪狀病毒腸胃炎 (Rotavirus)", "Provider": "💰 私家", "Desc": "第二劑口服", "Optional": True, "Match": get_date("rota|輪狀", 1)},
         {"Age": "4 mo", "Days": 120, "Group": "Meningococcal B", "Vaccine": "腦膜炎雙球菌 第二劑 (Men B 2nd)", "Disease": "腦膜炎雙球菌感染 (Meningococcal)", "Provider": "💰 私家", "Desc": "第二針", "Optional": True, "Match": get_date("menb|mening|腦膜炎", 1)},
         {"Age": "6 mo", "Days": 180, "Group": "6-in-1 Combo", "Vaccine": "六合一混合 第三劑 (6-in-1 3rd)", "Disease": "白喉, 破傷風, 百日咳, 小兒麻痺, 乙肝, 流感嗜血桿菌 (DTaP-IPV-HepB-Hib)", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "第三針混合疫苗", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 2)},
-        {"Age": "6 mo", "Days": 180, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 第三劑 (PCV 3rd)", "Disease": "肺炎球菌感染 (Pneumococcal)", "Provider": "🏥 母嬰", "Desc": "第三針 (部份情況可省略)", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 2)},
-        {"Age": "6 mo", "Days": 180, "Group": "Rotavirus", "Vaccine": "輪狀病毒 第三劑 (Rotavirus 3rd)", "Disease": "輪狀病毒腸胃炎 (Rotavirus)", "Provider": "💰 私家", "Desc": "視乎藥廠(部份只需兩劑)", "Optional": True, "Match": get_date("rota|輪狀", 2)},
-        {"Age": "6 mo", "Days": 180, "Group": "Influenza", "Vaccine": "季節性流感 (Influenza)", "Disease": "流行性感冒 (Flu)", "Provider": "💰 私家 / 🏥 診所", "Desc": "滿6個月可打，每年一針", "Optional": True, "Match": get_date("flu|流感", 0)},
-        {"Age": "12 mo", "Days": 365, "Group": "MMR / MMRV", "Vaccine": "麻疹, 流行性腮腺炎, 德國麻疹 第一劑 (MMR 1st)", "Disease": "麻疹, 流行性腮腺炎, 德國麻疹 (Measles, Mumps, Rubella)", "Provider": "🏥 母嬰", "Desc": "一歲滿即打", "Optional": False, "Match": get_date("mmr|麻疹", 0)},
-        {"Age": "12 mo", "Days": 365, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 加強劑 (PCV Booster)", "Disease": "肺炎球菌感染 (Pneumococcal)", "Provider": "🏥 母嬰", "Desc": "加強劑", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 3)},
-        {"Age": "12 mo", "Days": 365, "Group": "Varicella", "Vaccine": "水痘 第一劑 (Varicella 1st)", "Disease": "水痘 (Chickenpox)", "Provider": "🏥 母嬰", "Desc": "第一針水痘", "Optional": False, "Match": get_date("varicella|cp|chickenpox|水痘", 0)},
-        {"Age": "12 mo", "Days": 365, "Group": "Hepatitis A", "Vaccine": "甲型肝炎 第一劑 (Hep A 1st)", "Disease": "甲型肝炎 (Hepatitis A)", "Provider": "💰 私家", "Desc": "預防受污染食物感染", "Optional": True, "Match": get_date("hepa|hep a|甲型", 0)},
-        {"Age": "18 mo", "Days": 547, "Group": "6-in-1 Combo", "Vaccine": "六合一混合 加強劑 (6-in-1 Booster)", "Disease": "白喉, 破傷風, 百日咳, 小兒麻痺, 乙肝, 流感嗜血桿菌 (DTaP-IPV-HepB-Hib)", "Provider": "💰 私家 / 🏥 母嬰", "Desc": "加強保護力", "Optional": False, "Match": get_date("dtap|hexa|6-in|6 in|5-in|五合一|六合一|四合一|4 in|4-in|pent", 3)},
-        {"Age": "18 mo", "Days": 547, "Group": "MMR / MMRV", "Vaccine": "MMRV 第二劑 (MMRV 2nd)", "Disease": "麻疹, 流行性腮腺炎, 德國麻疹, 水痘 (Measles, Mumps, Rubella, Chickenpox)", "Provider": "🏥 母嬰", "Desc": "歲半加強劑 (含水痘)", "Optional": False, "Match": get_date("mmrv|mmr|麻疹", 1)},
-        {"Age": "18 mo", "Days": 547, "Group": "Hepatitis A", "Vaccine": "甲型肝炎 第二劑 (Hep A 2nd)", "Disease": "甲型肝炎 (Hepatitis A)", "Provider": "💰 私家", "Desc": "隔半年打第二針", "Optional": True, "Match": get_date("hepa|hep a|甲型", 1)},
-        {"Age": "3 Years", "Days": 1095, "Group": "Influenza", "Vaccine": "流感疫苗 (Flu Vaccine)", "Disease": "流行性感冒 (Flu)", "Provider": "💰 私家 / 🏥 幼稚園", "Desc": "入學前防護", "Optional": True, "Match": get_date("flu|流感", 1)},
-        {"Age": "5-6 Years", "Days": 1825, "Group": "DTaP / 6-in-1", "Vaccine": "白喉,破傷風,百日咳,小兒麻痺 加強劑 (Booster)", "Disease": "白喉, 破傷風, 百日咳, 小兒麻痺 (DTaP-IPV)", "Provider": "🏥 學校", "Desc": "小一學童接種", "Optional": False, "Match": get_date("dtap|ipv|小一|小兒麻痺", 4)},
-        {"Age": "5-6 Years", "Days": 1825, "Group": "MMR / MMRV", "Vaccine": "MMRV 加強劑 (MMRV Booster)", "Disease": "麻疹, 流行性腮腺炎, 德國麻疹, 水痘 (MMRV)", "Provider": "🏥 學校", "Desc": "小一學童接種", "Optional": False, "Match": get_date("mmrv|mmr|麻疹", 2)},
-        {"Age": "11-12 Years", "Days": 4015, "Group": "DTaP / 6-in-1", "Vaccine": "白喉,破傷風,百日咳 加強劑 (dTap Booster)", "Disease": "白喉, 破傷風, 百日咳 (dTap)", "Provider": "🏥 學校", "Desc": "小六學童接種", "Optional": False, "Match": get_date("dtap|小六|百日咳", 5)},
-        {"Age": "11-12 Years", "Days": 4015, "Group": "HPV", "Vaccine": "子宮頸癌疫苗 第一劑 (HPV 1st)", "Disease": "子宮頸癌 (HPV)", "Provider": "🏥 學校", "Desc": "小五/小六女童接種", "Optional": False, "Match": get_date("hpv|子宮", 0)},
-        {"Age": "12-15 Years", "Days": 4380, "Group": "HPV", "Vaccine": "子宮頸癌疫苗 第二劑 (HPV 2nd)", "Disease": "子宮頸癌 (HPV)", "Provider": "🏥 學校", "Desc": "第二針", "Optional": False, "Match": get_date("hpv|子宮", 1)},
-        {"Age": "36 Years", "Days": 13140, "Group": "Adult", "Vaccine": "成人疫苗加強劑 (Adult Boosters)", "Disease": "百日咳/流感等 (Pertussis, Flu)", "Provider": "💰 私家", "Desc": "成人定期加強", "Optional": True, "Match": get_date("adult|成人", 0)},
+        {"Age": "6 mo", "Days": 180, "Group": "Pneumococcal", "Vaccine": "肺炎球菌 第三劑 (PCV 3rd)", "Disease": "肺炎球菌感染 (Pneumococcal)", "Provider": "🏥 母嬰", "Desc": "第三針", "Optional": False, "Match": get_date("pcv|pneumo|肺炎", 2)},
+        {"Age": "6 mo", "Days": 180, "Group": "Rotavirus", "Vaccine": "輪狀病毒 第三劑 (Rotavirus 3rd)", "Disease": "輪狀病毒腸胃炎 (Rotavirus)", "Provider": "💰 私家", "Desc": "視乎藥廠", "Optional": True, "Match": get_date("rota|輪狀", 2)},
+        {"Age": "6 mo", "Days": 180, "Group": "Influenza", "Vaccine": "季節性流感 (Influenza)", "Disease": "流行性感冒 (Flu)", "Provider": "💰 私家 / 🏥 診所", "Desc": "滿6個月可打", "Optional": True, "Match": get_date("flu|流感", 0)}
     ]
     
     current_date = (datetime.utcnow() + timedelta(hours=tz_offset)).date()
@@ -1146,16 +1056,10 @@ with tab8:
         v_name_formatted = f"(Optional) {s['Vaccine']}" if s["Optional"] else s["Vaccine"]
         
         rows.append({
-            "Age": s["Age"],
-            "Group": s["Group"],
-            "Disease Prevented": s["Disease"],
-            "Vaccine / 疫苗": v_name_formatted,
-            "Type": s["Provider"],
-            "Description": s["Desc"],
-            "Date Injected": str(s["Match"]) if s["Match"] else "-",
-            "Status": status,
-            "Optional": s["Optional"],
-            "Days": s["Days"]
+            "Age": s["Age"], "Group": s["Group"], "Disease Prevented": s["Disease"],
+            "Vaccine / 疫苗": v_name_formatted, "Type": s["Provider"], "Description": s["Desc"],
+            "Date Injected": str(s["Match"]) if s["Match"] else "-", "Status": status,
+            "Optional": s["Optional"], "Days": s["Days"]
         })
         
     styled_df = pd.DataFrame(rows)
@@ -1165,18 +1069,16 @@ with tab8:
         upcoming = [r for r in rows if r["Status"] == "🟡 Due Soon" or r["Status"] == "⚠️ Overdue"]
         next_due = upcoming[0]["Vaccine / 疫苗"] if upcoming else "All caught up"
         
-        # Inject instruction to cross-reference missing vaccines
-        ai_vac_context = f"Category: Vaccines. Total administered so far: {total_vacs}. Next scheduled action required: {next_due}. Based on standard pediatric guidelines, please evaluate if any other typical vaccines are missing or highly recommended at her current age."
+        # ONLINE REFERENCE INSTRUCTION: Evaluates missing or additional recommended shots for HK standard
+        ai_vac_context = f"Category: Vaccines. Total administered so far: {total_vacs}. Next scheduled action required: {next_due}. Check HK standard pediatric guidelines for a {age_days}-day-old / {age_days/30.437:.1f}-month-old baby girl. Cross-reference all administered vaccines against standard HK requirements to identify any missing, upcoming, or additional recommended shots."
         
-        render_insight_card(f"Riley has received **{total_vacs}** vaccine(s). Status of next vaccine: **{next_due}**.", ai_prompt_context=ai_vac_context)
+        render_insight_card(f"Riley has received **{total_vacs}** vaccine(s). Next status: **{next_due}**.", ai_prompt_context=ai_vac_context)
 
     v_col1, v_col2 = st.columns([1, 1])
     with v_col1: grouping = st.radio("Sort View:", ["By Age Milestone", "By Vaccine Type"], horizontal=True, label_visibility="collapsed")
     
-    if grouping == "By Vaccine Type":
-        styled_df = styled_df.sort_values(by=["Group", "Days"]).reset_index(drop=True)
-    else:
-        styled_df = styled_df.sort_values(by="Days").reset_index(drop=True)
+    if grouping == "By Vaccine Type": styled_df = styled_df.sort_values(by=["Group", "Days"]).reset_index(drop=True)
+    else: styled_df = styled_df.sort_values(by="Days").reset_index(drop=True)
 
     def apply_vaccine_colors(row):
         if '✅' in row['Status']: return ['background-color: #dcfce7; color: #166534'] * 7
@@ -1188,40 +1090,7 @@ with tab8:
     dropped_df = styled_df.drop(columns=["Days", "Group", "Optional"])
     styled_table = dropped_df.style.apply(apply_vaccine_colors, axis=1)
     
-    st.dataframe(
-        styled_table,
-        use_container_width=True, hide_index=True, height=550,
-        column_config={
-            "Vaccine / 疫苗": st.column_config.TextColumn("Vaccine / 疫苗", width="medium"),
-            "Disease Prevented": st.column_config.TextColumn("Disease Prevented", width="large"),
-            "Description": st.column_config.TextColumn("Description", width="medium")
-        }
-    )
-    
-    st.caption("ℹ️ *Auto-matches your logged vaccines by scanning your 'Notes / Details' column for keywords (e.g. 6-in-1, PCV, Rota, BCG).*")
-    
-    st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
-    st.markdown("##### 📋 Riley's Vaccination History Log")
-    if not vac_df.empty:
-        if 'DateTime' in vac_df.columns:
-            vac_df = vac_df.sort_values('DateTime', ascending=False).reset_index(drop=True)
-            vac_df['DateTime_Display'] = pd.to_datetime(vac_df['DateTime']).dt.strftime('%Y-%m-%d')
-            vac_df['Age at Shot'] = ((pd.to_datetime(vac_df['Date']) - pd.to_datetime(baby_dob)).dt.days / 30.437).round(1).astype(str) + " mo"
-        
-        desired_cols = ['DateTime_Display', 'Age at Shot', 'Event Type', 'Notes / Details (Optional)']
-        display_vac = vac_df[[c for c in desired_cols if c in vac_df.columns]].copy()
-        if 'DateTime_Display' in display_vac.columns: display_vac = display_vac.rename(columns={'DateTime_Display': 'Date Injected'})
-            
-        st.dataframe(
-            display_vac, use_container_width=True, hide_index=True, height=350,
-            column_config={
-                "Date Injected": st.column_config.TextColumn("Date Injected", width="medium"), 
-                "Age at Shot": st.column_config.TextColumn("Age at Shot", width="small"),
-                "Event Type": st.column_config.TextColumn("Event", width="medium"),
-                "Notes / Details (Optional)": st.column_config.TextColumn("Vaccine Type / Notes", width="large")
-            }
-        )
-    else: render_empty_state("No Vaccine Data Logged")
+    st.dataframe(styled_table, use_container_width=True, hide_index=True, height=550)
 
 # ==========================================
 # 7. UNIFIED MASTER DATABASE & EDITOR
@@ -1232,8 +1101,7 @@ if 'edit_mode' not in st.session_state:
 st.markdown('<div id="database" style="padding-top: 3.5rem;"></div>', unsafe_allow_html=True)
 
 db_c1, db_c2 = st.columns([3, 1], vertical_alignment="bottom")
-with db_c1:
-    st.subheader("📋 Master Database")
+with db_c1: st.subheader("📋 Master Database")
 with db_c2:
     if not st.session_state.edit_mode:
         if st.button("🔓 Enable Edit Mode", use_container_width=True):
@@ -1241,18 +1109,16 @@ with db_c2:
             st.session_state.edit_mode = True
             st.rerun()
 
-# Capture the exact Google Sheet Row ID in the master dataframe
 master_df = df[['SheetRow', 'DateTime', 'Event Type', 'Value (Optional)', 'Notes / Details (Optional)']].copy()
 master_df['DateTime'] = master_df['DateTime'].dt.strftime('%Y-%m-%d %H:%M:%S')
 
 filter_c1, filter_c2 = st.columns([1, 1])
-with filter_c1: selected_events = st.multiselect("🏷️ Filter Event Types:", options=ALL_EVENT_CATEGORIES, default=[], placeholder="Choose event types (Leave empty for All)")
-with filter_c2: search_query = st.text_input("🔍 Search Anything:", "", placeholder="Type date (e.g. 07-21), Formula, notes...")
+with filter_c1: selected_events = st.multiselect("🏷️ Filter Event Types:", options=ALL_EVENT_CATEGORIES, default=[], placeholder="Choose event types")
+with filter_c2: search_query = st.text_input("🔍 Search Anything:", "", placeholder="Type date, Formula, notes...")
 
 table_df = master_df.copy()
 
-if selected_events: 
-    table_df = table_df[table_df['Event Type'].isin(selected_events)]
+if selected_events: table_df = table_df[table_df['Event Type'].isin(selected_events)]
 
 if search_query:
     search_mask = pd.Series(False, index=table_df.index)
@@ -1277,24 +1143,15 @@ if st.session_state.edit_mode:
         st.markdown("""
         <div style="background-color: #fef2f2; border: 1px solid #f87171; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
             <strong style="color: #991b1b;">⚠️ Edit Mode Active (Surgical Sync)</strong><br>
-            <span style="color: #7f1d1d; font-size: 0.85rem;">Your edits will target <b>Columns D through I</b> only, safely preserving all your ArrayFormulas in Columns A, B, and C.</span>
+            <span style="color: #7f1d1d; font-size: 0.85rem;">Edits target <b>Columns D through I</b> only, preserving ArrayFormulas in A, B, C.</span>
         </div>
         """, unsafe_allow_html=True)
         
-        # Positioned below Edit Mode banner: "Save Changes" on left, "Cancel Editing" on right (stacks vertically on mobile)
         btn_col1, btn_col2 = st.columns([1, 1])
-        with btn_col1:
-            submit_button = st.form_submit_button("💾 Save Changes", type="primary", use_container_width=True)
-        with btn_col2:
-            cancel_button = st.form_submit_button("🔒 Cancel Editing", use_container_width=True)
+        with btn_col1: submit_button = st.form_submit_button("💾 Save Changes", type="primary", use_container_width=True)
+        with btn_col2: cancel_button = st.form_submit_button("🔒 Cancel Editing", use_container_width=True)
 
-        edited_df = st.data_editor(
-            display_df, 
-            use_container_width=True, 
-            height=900,
-            num_rows="dynamic",
-            column_config=col_config
-        )
+        edited_df = st.data_editor(display_df, use_container_width=True, height=900, num_rows="dynamic", column_config=col_config)
         
         if cancel_button:
             st.session_state.edit_mode = False
@@ -1304,109 +1161,63 @@ if st.session_state.edit_mode:
             with st.spinner("Executing surgical cell updates..."):
                 try:
                     conn = st.connection("gsheets", type=GSheetsConnection)
-                    
                     secrets_dict = dict(st.secrets["connections"]["gsheets"])
-                    secrets_dict.pop("spreadsheet", None)
-                    secrets_dict.pop("worksheet", None)
-                    secrets_dict.pop("type", None)
+                    secrets_dict.pop("spreadsheet", None); secrets_dict.pop("worksheet", None); secrets_dict.pop("type", None)
                     
                     client = gspread.service_account_from_dict(secrets_dict)
                     sheet = client.open_by_url(sheet_url_input).worksheet("Log")
                     
                     live_df = conn.read(spreadsheet=sheet_url_input, worksheet="Log", ttl=0)
-                    live_max_time = None
-                    if 'DateTime' in live_df.columns: 
-                        live_max_time = pd.to_datetime(live_df['DateTime'], errors='coerce').max()
-                    elif 'EntryDateTime' in live_df.columns: 
-                        live_max_time = pd.to_datetime(live_df['EntryDateTime'], errors='coerce').max()
+                    live_max_time = pd.to_datetime(live_df['DateTime'], errors='coerce').max() if 'DateTime' in live_df.columns else None
                         
                     if current_max_time and live_max_time and live_max_time > current_max_time:
-                        st.error("🚨 **CRITICAL COLLISION:** Someone logged new data to the spreadsheet while you were editing! Please click 'Cancel Editing' and re-enable it to sync the latest data.")
+                        st.error("🚨 **CRITICAL COLLISION:** Someone logged new data to the spreadsheet while you were editing!")
                     else:
                         now_timestamp = (datetime.utcnow() + timedelta(hours=tz_offset)).strftime('%Y-%m-%d %H:%M:%S')
-                        
-                        # 1. IDENTIFY DELETIONS
                         deleted_indices = set(table_df.index) - set(edited_df.index)
                         deleted_sheet_rows = table_df.loc[list(deleted_indices), 'SheetRow'].tolist()
-                        
-                        # 2. IDENTIFY ADDITIONS
                         new_rows_df = edited_df[~edited_df.index.isin(table_df.index)]
-                        
-                        # 3. IDENTIFY EDITS
                         common_indices = set(table_df.index).intersection(set(edited_df.index))
                         edits_to_push = []
                         
                         for idx in common_indices:
-                            old_row = table_df.loc[idx]
-                            new_row = edited_df.loc[idx]
+                            old_row, new_row = table_df.loc[idx], edited_df.loc[idx]
                             sheet_row = int(old_row['SheetRow'])
-                            
                             row_changed = False
                             
                             new_dt_str = pd.to_datetime(new_row['DateTime']).strftime('%Y-%m-%d %H:%M:%S') if pd.notna(new_row['DateTime']) else ""
-                            old_dt_str = str(old_row['DateTime'])
-                            
-                            if old_dt_str != new_dt_str:
-                                edits_to_push.append(gspread.Cell(row=sheet_row, col=5, value=new_dt_str))
-                                row_changed = True
-                                
+                            if str(old_row['DateTime']) != new_dt_str:
+                                edits_to_push.append(gspread.Cell(row=sheet_row, col=5, value=new_dt_str)); row_changed = True
                             if str(old_row['Event Type']) != str(new_row['Event Type']):
-                                edits_to_push.append(gspread.Cell(row=sheet_row, col=6, value=str(new_row['Event Type'])))
-                                row_changed = True
-                                
-                            old_val = "" if pd.isna(old_row['Value (Optional)']) else str(old_row['Value (Optional)'])
-                            new_val = "" if pd.isna(new_row['Value (Optional)']) else str(new_row['Value (Optional)'])
-                            if old_val != new_val:
-                                edits_to_push.append(gspread.Cell(row=sheet_row, col=7, value=new_row['Value (Optional)'] if not pd.isna(new_row['Value (Optional)']) else ""))
-                                row_changed = True
-                                
-                            old_note = "" if pd.isna(old_row['Notes / Details (Optional)']) else str(old_row['Notes / Details (Optional)'])
-                            new_note = "" if pd.isna(new_row['Notes / Details (Optional)']) else str(new_row['Notes / Details (Optional)'])
-                            if old_note != new_note:
-                                edits_to_push.append(gspread.Cell(row=sheet_row, col=8, value=new_note))
-                                row_changed = True
+                                edits_to_push.append(gspread.Cell(row=sheet_row, col=6, value=str(new_row['Event Type']))); row_changed = True
+                            if str(old_row['Value (Optional)']) != str(new_row['Value (Optional)']):
+                                edits_to_push.append(gspread.Cell(row=sheet_row, col=7, value=new_row['Value (Optional)'] if pd.notna(new_row['Value (Optional)']) else "")); row_changed = True
+                            if str(old_row['Notes / Details (Optional)']) != str(new_row['Notes / Details (Optional)']):
+                                edits_to_push.append(gspread.Cell(row=sheet_row, col=8, value=str(new_row['Notes / Details (Optional)']) if pd.notna(new_row['Notes / Details (Optional)']) else "")); row_changed = True
                             
                             if row_changed:
                                 edits_to_push.append(gspread.Cell(row=sheet_row, col=9, value=now_timestamp))
                         
-                        # EXECUTE BATCH UPDATES WITH USER_ENTERED VALUE PARSING
-                        if edits_to_push:
-                            sheet.update_cells(edits_to_push, value_input_option='USER_ENTERED')
-                            
-                        # EXECUTE DELETIONS
+                        if edits_to_push: sheet.update_cells(edits_to_push, value_input_option='USER_ENTERED')
                         if deleted_sheet_rows:
-                            for r in sorted(deleted_sheet_rows, reverse=True):
-                                sheet.delete_rows(r)
+                            for r in sorted(deleted_sheet_rows, reverse=True): sheet.delete_rows(r)
                                 
-                        # EXECUTE ADDITIONS WITH USER_ENTERED VALUE PARSING
                         if not new_rows_df.empty:
                             dt_col = sheet.col_values(5)
                             next_row = len(dt_col) + 1
-                            
                             new_data = []
                             for _, r in new_rows_df.iterrows():
-                                entry_dt = now_timestamp
                                 dt_str = pd.to_datetime(r['DateTime']).strftime('%Y-%m-%d %H:%M:%S') if pd.notna(r['DateTime']) else now_timestamp
-                                ev = str(r['Event Type'])
-                                val = r['Value (Optional)'] if pd.notna(r['Value (Optional)']) else ""
-                                notes = str(r['Notes / Details (Optional)']) if pd.notna(r['Notes / Details (Optional)']) else ""
-                                new_data.append([entry_dt, dt_str, ev, val, notes, now_timestamp])
-                                
+                                new_data.append([now_timestamp, dt_str, str(r['Event Type']), r['Value (Optional)'] if pd.notna(r['Value (Optional)']) else "", str(r['Notes / Details (Optional)']) if pd.notna(r['Notes / Details (Optional)']) else "", now_timestamp])
                             sheet.update(values=new_data, range_name=f"D{next_row}:I{next_row + len(new_data) - 1}", value_input_option='USER_ENTERED')
                             
-                        st.success("✅ Surgical updates & UpdateDateTime successfully pushed to Google Sheets! Refreshing...")
+                        st.success("✅ Updates pushed successfully!")
                         st.session_state.edit_mode = False
                         st.cache_data.clear()
                         st.rerun()
-                except Exception as e:
-                    st.error(f"Failed to execute surgical update: {e}")
+                except Exception as e: st.error(f"Failed to update Google Sheets: {e}")
 else:
-    st.dataframe(
-        display_df, 
-        use_container_width=True, 
-        height=900,
-        column_config=col_config
-    )
+    st.dataframe(display_df, use_container_width=True, height=900, column_config=col_config)
 
 st.markdown(f'<div class="raw-log-count-text">Showing {len(table_df)} entry(s) matching your criteria.</div>', unsafe_allow_html=True)
 st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
@@ -1416,14 +1227,4 @@ st.markdown('<hr style="margin: 6px 0; opacity: 0.2;">', unsafe_allow_html=True)
 # ==========================================
 if st.session_state.get('needs_auto_retry', False):
     st.session_state.needs_auto_retry = False
-    components.html(
-        """
-        <script>
-            setTimeout(function() {
-                window.parent.location.reload();
-            }, 3000);
-        </script>
-        """,
-        height=0,
-        width=0
-    )
+    components.html("<script>setTimeout(function() { window.parent.location.reload(); }, 3000);</script>", height=0, width=0)
