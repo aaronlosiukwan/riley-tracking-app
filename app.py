@@ -457,7 +457,7 @@ def render_insight_card(hardcoded_text, ai_prompt_context=None):
     api_key_param = st.secrets.get("OPENROUTER_API_KEY", None)
     if use_ai_insights and ai_prompt_context and OPENAI_AVAILABLE:
         with st.spinner("🤖 Generating AI insight..."):
-            prompt = f"Evaluate baby Riley's logs: {ai_prompt_context}. Write a 1-2 sentence encouraging insight highlighting key trends. Keep formatting simple with bold key metrics. Do not include introductory filler."
+            prompt = "Evaluate baby Riley's logs: {ai_prompt_context}. Write a 1-2 sentence encouraging insight highlighting key trends. Keep formatting simple with bold key metrics. Do not include introductory filler and any html code."
             output_text = call_ai(prompt, api_key_param)
             border_color = "#8b5cf6"
             badge_title = "✨ AI Insight"
