@@ -906,7 +906,7 @@ def build_health_ai_context(act_opt):
         return f"Category: Medication. Today: {t_val} doses. Recent 7-Day Avg: {r_val:.1f} doses/day. Selected Range Total: {len(act_df)} doses."
 
 # ==========================================
-# 6. CHARTS & ANALYTICS
+# 6. CHARTS & ANALYTICS (TABS 1 - 8)
 # ==========================================
 st.markdown('<div id="insights"></div>', unsafe_allow_html=True)
 st.subheader("📊 Insights")
@@ -915,7 +915,9 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "⏰ Today", "🍼 Milk", "🚽 Diapers", "🧴 Pumping", "🛟 Tummy", "📈 Growth", "🩺 Health", "💉 Vaccine"
 ])
 
+# ==========================================
 # TAB 1: TODAY
+# ==========================================
 with tab1:
     cutoff_24h = current_local_time - timedelta(hours=24)
     today_24h_df = df[(df['DateTime'] >= cutoff_24h) & (df['DateTime'] <= current_local_time)].copy()
@@ -957,7 +959,7 @@ with tab1:
         
         st.caption("ℹ️ *Interactive scatter timeline displaying all events logged within the last 24 hours.*")
 
-        # --- SAFELY COMPUTE 24H METRICS INSIDE TAB 1 SCOPE ---
+        # --- LOCAL METRICS COMPUTATION INSIDE TAB 1 SCOPE ---
         t_formula = today_24h_df[today_24h_df['Event Type'].str.contains("Formula", case=False, na=False)]['Value (Optional)'].sum()
         t_bm = today_24h_df[today_24h_df['Event Type'].str.contains("Breast Milk", case=False, na=False)]['Value (Optional)'].sum()
         t_milk = t_formula + t_bm
@@ -985,6 +987,7 @@ with tab1:
         render_insight_card(analysis, ai_prompt_context=ai_context, category_df=today_24h_df, category_key="today")
     else: 
         render_empty_state("No Events Logged in the Last 24 Hours")
+
 
 # ==========================================
 # TAB 2: MILK
@@ -1157,15 +1160,6 @@ with tab6:
 
     who_option = st.radio("Select Growth Chart:", options=["⚖️ Weight", "🏔️ Height", "🐷 Head"], horizontal=True, label_visibility="collapsed")
     
-    # # STRICT SEQUENTIAL PRE-FETCHING FOR ALL 3 GROWTH OPTIONS
-    # if use_ai_insights:
-    #     for prefetch_opt in ["⚖️ Weight", "🏔️ Height", "🐷 Head"]:
-    #         if prefetch_opt != who_option:
-    #             p_keyword = "⚖️ Weight (kg)" if "Weight" in prefetch_opt else ("🏔️ Height (cm)" if "Height" in prefetch_opt else "🐷 Head Size (cm)")
-    #             p_context = build_growth_ai_context(p_keyword, prefetch_opt)
-    #             p_df = df[df['Event Type'] == p_keyword]
-    #             render_insight_card("", ai_prompt_context=p_context, category_df=p_df, hidden_prefetch=True)
-    
     db_keyword = "⚖️ Weight (kg)" if "Weight" in who_option else ("🏔️ Height (cm)" if "Height" in who_option else "🐷 Head Size (cm)")
     who_df = df[df['Event Type'] == db_keyword].copy()
     
@@ -1285,15 +1279,6 @@ with tab6:
 # ==========================================
 with tab7:
     act_option = st.radio("Select Category:", options=["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"], index=0, horizontal=True, label_visibility="collapsed")
-    
-    # STRICT SEQUENTIAL PRE-FETCHING FOR ALL HEALTH OPTIONS
-    # if use_ai_insights:
-    #     for prefetch_opt in ["🛌 Sleep (hrs)", "🌡️ Temp (°C)", "💊 Meds (Cnt)"]:
-    #         if prefetch_opt != act_option:
-    #             p_context = build_health_ai_context(prefetch_opt)
-    #             p_kw = act_mapping[prefetch_opt][0]
-    #             p_df = filtered_df[filtered_df['Event Type'].str.contains(p_kw, case=False, na=False)]
-    #             render_insight_card("", ai_prompt_context=p_context, category_df=p_df, hidden_prefetch=True)
     
     keyword, y_title, act_color, unit = act_mapping[act_option]
     act_df = filtered_df[filtered_df['Event Type'].str.contains(keyword, case=False, na=False)].copy()
