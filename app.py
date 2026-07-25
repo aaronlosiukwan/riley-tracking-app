@@ -964,7 +964,8 @@ with tab1:
         )
         
         fig_today_timeline.update_traces(hovertemplate='%{customdata[0]}<extra></extra>')
-        fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=450, is_scatter=True, x_tickformat="%d-%H", x_dtick=10800000, y_tickangle=-45)
+        # y_tickangle=0 makes Y-axis tick labels horizontal & upright (no diagonal slant!)
+        fig_today_timeline = style_plotly_figure(fig_today_timeline, title_text="⏰ Last 24 Hours Activity Timeline", height=450, is_scatter=True, x_tickformat="%d-%H", x_dtick=10800000, y_tickangle=0)
         fig_today_timeline.update_layout(showlegend=False, yaxis=dict(title=dict(text=""), showgrid=True, gridcolor="#f1f5f9", tickfont=dict(size=10.5), automargin=True))
         st.plotly_chart(fig_today_timeline, use_container_width=True)
         
@@ -1018,35 +1019,77 @@ with tab2:
         total_per_x[group_col] = total_per_x[group_col].apply(format_x_label)
         is_single = len(grouped_count[group_col].unique()) == 1
         
+        max_vol = total_per_x['Value (Optional)'].max() if not total_per_x.empty else 100
+        max_feeds = grouped_count['Total Feeds Count'].max() if not grouped_count.empty else 10
+
+        # Clean 2-Row Subplot Panel without distracting inner annotations
         fig_milk = make_subplots(
             rows=2, cols=1, 
             shared_xaxes=True, 
-            row_heights=[0.7, 0.3], 
-            vertical_spacing=0.08,
-            subplot_titles=(f"🍼 Milk Intake Volume (mL) — {granularity}", "🔢 Feed Count(s)")
+            row_heights=[0.68, 0.32], 
+            vertical_spacing=0.12
         )
         
+        # Formula: Vibrant Sky Blue
         df_f = grouped_vol[grouped_vol['Category'] == '🍼 Formula (mL)']
         if not df_f.empty: 
-            fig_milk.add_trace(go.Bar(name='🍼 Formula (mL)', x=df_f[group_col].astype(str), y=df_f['Value (Optional)'], marker_color="#38bdf8", width=0.35 if is_single else None, text=df_f['Value (Optional)'], textposition='inside', textfont=dict(weight='bold', color='white'), hovertemplate='%{y} mL<extra></extra>'), row=1, col=1)
+            fig_milk.add_trace(go.Bar(
+                name='🍼 Formula (mL)', 
+                x=df_f[group_col].astype(str), 
+                y=df_f['Value (Optional)'], 
+                marker_color="#0ea5e9", 
+                width=0.35 if is_single else None, 
+                hovertemplate='%{y} mL<extra></extra>'
+            ), row=1, col=1)
             
+        # Breast Milk: Soft Indigo / Periwinkle (Harmonic match with Sky Blue)
         df_bm = grouped_vol[grouped_vol['Category'] == '🤱 Breast Milk (mL)']
         if not df_bm.empty: 
-            fig_milk.add_trace(go.Bar(name='🤱 Breast Milk (mL)', x=df_bm[group_col].astype(str), y=df_bm['Value (Optional)'], marker_color="#94a3b8", width=0.35 if is_single else None, hovertemplate='%{y} mL<extra></extra>'), row=1, col=1)
+            fig_milk.add_trace(go.Bar(
+                name='🤱 Breast Milk (mL)', 
+                x=df_bm[group_col].astype(str), 
+                y=df_bm['Value (Optional)'], 
+                marker_color="#818cf8", 
+                width=0.35 if is_single else None, 
+                hovertemplate='%{y} mL<extra></extra>'
+            ), row=1, col=1)
             
-        fig_milk.add_trace(go.Scatter(name='📈 Vol Trend', x=total_per_x[group_col].astype(str), y=total_per_x['Trend'], mode='lines', line=dict(color='#0f172a', width=2.5, shape='spline'), hovertemplate='Avg Trend: %{y:.0f} mL<extra></extra>'), row=1, col=1)
-        fig_milk.add_trace(go.Bar(name='🔢 Feed Count', x=grouped_count[group_col].astype(str), y=grouped_count['Total Feeds Count'], marker_color='#f97316', width=0.35 if is_single else None, text=grouped_count['Total Feeds Count'], textposition="outside", textfont=dict(size=10, weight='bold'), hovertemplate='%{y} feeds<extra></extra>'), row=2, col=1)
+        fig_milk.add_trace(go.Scatter(
+            name='📈 Vol Trend', 
+            x=total_per_x[group_col].astype(str), 
+            y=total_per_x['Trend'], 
+            mode='lines', 
+            line=dict(color='#0f172a', width=2.5, shape='spline'), 
+            hovertemplate='Avg Trend: %{y:.0f} mL<extra></extra>'
+        ), row=1, col=1)
+        
+        # Total Volume Label OUTSIDE top of stacked bars
+        fig_milk.add_trace(go.Scatter(
+            x=total_per_x[group_col].astype(str), y=total_per_x['Value (Optional)'],
+            mode='text', text=['<b>' + f"{int(v):,} mL" + '</b>' for v in total_per_x['Value (Optional)']],
+            textposition='top center', textfont=dict(size=12.5, color='#0f172a'),
+            hoverinfo='skip', showlegend=False
+        ), row=1, col=1)
 
+        # Feed Count Bars with Text OUTSIDE
+        fig_milk.add_trace(go.Bar(
+            name='🔢 Feed Count', x=grouped_count[group_col].astype(str), y=grouped_count['Total Feeds Count'],
+            marker_color='#f97316', width=0.35 if is_single else None,
+            text=['<b>' + str(int(c)) + '</b>' for c in grouped_count['Total Feeds Count']],
+            textposition="outside", textfont=dict(size=12, color='#0f172a'),
+            hovertemplate='%{y} feeds<extra></extra>'
+        ), row=2, col=1)
+
+        # Uniform Title styling matching style_plotly_figure across all tabs
+        fig_milk = style_plotly_figure(fig_milk, title_text=f"🍼 Milk Intake Volume & Feed Count — {granularity}", height=520, single_point=is_single)
         fig_milk.update_layout(
-            barmode='stack', height=520, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            margin=dict(l=2, r=2, t=40, b=20), showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-            font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", size=11),
-            xaxis2=dict(type="category", showgrid=True, gridcolor="#f1f5f9", tickfont=dict(size=9.5), automargin=True),
-            yaxis=dict(showgrid=True, gridcolor="#f1f5f9"), yaxis2=dict(showgrid=True, gridcolor="#f1f5f9")
+            barmode='stack', showlegend=False,
+            yaxis=dict(showgrid=True, gridcolor="#f1f5f9", range=[0, max_vol * 1.25]),
+            yaxis2=dict(showgrid=True, gridcolor="#f1f5f9", range=[0, max_feeds * 1.35])
         )
         st.plotly_chart(fig_milk, use_container_width=True)
         
-        st.caption("ℹ️ *Subplot layout separating stacked Formula/Breast Milk volume (mL) and Feed Count(s).*")
+        st.caption("ℹ️ *Displays total milk volume (mL) and daily feed frequency.*")
 
         # --- LOCAL METRICS COMPUTATION ---
         avg_vol = total_per_x['Value (Optional)'].mean()
@@ -1063,7 +1106,6 @@ with tab2:
         render_insight_card(hardcoded_milk, ai_prompt_context=ai_milk_context, category_df=milk_df, category_key="milk")
     else: 
         render_empty_state("No Feeding Data Logged in this period")
-
 
 # ==========================================
 # TAB 3: DIAPERS
@@ -1091,10 +1133,36 @@ with tab3:
             "🚽 Poop": "#d97706"
         }
 
-        fig_diaper = px.bar(grouped_diaper, x=group_col, y="Count", color="Category", barmode="stack", color_discrete_map=diaper_color_map)
+        fig_diaper = px.bar(
+            grouped_diaper, x=group_col, y="Count", color="Category", 
+            barmode="stack", color_discrete_map=diaper_color_map, text="Count"
+        )
         if is_single: fig_diaper.update_traces(width=0.25)
-        fig_diaper.update_traces(hovertemplate='%{y}<extra></extra>')
-        fig_diaper = style_plotly_figure(fig_diaper, title_text=f"🚽 Total Diaper Changes Count — {granularity}", height=450, single_point=is_single)
+        
+        # Segment Text Labels Inside Bar
+        fig_diaper.update_traces(
+            textposition='inside',
+            textfont=dict(size=11, color='white'),
+            hovertemplate='%{y}<extra></extra>'
+        )
+
+        # Compute Daily Totals for Label OUTSIDE Top of Bar
+        daily_diaper_totals = grouped_diaper.groupby(group_col)['Count'].sum().reset_index()
+        max_diapers = daily_diaper_totals['Count'].max() if not daily_diaper_totals.empty else 5
+
+        fig_diaper.add_trace(go.Scatter(
+            x=daily_diaper_totals[group_col].astype(str),
+            y=daily_diaper_totals['Count'],
+            mode='text',
+            text=['<b>' + str(int(c)) + '</b>' for c in daily_diaper_totals['Count']],
+            textposition='top center',
+            textfont=dict(size=12.5, color='#0f172a'),
+            hoverinfo='skip',
+            showlegend=False
+        ))
+
+        fig_diaper = style_plotly_figure(fig_diaper, title_text=f"🚽 Total Diaper Changes Count — {granularity}", height=460, single_point=is_single)
+        fig_diaper.update_layout(yaxis=dict(range=[0, max_diapers * 1.25]))
         st.plotly_chart(fig_diaper, use_container_width=True)
         
         st.caption("ℹ️ *Stacked deduplicated diaper changes (Poop changes stacked over Wet-only changes to strictly match total changes).*")
